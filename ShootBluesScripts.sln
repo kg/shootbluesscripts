@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Squared.Util", "..\Fracture
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DroneHelper", "DroneHelper\DroneHelper.csproj", "{E6301E60-01D0-403F-A9F9-D1FA3942CC79}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{390A5CD1-F8DE-491E-BECC-AD16FD237E50}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -31,6 +33,10 @@ Global
 		{E6301E60-01D0-403F-A9F9-D1FA3942CC79}.Debug|x86.Build.0 = Debug|x86
 		{E6301E60-01D0-403F-A9F9-D1FA3942CC79}.Release|x86.ActiveCfg = Release|x86
 		{E6301E60-01D0-403F-A9F9-D1FA3942CC79}.Release|x86.Build.0 = Release|x86
+		{390A5CD1-F8DE-491E-BECC-AD16FD237E50}.Debug|x86.ActiveCfg = Debug|x86
+		{390A5CD1-F8DE-491E-BECC-AD16FD237E50}.Debug|x86.Build.0 = Debug|x86
+		{390A5CD1-F8DE-491E-BECC-AD16FD237E50}.Release|x86.ActiveCfg = Release|x86
+		{390A5CD1-F8DE-491E-BECC-AD16FD237E50}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

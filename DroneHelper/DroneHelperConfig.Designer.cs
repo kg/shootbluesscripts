@@ -1,4 +1,4 @@
-﻿namespace DroneHelper {
+﻿namespace ShootBlues.Script {
     partial class DroneHelperConfig {
         /// <summary> 
         /// Required designer variable.

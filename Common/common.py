@@ -1,12 +1,20 @@
-import blue 
-import service
-from shootblues import rpcSend
+import shootblues
+
+__channels = {}
+
+def _initChannel(name, handle):
+    __channels[name] = shootblues.createChannel(handle)
+
+def getChannel(name):
+    return __channels[name]
 
 def log(format, *args):
-    if args:
-        rpcSend(str(format) % args)
-    else:
-        rpcSend(repr(format))
+    logger = getChannel("log")
+    if logger:
+        if args:
+            logger.send(str(format) % args)
+        else:
+            logger.send(repr(format))
 
 def getLoggedInCharacter():
     try:
@@ -36,10 +44,9 @@ def forceStopService(serviceName):
         
         if serviceInstance in notifies:
             notifies.remove(serviceInstance)
-    
-    log("Service force stopped: %r", serviceName)
 
 def forceStartService(serviceName, serviceType):
+    import service
     oldInstance = sm.services.get(serviceName, None)
     if oldInstance:
         forceStopService(serviceName)
@@ -55,5 +62,4 @@ def forceStartService(serviceName, serviceType):
         if (not hasattr(result, event)):
             log("Missing event handler for %r on %r", event, result)
             
-    log("Service force started: %r", serviceName)
     return result

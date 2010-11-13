@@ -4,12 +4,26 @@ using System.Text;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
+using System.Reflection;
+using System.IO;
 
-namespace DroneHelper {
+namespace ShootBlues.Script {
     public class DroneHelper : IManagedScript {
+        string CommonPath;
+        string ScriptPath;
         ToolStripMenuItem CustomMenu;
 
         public DroneHelper () {
+            CommonPath = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                "Common.dll"
+            );
+
+            ScriptPath = Path.Combine(
+                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                "dronehelper.py"
+            );
+
             CustomMenu = new ToolStripMenuItem("Drone Helper");
             CustomMenu.DropDownItems.Add("Configure", null, ConfigureDroneHelper);
             CustomMenu.DropDownItems.Add("-");
@@ -29,34 +43,30 @@ namespace DroneHelper {
         }
 
         public IEnumerator<object> LoadInto (ProcessInfo process) {
-            yield return Program.SendScriptText(
-                process, "dronehelper",
-                @"import shootblues
-__channel = None
+            Console.WriteLine("DroneHelper.LoadInto {0}", process.Process.Id);
 
-def initializeChannel(channelId):
-    global __channel
-    __channel = shootblues.createChannel(channelId)
+            yield return Program.LoadScriptFromFilename(
+                process, CommonPath
+            );
 
-def getLockedTargets():
-    ballpark = eve.LocalSvc('michelle').GetBallpark()
-    targetSvc = sm.services['target']
-    return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
-"
+            yield return Program.LoadScriptFromFilename(
+                process, ScriptPath
             );
         }
 
         public IEnumerator<object> LoadedInto (ProcessInfo process) {
-            var channel = process.GetNamedChannel("DroneHelper");
-
-            yield return Program.CallFunction(
-                process, "dronehelper", "initializeChannel", String.Format("[{0}]", channel.Handle.ToInt64())
-            );
+            yield return Common.CreateNamedChannel(process, "dronehelper");
         }
 
         public IEnumerator<object> UnloadFrom (ProcessInfo process) {
-            yield return Program.UnloadScriptByModuleName(
-                process, "dronehelper"
+            Console.WriteLine("DroneHelper.UnloadFrom {0}", process.Process.Id);
+            
+            yield return Program.UnloadScriptFromFilename(
+                process, CommonPath
+            );
+
+            yield return Program.UnloadScriptFromFilename(
+                process, ScriptPath
             );
         }
 

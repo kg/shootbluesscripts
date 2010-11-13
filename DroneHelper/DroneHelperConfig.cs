@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using ShootBlues;
 
-namespace DroneHelper {
+namespace ShootBlues.Script {
     public partial class DroneHelperConfig : UserControl {
         public DroneHelperConfig () {
             InitializeComponent();
