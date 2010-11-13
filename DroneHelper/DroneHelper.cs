@@ -3,20 +3,23 @@ using System.Collections.Generic;
 using System.Text;
 using ShootBlues;
 using Squared.Task;
+using System.Windows.Forms;
 
 namespace DroneHelper {
     public class DroneHelper : IManagedScript {
+        ToolStripMenuItem CustomMenu;
+
         public DroneHelper () {
-            Console.WriteLine("DroneHelper()");
+            CustomMenu = new ToolStripMenuItem("Drone Helper");
+            Program.AddCustomMenu(CustomMenu);
         }
 
         public void Dispose () {
-            Console.WriteLine("~DroneHelper()");
+            Program.RemoveCustomMenu(CustomMenu);
+            CustomMenu.Dispose();
         }
 
-        IEnumerator<object> IManagedScript.LoadInto (ProcessInfo process) {
-            Console.WriteLine("DroneHelper.LoadInto {0}", process.Process.Id);
-
+        public IEnumerator<object> LoadInto (ProcessInfo process) {
             yield return Program.SendScriptText(
                 process, "dronehelper",
                 @"
@@ -28,12 +31,21 @@ def getLockedTargets():
             );
         }
 
-        IEnumerator<object> IManagedScript.UnloadFrom (ProcessInfo process) {
-            Console.WriteLine("DroneHelper.UnloadFrom {0}", process.Process.Id);
-
+        public IEnumerator<object> UnloadFrom (ProcessInfo process) {
             yield return Program.UnloadScriptByModuleName(
                 process, "dronehelper"
             );
+        }
+
+        public IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
+            var panel = new DroneHelperConfig();
+            statusWindow.ShowConfigurationPanel("Drone Helper", panel);
+            yield break;
+        }
+
+        public IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
+            statusWindow.HideConfigurationPanel("Drone Helper");
+            yield break;
         }
     }
 }
