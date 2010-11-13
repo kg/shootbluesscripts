@@ -11,6 +11,8 @@ namespace DroneHelper {
 
         public DroneHelper () {
             CustomMenu = new ToolStripMenuItem("Drone Helper");
+            CustomMenu.DropDownItems.Add("Configure", null, ConfigureDroneHelper);
+            CustomMenu.DropDownItems.Add("-");
             Program.AddCustomMenu(CustomMenu);
         }
 
@@ -19,15 +21,36 @@ namespace DroneHelper {
             CustomMenu.Dispose();
         }
 
+        public void ConfigureDroneHelper (object sender, EventArgs args) {
+            Program.Scheduler.Start(
+                Program.ShowStatusWindow("Drone Helper"),
+                TaskExecutionPolicy.RunAsBackgroundTask
+            );
+        }
+
         public IEnumerator<object> LoadInto (ProcessInfo process) {
             yield return Program.SendScriptText(
                 process, "dronehelper",
-                @"
+                @"import shootblues
+__channel = None
+
+def initializeChannel(channelId):
+    global __channel
+    __channel = shootblues.createChannel(channelId)
+
 def getLockedTargets():
     ballpark = eve.LocalSvc('michelle').GetBallpark()
     targetSvc = sm.services['target']
     return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
 "
+            );
+        }
+
+        public IEnumerator<object> LoadedInto (ProcessInfo process) {
+            var channel = process.GetNamedChannel("DroneHelper");
+
+            yield return Program.CallFunction(
+                process, "dronehelper", "initializeChannel", String.Format("[{0}]", channel.Handle.ToInt64())
             );
         }
 
