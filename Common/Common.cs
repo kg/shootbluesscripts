@@ -4,19 +4,49 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Reflection;
+using System.Windows.Forms;
 
 namespace ShootBlues.Script {
-    public class Common : IManagedScript {
-        string ScriptPath;
+    public class Common : ManagedScript {
+        protected LogWindow LogWindowInstance = null;
 
-        public Common () {
-            ScriptPath = Path.Combine(
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-                "common.py"
-            );
+        public List<string> Log = new List<string>();
+
+        ToolStripMenuItem CustomMenu;
+
+        public Common (ScriptName name)
+            : base(name) {
+            AddDependency("common.py");
+
+            CustomMenu = new ToolStripMenuItem("View Log", null, (s, e) => {
+                Program.Scheduler.Start(
+                    ShowLogWindow(), Squared.Task.TaskExecutionPolicy.RunAsBackgroundTask
+                );
+            });
+            Program.AddCustomMenu(CustomMenu);
         }
 
-        public void Dispose () {
+        public override void Dispose () {
+            base.Dispose();
+            Program.RemoveCustomMenu(CustomMenu);
+            CustomMenu.Dispose();
+        }
+
+        public IEnumerator<object> ShowLogWindow () {
+            if (LogWindowInstance != null) {
+                LogWindowInstance.Activate();
+                LogWindowInstance.Focus();
+                yield break;
+            }
+
+            using (LogWindowInstance = new LogWindow(Program.Scheduler)) {
+                LogWindowInstance.SetText(
+                    String.Join(Environment.NewLine, Log.ToArray())
+                );
+                yield return LogWindowInstance.Show();
+            }
+
+            LogWindowInstance = null;
         }
 
         public static IEnumerator<object> CreateNamedChannel (ProcessInfo process, string name) {
@@ -25,13 +55,7 @@ namespace ShootBlues.Script {
             yield return Program.CallFunction(process, "common", "_initChannel", String.Format("[\"{0}\", {1}]", name, channel.ChannelID));
         }
 
-        public IEnumerator<object> LoadInto (ProcessInfo process) {
-            Console.WriteLine("Common.LoadInto {0}", process.Process.Id);
-
-            yield return Program.LoadScriptFromFilename(process, ScriptPath);
-        }
-
-        public IEnumerator<object> LoadedInto (ProcessInfo process) {
+        override public IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return CreateNamedChannel(process, "log");
 
             process.Start(LogTask(process));
@@ -44,22 +68,12 @@ namespace ShootBlues.Script {
                 var fNext = channel.Receive();
                 yield return fNext;
 
-                Console.WriteLine("{0}: {1}", process.Process.Id, Encoding.ASCII.GetString(fNext.Result));
+                var logText = String.Format("{0}: {1}", process.Process.Id, fNext.Result.DecodeAsciiZ());
+                Log.Add(logText);
+                Console.WriteLine(logText);
+                if (LogWindowInstance != null)
+                    LogWindowInstance.AddLine(logText);
             }
-        }
-
-        public IEnumerator<object> UnloadFrom (ProcessInfo process) {
-            Console.WriteLine("Common.UnloadFrom {0}", process.Process.Id);
-
-            yield return Program.UnloadScriptFromFilename(process, ScriptPath);
-        }
-
-        public IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            yield break;
-        }
-
-        public IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
-            yield break;
         }
     }
 }

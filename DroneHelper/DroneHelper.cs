@@ -8,21 +8,14 @@ using System.Reflection;
 using System.IO;
 
 namespace ShootBlues.Script {
-    public class DroneHelper : IManagedScript {
-        string CommonPath;
-        string ScriptPath;
+    public class DroneHelper : ManagedScript {
         ToolStripMenuItem CustomMenu;
 
-        public DroneHelper () {
-            CommonPath = Path.Combine(
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-                "Common.dll"
-            );
+        public DroneHelper (ScriptName name)
+            : base (name) {
 
-            ScriptPath = Path.Combine(
-                Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-                "dronehelper.py"
-            );
+            AddDependency("Common.dll");
+            AddDependency("dronehelper.py");
 
             CustomMenu = new ToolStripMenuItem("Drone Helper");
             CustomMenu.DropDownItems.Add("Configure", null, ConfigureDroneHelper);
@@ -30,7 +23,8 @@ namespace ShootBlues.Script {
             Program.AddCustomMenu(CustomMenu);
         }
 
-        public void Dispose () {
+        public override void Dispose () {
+            base.Dispose();
             Program.RemoveCustomMenu(CustomMenu);
             CustomMenu.Dispose();
         }
@@ -42,41 +36,19 @@ namespace ShootBlues.Script {
             );
         }
 
-        public IEnumerator<object> LoadInto (ProcessInfo process) {
-            Console.WriteLine("DroneHelper.LoadInto {0}", process.Process.Id);
-
-            yield return Program.LoadScriptFromFilename(
-                process, CommonPath
-            );
-
-            yield return Program.LoadScriptFromFilename(
-                process, ScriptPath
-            );
-        }
-
-        public IEnumerator<object> LoadedInto (ProcessInfo process) {
+        public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Common.CreateNamedChannel(process, "dronehelper");
+
+            yield return Program.CallFunction(process, "dronehelper", "initialize", "[]");
         }
 
-        public IEnumerator<object> UnloadFrom (ProcessInfo process) {
-            Console.WriteLine("DroneHelper.UnloadFrom {0}", process.Process.Id);
-            
-            yield return Program.UnloadScriptFromFilename(
-                process, CommonPath
-            );
-
-            yield return Program.UnloadScriptFromFilename(
-                process, ScriptPath
-            );
-        }
-
-        public IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
+        public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
             var panel = new DroneHelperConfig();
             statusWindow.ShowConfigurationPanel("Drone Helper", panel);
             yield break;
         }
 
-        public IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
+        public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
             statusWindow.HideConfigurationPanel("Drone Helper");
             yield break;
         }

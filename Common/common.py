@@ -1,4 +1,5 @@
 import shootblues
+import types
 
 __channels = {}
 
@@ -13,6 +14,8 @@ def log(format, *args):
     if logger:
         if args:
             logger.send(str(format) % args)
+        elif isinstance(format, types.StringType):
+            logger.send(format)
         else:
             logger.send(repr(format))
 
