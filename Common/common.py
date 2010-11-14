@@ -1,5 +1,7 @@
 import shootblues
 import types
+import traceback
+import pprint
 
 __channels = {}
 
@@ -18,6 +20,44 @@ def log(format, *args):
             logger.send(format)
         else:
             logger.send(repr(format))
+
+def logException(*args, **kwargs):
+    global oldLogException
+    try:
+        log("An unhandled exception was thrown and I stopped it from being reported. You should try running with the CCP Log Server to see it next time.")
+    except:
+        pass
+    try:
+        if len(args) > 3:
+            args[3] = False
+        if len(args) > 4:
+            args[4] = False
+        if ('toLogServer' in kwargs) or len(args) <= 3:
+            kwargs['toLogServer'] = False
+        if ('toAlertSvc' in kwargs) or len(args) <= 4:
+            kwargs['toAlertSvc'] = False
+        oldLogException(*args, **kwargs)
+    except:
+        pass
+
+def logTraceback(*args, **kwargs):
+    global oldLogTraceback
+    try:
+        log("I stopped a traceback from being reported. You should try running with the CCP Log Server to see it next time.")
+    except:
+        pass
+    try:
+        if len(args) > 3:
+            args[3] = False
+        if len(args) > 4:
+            args[4] = False
+        if ('toAlertSvc' in kwargs) or len(args) <= 3:
+            kwargs['toAlertSvc'] = False
+        if ('toLogServer' in kwargs) or len(args) <= 4:
+            kwargs['toLogServer'] = False
+        oldLogTraceback(*args, **kwargs)
+    except:
+        pass
 
 def getLoggedInCharacter():
     try:
@@ -66,3 +106,19 @@ def forceStartService(serviceName, serviceType):
             log("Missing event handler for %r on %r", event, result)
             
     return result
+
+def replaceEveLogger():
+    global oldLogException, oldLogTraceback
+    import log
+    oldLogException = log.LogException
+    oldLogTraceback = log.LogTraceback
+    log.LogException = logException
+    log.LogTraceback = logTraceback
+    
+replaceEveLogger()
+
+def __unload__():
+    global oldLogException, oldLogTraceback
+    import log
+    log.LogException = oldLogException
+    log.LogTraceback = oldLogTraceback

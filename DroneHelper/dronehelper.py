@@ -54,6 +54,9 @@ class DroneHelperSvc(service.Service):
         else:
             ballpark = eve.LocalSvc('michelle').GetBallpark()
             self.__drones[droneID] = [ballpark.GetInvItem(droneID), newActivityState]
+        
+        if (oldActivityState != const.entityIdle) and (newActivityState == const.entityIdle):
+            log("Drone %r is becoming idle.", droneID)
 
     def OnDroneActivityChange(self, droneID, activityID, activity):
         log("DroneHelperSvc.OnDroneActivityChange droneId=%r activityId=%r activity=%r", droneID, activityID, activity)

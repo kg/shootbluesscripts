@@ -1,4 +1,5 @@
 from shootblues.common import forceStartService, forceStopService
+import blue
 import service
 
 class SessionTimerSvc(service.Service):
