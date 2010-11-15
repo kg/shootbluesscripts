@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DroneHelper", "DroneHelper\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{390A5CD1-F8DE-491E-BECC-AD16FD237E50}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile_Python27", "..\ShootBlues\Profile_Python27\Profile_Python27.csproj", "{C6F9E9DE-1DD0-4017-9EDD-4DD929C51C26}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile_Python", "..\ShootBlues\Profile_Python\Profile_Python.csproj", "{C6F9E9DE-1DD0-4017-9EDD-4DD929C51C26}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Profile_EVE", "Profile_EVE\Profile_EVE.csproj", "{1AAF3970-0B14-4103-8473-6B442113E826}"
 EndProject
