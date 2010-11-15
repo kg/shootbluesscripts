@@ -36,6 +36,18 @@ namespace ShootBlues.Script {
             );
         }
 
+        protected IEnumerator<object> BaseInitialize () {
+            return base.Initialize();
+        }
+
+        public override IEnumerator<object> Initialize () {
+            // Hack to initialize prefs to defaults
+            using (var configWindow = new DroneHelperConfig(this))
+                yield return configWindow.SavePreferences();
+
+            yield return BaseInitialize();
+        }
+
         protected override IEnumerator<object> OnPreferencesChanged () {
             var prefsJson = GetPreferencesJson();
 

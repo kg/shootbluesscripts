@@ -22,10 +22,14 @@ namespace ShootBlues.Script {
             Prefs = new IBoundMember[] {
                 BoundMember.New(() => AutoAttackWhenIdle.Checked),
                 BoundMember.New(() => AutoAttackWhenTargetLost.Checked),
-                BoundMember.New(() => LargestLockedTarget.Checked),
-                BoundMember.New(() => ClosestLockedTarget.Checked),
+                BoundMember.New(() => Largest.Checked),
+                BoundMember.New(() => Smallest.Checked),
+                BoundMember.New(() => ClosestToDrones.Checked),
                 BoundMember.New(() => RecallIfShieldsBelow.Checked),
-                BoundMember.New(() => RecallShieldThreshold.Value)
+                BoundMember.New(() => RecallShieldThreshold.Value),
+                BoundMember.New(() => MinSigRadius.Value),
+                BoundMember.New(() => MaxSigRadius.Value),
+                BoundMember.New(() => AttackAsGroup.Checked)
             };
 
             Program.Scheduler.Start(LoadPreferences(), TaskExecutionPolicy.RunAsBackgroundTask);

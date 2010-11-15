@@ -5,7 +5,8 @@ import uix
 import json
 import state
 import base
-import moniker 
+import moniker
+import trinity
 
 serviceInstance = None
 
@@ -38,14 +39,31 @@ class DroneHelperSvc(service.Service):
     def checkHealthTimer(self):
         droneCount = len(self.getDronesInLocalSpace())
         if (droneCount > 0) and (self.__healthTimer == None):
-            log("Creating health timer")
-            self.__healthTimer = base.AutoTimer(1000, self.checkAllDronesHealth)
+            self.__healthTimer = base.AutoTimer(500, self.checkAllDronesHealth)
         elif (droneCount <= 0) and (self.__healthTimer != None):
-            log("Destroying health timer")
             self.__healthTimer = None
     
     def getPref(self, key, default):
         return self.prefs.get(key, default)
+    
+    def getDronePosition(self, droneID):
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        if self.getPref("AttackAsGroup", False):
+            drones = self.getDronesInLocalSpace()
+            
+            avg = (0, 0, 0)
+            for drone in drones:
+                ball = ballpark.GetBall(droneID)
+                avg = (avg[0] + ball.x, avg[1] + ball.y, avg[2] + ball.z)
+            
+            divisor = float(len(drones))
+            if divisor <= 0:
+                divisor = 1.0
+            
+            return trinity.TriVector(avg[0] / divisor, avg[1] / divisor, avg[2] / divisor)
+        else:
+            ball = ballpark.GetBall(droneID)
+            return trinity.TriVector(ball.x, ball.y, ball.z)
         
     def getDronesInLocalSpace(self):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -61,27 +79,92 @@ class DroneHelperSvc(service.Service):
     def getDroneState(self, droneID):
         return eve.LocalSvc("michelle").GetDroneState(droneID)
     
+    def getDistance(self, dronePosition, targetID):
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        targetBall = ballpark.GetBall(targetID)
+        targetPosition = trinity.TriVector(targetBall.x, targetBall.y, targetBall.z)
+        return (dronePosition - targetPosition).Length2()
+    
+    def getSignatureRadius(self, targetID):
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        targetitem = eve.LocalSvc("godma").GetType(ballpark.GetInvItem(targetID).typeID)
+        if targetitem.AttributeExists("signatureRadius"):
+            result = float(targetitem.signatureRadius)
+        else:
+            result = float(ballpark.GetBall(targetID).radius)
+        return result
+    
+    def makeDistanceSorter(self, dronePosition, reversed):
+        def droneSorter(lhs, rhs):
+            result = cmp(
+                self.getSignatureRadius(lhs),
+                self.getSignatureRadius(rhs)
+            )
+            
+            if result == 0:
+                result = cmp(
+                    self.getDistance(droneID, lhs),
+                    self.getDistance(droneID, rhs)
+                )
+            elif reversed:
+                result = -result
+            
+            return result
+        
+        return droneSorter
+    
     def selectTarget(self, droneID):
-        targetSvc = sm.services["target"]
-        if len(targetSvc.targets):
-            return targetSvc.targets[0]
+        minSigRadius = float(self.getPref("MinSigRadius", 0))
+        maxSigRadius = float(self.getPref("MaxSigRadius", 99999))
+        targets = [
+            targetID for targetID in sm.services["target"].targets if
+            minSigRadius <= self.getSignatureRadius(targetID) <= maxSigRadius
+        ]
+        if len(targets):
+            if self.getPref("Largest", False):
+                targets.sort(
+                    self.makeDistanceSorter(dronePosition, True)
+                )
+            if self.getPref("Smallest", True):
+                targets.sort(
+                    self.makeDistanceSorter(dronePosition, False)
+                )
+            elif self.getPref("ClosestToDrones", False):
+                targets.sort(
+                    lambda lhs, rhs: cmp(
+                        self.getDistance(dronePosition, lhs), 
+                        self.getDistance(dronePosition, rhs)
+                    )
+                )
+            
+            return targets[0]
+        else:
+            return None
     
     def doAttack(self, droneID):
         targetID = self.selectTarget(droneID)
         if targetID:
             ballpark = eve.LocalSvc("michelle").GetBallpark()
             targetName = uix.GetSlimItemName(ballpark.GetInvItem(targetID))
-            log("Performing attack for drone %r against selected target %r", droneID, targetName)
+            
+            if self.getPref("AttackAsGroup", False):
+                drones = self.getDronesInLocalSpace()
+            else:
+                drones = [droneID]
+            
             entity = moniker.GetEntityAccess()
             if entity:
-                ret = entity.CmdEngage([droneID], targetID)
+                log("Drones %r attacking %s", drones, targetName)
+                ret = entity.CmdEngage(drones, targetID)
         else:
-            log("Unable to attack for drone %r because no target was found", droneID)
+            log("Drone %r found no targets", droneID)
     
     def doRecall(self, droneID):
-        log("Recalling drone %r", droneID)
+        log("Drone %r returning", droneID)
         entity = moniker.GetEntityAccess()
         if entity:
+            if self.__droneStates.get(droneID, const.entityIdle) == const.entityIdle:
+                self.__droneStates[droneID] = const.entityDeparting
             ret = entity.CmdReturnBay([droneID])
     
     def checkAllDronesHealth(self):

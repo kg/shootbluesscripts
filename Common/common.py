@@ -159,6 +159,8 @@ def initialize():
         isInitialized = True
 
 def __unload__():
+    _channels = {}
+
     global isInitialized
     if isInitialized:
         forceStopService("charmonitor")
