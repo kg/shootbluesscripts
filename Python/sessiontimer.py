@@ -1,4 +1,4 @@
-from shootblues.common import forceStartService, forceStopService
+from shootblues.common import forceStartService, forceStopService, log
 import blue
 import service
 
@@ -17,6 +17,7 @@ class SessionTimerSvc(service.Service):
         service.Service.Run(self, memStream)
 
     def OnSessionChanged(self, isRemote, session, change):
+        log("Session Changed. Suppressing client-side session change timer.")
         session.nextSessionChange = blue.os.GetTime(1) + 1
 
 forceStartService("sessiontimer", SessionTimerSvc)

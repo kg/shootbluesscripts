@@ -24,7 +24,7 @@ class DroneHelperSvc(service.Service):
     def __init__(self):
         service.Service.__init__(self)
         self.__targets = {}
-        self.__drones = {}
+        self.__droneTargets = {}
 
     def Run(self, memStream=None):
         service.Service.Run(self, memStream)
@@ -47,16 +47,23 @@ class DroneHelperSvc(service.Service):
             log("Target Lost: %r (reason=%r)", uix.GetSlimItemName(slimItem), reason)
             del self.__targets[tid]
     
+    def getDroneState(self, droneID):
+        return eve.LocalSvc("michelle").GetDroneState(droneID)
+    
     def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState):
         log("DroneHelperSvc.OnDroneStateChange2 droneId=%r oldState=%r newState=%r", droneID, oldActivityState, newActivityState)
-        if self.__drones.has_key(droneID):
-            self.__drones[droneID][1] = newActivityState
+        droneState = self.getDroneState(droneID)
+        
+        oldTarget = self.__droneTargets.get(droneID, None)
+        if droneState:
+            self.__droneTargets[droneID] = droneState.targetID
         else:
-            ballpark = eve.LocalSvc('michelle').GetBallpark()
-            self.__drones[droneID] = [ballpark.GetInvItem(droneID), newActivityState]
+            self.__droneTargets[droneID] = None
+        if oldTarget != self.__droneTargets[droneID]:
+            log("Drone %r changed targets from %r to %r.", droneID, oldTarget, self.__droneTargets[droneID])
         
         if (oldActivityState != const.entityIdle) and (newActivityState == const.entityIdle):
-            log("Drone %r is becoming idle.", droneID)
+            log("Drone %r became idle.", droneID)
 
     def OnDroneActivityChange(self, droneID, activityID, activity):
         log("DroneHelperSvc.OnDroneActivityChange droneId=%r activityId=%r activity=%r", droneID, activityID, activity)

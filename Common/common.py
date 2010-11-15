@@ -24,7 +24,7 @@ def log(format, *args):
 def logException(*args, **kwargs):
     global oldLogException
     try:
-        log("An unhandled exception was thrown and I stopped it from being reported. You should try running with the CCP Log Server to see it next time.")
+        log("An unhandled exception was thrown and I stopped it from being reported.")
     except:
         pass
     try:
@@ -43,7 +43,7 @@ def logException(*args, **kwargs):
 def logTraceback(*args, **kwargs):
     global oldLogTraceback
     try:
-        log("I stopped a traceback from being reported. You should try running with the CCP Log Server to see it next time.")
+        log("I stopped a traceback from being reported.")
     except:
         pass
     try:
