@@ -14,7 +14,7 @@ namespace ShootBlues.Script {
         public DroneHelper (ScriptName name)
             : base (name) {
 
-            AddDependency("Common.dll");
+            AddDependency("Common.script.dll");
             AddDependency("dronehelper.py");
 
             CustomMenu = new ToolStripMenuItem("Drone Helper");
@@ -39,7 +39,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Common.CreateNamedChannel(process, "dronehelper");
 
-            yield return Program.CallFunction(process, "dronehelper", "initialize", "[]");
+            yield return Program.CallFunction(process, "dronehelper", "initialize");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

@@ -3,11 +3,24 @@ using ShootBlues;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Squared.Task;
+using System.Reflection;
+using System.IO;
 
 namespace ShootBlues.Profile {
     public class EVE : SimpleExecutableProfile {
         public EVE ()
             : base("exefile.exe") {
+
+            var assemblyPath = Path.GetDirectoryName(
+                Assembly.GetExecutingAssembly().Location
+            );
+            var filename = Program.FindScript(
+                new ScriptName("Common.Script.dll", assemblyPath)
+            );
+            if (filename != null) {
+                Program.Scripts.Add(filename);
+                Program.ScriptsChanged.Set();
+            }
         }
 
         public override string Name {

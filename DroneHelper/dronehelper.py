@@ -69,13 +69,13 @@ class DroneHelperSvc(service.Service):
         log("DroneHelperSvc.OnDroneActivityChange droneId=%r activityId=%r activity=%r", droneID, activityID, activity)
 
 def initialize():
-    global serviceInstance
+    global serviceRunning
     log("Initializing DroneHelper")
-    serviceInstance = DroneHelperSvc
-    forceStartService("dronehelper", serviceInstance)
+    serviceRunning = True
+    forceStartService("dronehelper", DroneHelperSvc)
 
 def __unload__():
-    global serviceInstance
-    log("Tearing down DroneHelper")
-    if serviceInstance:
+    global serviceRunning
+    if serviceRunning:
+        log("Tearing down DroneHelper")
         forceStopService("dronehelper")

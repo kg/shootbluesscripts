@@ -21,6 +21,11 @@ def log(format, *args):
         else:
             logger.send(repr(format))
 
+def remoteCall(script, methodName, *args):
+    import json
+    channel = getChannel("remotecall")
+    channel.send(json.dumps([script, methodName, args]))
+
 def logException(*args, **kwargs):
     global oldLogException
     try:
@@ -77,48 +82,66 @@ def getLockedTargets():
     return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
 
 def forceStopService(serviceName):
-    serviceInstance = sm.services[serviceName]
-    del sm.services[serviceName]
-    
-    for event in serviceInstance.__notifyevents__:
-        notifies = sm.notify.get(event, None)
-        if notifies is None:
-            continue
+    import stackless
+    old_block_trap = stackless.getcurrent().block_trap
+    stackless.getcurrent().block_trap = 1
+    try:
+        serviceInstance = sm.services[serviceName]
+        del sm.services[serviceName]
         
-        if serviceInstance in notifies:
-            notifies.remove(serviceInstance)
+        for event in serviceInstance.__notifyevents__:
+            notifies = sm.notify.get(event, None)
+            if notifies is None:
+                continue
+            
+            if serviceInstance in notifies:
+                notifies.remove(serviceInstance)
+    finally:
+        stackless.getcurrent().block_trap = old_block_trap
 
 def forceStartService(serviceName, serviceType):
-    import service
-    oldInstance = sm.services.get(serviceName, None)
-    if oldInstance:
-        forceStopService(serviceName)
-    
-    result = serviceType()
-    sm.services[serviceName] = result
-    result.state = service.SERVICE_RUNNING
-    
-    for event in result.__notifyevents__:
-        empty_list = []
-        notifies = sm.notify.setdefault(event, empty_list)
-        notifies.append(result)
-        if (not hasattr(result, event)):
-            log("Missing event handler for %r on %r", event, result)
-            
-    return result
+    import stackless
+    old_block_trap = stackless.getcurrent().block_trap
+    stackless.getcurrent().block_trap = 1
+    try:
+        import service
+        oldInstance = sm.services.get(serviceName, None)
+        if oldInstance:
+            forceStopService(serviceName)
+        
+        result = serviceType()
+        sm.services[serviceName] = result
+        result.state = service.SERVICE_RUNNING
+        
+        for event in result.__notifyevents__:
+            empty_list = []
+            notifies = sm.notify.setdefault(event, empty_list)
+            notifies.append(result)
+            if (not hasattr(result, event)):
+                log("Missing event handler for %r on %r", event, result)
+        
+        return result
+    finally:
+        stackless.getcurrent().block_trap = old_block_trap
 
 def replaceEveLogger():
     global oldLogException, oldLogTraceback
-    import log
-    oldLogException = log.LogException
-    oldLogTraceback = log.LogTraceback
-    log.LogException = logException
-    log.LogTraceback = logTraceback
+    try:
+        import log
+        oldLogException = log.LogException
+        oldLogTraceback = log.LogTraceback
+        log.LogException = logException
+        log.LogTraceback = logTraceback
+    except:
+        pass
     
 replaceEveLogger()
 
 def __unload__():
     global oldLogException, oldLogTraceback
-    import log
-    log.LogException = oldLogException
-    log.LogTraceback = oldLogTraceback
+    try:
+        import log
+        log.LogException = oldLogException
+        log.LogTraceback = oldLogTraceback
+    except:
+        pass
