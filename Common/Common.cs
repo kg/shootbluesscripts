@@ -62,6 +62,8 @@ namespace ShootBlues.Script {
 
             process.Start(LogTask(process));
             process.Start(RemoteCallTask(process));
+
+            yield return Program.CallFunction(process, "common", "initialize");
         }
 
         private IEnumerator<object> LogTask (ProcessInfo process) {

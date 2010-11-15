@@ -5,6 +5,8 @@ import pprint
 
 __channels = {}
 
+isInitialized = False
+
 def _initChannel(name, handle):
     __channels[name] = shootblues.createChannel(handle)
 
