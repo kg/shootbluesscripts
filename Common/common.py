@@ -63,18 +63,6 @@ def logTraceback(*args, **kwargs):
         oldLogTraceback(*args, **kwargs)
     except:
         pass
-
-def getLoggedInCharacter():
-    try:
-        return eve.session.charid
-    except:
-        return None
-
-def getLoggedInCharacterName():
-    try:
-        return cfg.eveowners.Get(eve.session.charid).name
-    except:
-        return None
     
 def getLockedTargets():
     ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -126,22 +114,54 @@ def forceStartService(serviceName, serviceType):
 
 def replaceEveLogger():
     global oldLogException, oldLogTraceback
-    try:
-        import log
-        oldLogException = log.LogException
-        oldLogTraceback = log.LogTraceback
-        log.LogException = logException
-        log.LogTraceback = logTraceback
-    except:
-        pass
+    import log
+    oldLogException = log.LogException
+    oldLogTraceback = log.LogTraceback
+    log.LogException = logException
+    log.LogTraceback = logTraceback
+
+def installCharacterMonitor():
+    import blue
+    import service
+
+    class CharacterMonitorSvc(service.Service):
+        __guid__ = "svc.charmonitor"
+        __update_on_reload__ = 0
+        __exportedcalls__ = {}
+        __notifyevents__ = [
+            "OnSessionChanged"
+        ]
+
+        def __init__(self):
+            service.Service.__init__(self)
+            self.loggedInCharacter = None
+
+        def OnSessionChanged(self, isRemote, session, change):
+            if self.loggedInCharacter != session.charid:
+                self.loggedInCharacter = session.charid
+                characterName = None
+                try:
+                    characterName = cfg.eveowners.Get(session.charid).name
+                except:
+                    pass
+                remoteCall("common.script.dll", "LoggedInCharacterChanged", characterName)
     
-replaceEveLogger()
+    svcInstance = forceStartService("charmonitor", CharacterMonitorSvc)
+    svcInstance.OnSessionChanged(False, eve.session, None)
+
+def initialize():
+    global isInitialized
+    if not isInitialized:
+        replaceEveLogger()
+        installCharacterMonitor()
+        isInitialized = True
 
 def __unload__():
-    global oldLogException, oldLogTraceback
-    try:
+    global isInitialized
+    if isInitialized:
+        forceStopService("charmonitor")
+        global oldLogException, oldLogTraceback
         import log
         log.LogException = oldLogException
         log.LogTraceback = oldLogTraceback
-    except:
-        pass
+        isInitialized = False

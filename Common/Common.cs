@@ -71,12 +71,16 @@ namespace ShootBlues.Script {
                 var fNext = channel.Receive();
                 yield return fNext;
 
-                var logText = String.Format("{0}: {1}", process.Process.Id, fNext.Result.DecodeAsciiZ());
-                Log.Add(logText);
-                Console.WriteLine(logText);
-                if (LogWindowInstance != null)
-                    LogWindowInstance.AddLine(logText);
+                LogPrint(process, fNext.Result.DecodeAsciiZ());
             }
+        }
+
+        public void LogPrint (ProcessInfo process, string text) {
+            var logText = String.Format("{0}: {1}", process.Process.Id, text);
+            Log.Add(logText);
+            Console.WriteLine(logText);
+            if (LogWindowInstance != null)
+                LogWindowInstance.AddLine(logText);
         }
 
         private IEnumerator<object> RemoteCallTask (ProcessInfo process) {
@@ -90,15 +94,27 @@ namespace ShootBlues.Script {
                 object[] callTuple = serializer.Deserialize<object[]>(fNext.Result.DecodeAsciiZ());
                 string scriptName = callTuple[0] as string;
                 string methodName = callTuple[1] as string;
-                object[] functionArguments = callTuple[2] as object[];
+                object[] rawArguments = callTuple[2] as object[];
                 Type[] argumentTypes;
 
-                if (functionArguments == null)
-                    argumentTypes = new Type[0];
-                else {
-                    argumentTypes = new Type[functionArguments.Length];
-                    for (int i = 0; i < argumentTypes.Length; i++)
-                        argumentTypes[i] = functionArguments[i].GetType();
+                object[] functionArguments;
+                if (rawArguments == null) {
+                    argumentTypes = new Type[] { typeof(ProcessInfo) };
+                    functionArguments = new object[] { process };
+                } else {
+                    argumentTypes = new Type[rawArguments.Length + 1];
+                    functionArguments = new object[argumentTypes.Length];
+
+                    functionArguments[0] = process;
+                    argumentTypes[0] = typeof(ProcessInfo);
+
+                    for (int i = 0; i < rawArguments.Length; i++) {
+                        functionArguments[i + 1] = rawArguments[i];
+                        if (rawArguments[i] != null)
+                            argumentTypes[i + 1] = rawArguments[i].GetType();
+                        else
+                            argumentTypes[i + 1] = typeof(object);
+                    }
                 }
 
                 IManagedScript instance = Program.GetScriptInstance(
@@ -106,7 +122,9 @@ namespace ShootBlues.Script {
                 );
 
                 if (instance == null) {
-                    Console.WriteLine("Remote call attempted on script '{0}' that isn't loaded.", scriptName);
+                    LogPrint(process, String.Format(
+                        "Remote call attempted on script '{0}' that isn't loaded.", scriptName
+                    ));
                     continue;
                 }
 
@@ -114,31 +132,34 @@ namespace ShootBlues.Script {
                     methodName, argumentTypes
                 );
                 if (method == null) {
-                    Console.WriteLine("Remote call attempted on script '{0}', but no method was found with the name '{1}' that could accept the arguments {2}.", scriptName, methodName, serializer.Serialize(functionArguments));
+                    LogPrint(process, String.Format(
+                        "Remote call attempted on script '{0}', but no method was found with the name '{1}' that could accept the arguments {2}.", 
+                        scriptName, methodName, serializer.Serialize(rawArguments)
+                    ));
                     continue;
                 }
 
                 try {
                     object result = method.Invoke(instance, functionArguments);
                     var resultTask = result as IEnumerator<object>;
-                    if (resultTask != null) {
+                    if (resultTask != null)
                         process.Start(resultTask);
-                        Console.WriteLine("Remote call '{0}.{1}' with args {2} started a task.", scriptName, methodName, serializer.Serialize(functionArguments));
-                    } else {
-                        Console.WriteLine("Remote call '{0}.{1}' with args {2} completed with result: {3}", scriptName, methodName, serializer.Serialize(functionArguments), serializer.Serialize(result));
-                    }
                 } catch (Exception ex) {
-                    Console.WriteLine("Remote call '{0}.{1}' with args {2} failed with exception: {3}", scriptName, methodName, serializer.Serialize(functionArguments), ex.ToString());
+                    LogPrint(process, String.Format(
+                        "Remote call '{0}.{1}' with args {2} failed with exception: {3}", 
+                        scriptName, methodName, serializer.Serialize(rawArguments), ex.ToString()
+                    ));
                 }
             }
         }
 
-        public void ShowMessageBox (string text) {
-            MessageBox.Show(text);
+        public void LoggedInCharacterChanged (ProcessInfo process, object characterName) {
+            process.Status = characterName as string ?? "Not Logged In";
+            Program.RunningProcessesChanged.Set();
         }
 
-        public void ShowMessageBox (string text, string caption) {
-            MessageBox.Show(text, caption);
+        public void ShowMessageBox (ProcessInfo process, string text) {
+            MessageBox.Show(text, String.Format("Message from process {0}", process.Process.Id));
         }
     }
 }

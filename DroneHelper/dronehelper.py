@@ -26,9 +26,6 @@ class DroneHelperSvc(service.Service):
         self.__targets = {}
         self.__droneTargets = {}
 
-    def Run(self, memStream=None):
-        service.Service.Run(self, memStream)
-
     def OnTargets(self, targets):
         for each in targets:
             self.OnTarget(*each[1:])
