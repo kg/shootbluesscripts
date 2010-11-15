@@ -33,15 +33,20 @@ class DroneHelperSvc(service.Service):
         service.Service.__init__(self)
         self.__droneTargets = {}
         self.__droneStates = {}
+        self.__pendingStateChanges = {}
+        self.__updateTimer = None
+        self.disabled = False
         self.prefs = {}
-        self.__healthTimer = None
     
-    def checkHealthTimer(self):
-        droneCount = len(self.getDronesInLocalSpace())
-        if (droneCount > 0) and (self.__healthTimer == None):
-            self.__healthTimer = base.AutoTimer(500, self.checkAllDronesHealth)
-        elif (droneCount <= 0) and (self.__healthTimer != None):
-            self.__healthTimer = None
+    def checkUpdateTimer(self, droneID = None):
+        drones = self.getDronesInLocalSpace()
+        if (droneID != None) and (droneID not in drones):
+            drones.append(droneID)
+        droneCount = len(drones)
+        if (droneCount > 0) and (self.__updateTimer == None):
+            self.__updateTimer = base.AutoTimer(500, self.updateDrones)
+        elif (droneCount <= 0) and (self.__updateTimer != None):
+            self.__updateTimer = None
     
     def getPref(self, key, default):
         return self.prefs.get(key, default)
@@ -50,16 +55,22 @@ class DroneHelperSvc(service.Service):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         if self.getPref("AttackAsGroup", False):
             drones = self.getDronesInLocalSpace()
-            
-            avg = (0, 0, 0)
-            for drone in drones:
-                ball = ballpark.GetBall(droneID)
-                avg = (avg[0] + ball.x, avg[1] + ball.y, avg[2] + ball.z)
+            if droneID not in drones:
+                drones.append(droneID)
             
             divisor = float(len(drones))
             if divisor <= 0:
                 divisor = 1.0
-            
+                
+            avg = (0, 0, 0)
+            for id in drones:
+                ball = ballpark.GetBall(id)
+                avg = (
+                    avg[0] + (ball.x / divisor), 
+                    avg[1] + (ball.y / divisor), 
+                    avg[2] + (ball.z / divisor)
+                )
+                        
             return trinity.TriVector(avg[0] / divisor, avg[1] / divisor, avg[2] / divisor)
         else:
             ball = ballpark.GetBall(droneID)
@@ -83,7 +94,8 @@ class DroneHelperSvc(service.Service):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         targetBall = ballpark.GetBall(targetID)
         targetPosition = trinity.TriVector(targetBall.x, targetBall.y, targetBall.z)
-        return (dronePosition - targetPosition).Length2()
+        distance = (dronePosition - targetPosition).Length()
+        return distance
     
     def getSignatureRadius(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -103,8 +115,8 @@ class DroneHelperSvc(service.Service):
             
             if result == 0:
                 result = cmp(
-                    self.getDistance(droneID, lhs),
-                    self.getDistance(droneID, rhs)
+                    self.getDistance(dronePosition, lhs),
+                    self.getDistance(dronePosition, rhs)
                 )
             elif reversed:
                 result = -result
@@ -120,6 +132,7 @@ class DroneHelperSvc(service.Service):
             targetID for targetID in sm.services["target"].targets if
             minSigRadius <= self.getSignatureRadius(targetID) <= maxSigRadius
         ]
+        dronePosition = self.getDronePosition(droneID)
         if len(targets):
             if self.getPref("Largest", False):
                 targets.sort(
@@ -142,34 +155,62 @@ class DroneHelperSvc(service.Service):
             return None
     
     def doAttack(self, droneID):
+        if self.disabled:
+            return         
         targetID = self.selectTarget(droneID)
         if targetID:
             ballpark = eve.LocalSvc("michelle").GetBallpark()
+            if targetID not in ballpark.slimItems:
+                log("Target %r rejected due to not being in ballpark", targetID)
+                return
+            
             targetName = uix.GetSlimItemName(ballpark.GetInvItem(targetID))
             
             if self.getPref("AttackAsGroup", False):
                 drones = self.getDronesInLocalSpace()
+                if droneID not in drones:
+                    drones.append(droneID)
             else:
                 drones = [droneID]
+                
+            for id in list(drones):
+              if self.__droneTargets.get(id, None) == targetID:
+                drones.remove(id)
             
-            entity = moniker.GetEntityAccess()
-            if entity:
-                log("Drones %r attacking %s", drones, targetName)
-                ret = entity.CmdEngage(drones, targetID)
-        else:
-            log("Drone %r found no targets", droneID)
+            if len(drones):
+                entity = moniker.GetEntityAccess()
+                if entity:
+                    log("%r drone(s) attacking %s", len(drones), targetName)
+                    ret = entity.CmdEngage(drones, targetID)
+                    for id in list(drones):
+                        self.__droneTargets[id] = targetID
     
     def doRecall(self, droneID):
+        if self.disabled:
+            return
         log("Drone %r returning", droneID)
         entity = moniker.GetEntityAccess()
         if entity:
+            entity.CmdReturnBay([droneID])            
             if self.__droneStates.get(droneID, const.entityIdle) == const.entityIdle:
                 self.__droneStates[droneID] = const.entityDeparting
-            ret = entity.CmdReturnBay([droneID])
+            if self.__droneTargets.has_key(droneID):
+                del self.__droneTargets[droneID]
     
-    def checkAllDronesHealth(self):
+    def updateDrones(self):
+        if self.disabled:
+            return
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
+        
+        for pendingID in self.__pendingStateChanges.keys():
+            if pendingID not in droneIDs:
+                continue
+                
+            args = self.__pendingStateChanges[pendingID]
+            del self.__pendingStateChanges[pendingID]
+            self.OnDroneStateChange2(pendingID, args[0], args[1])
+        
         for droneID in droneIDs:
             if self.checkDroneHealth(droneID):
                 dronesToRecall.append(droneID)
@@ -195,12 +236,19 @@ class DroneHelperSvc(service.Service):
 
         return result
     
-    def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState):
+    def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, deferred=False):
+        dronesInLocal = self.getDronesInLocalSpace()
+        if droneID not in dronesInLocal:
+            self.__pendingStateChanges[droneID] = (oldActivityState, newActivityState)
+            self.checkUpdateTimer(droneID=droneID)
+            return
+        
         droneState = self.getDroneState(droneID)
         
         oldTarget = self.__droneTargets.get(droneID, None)
         if droneState:
-            self.__droneTargets[droneID] = droneState.targetID
+            if (not self.__droneTargets.has_key(droneID)) or (not deferred):
+                self.__droneTargets[droneID] = droneState.targetID
         else:
             self.__droneTargets[droneID] = None
         
@@ -222,25 +270,24 @@ class DroneHelperSvc(service.Service):
         elif shouldAutoAttack:
             self.doAttack(droneID)
             
-        self.checkHealthTimer()
+        self.checkUpdateTimer(droneID=droneID)
 
     def OnDroneControlLost(self, droneID):
-        log("Lost control of drone %r", droneID)
         if self.__droneTargets.has_key(droneID):
             del self.__droneTargets[droneID]
         if self.__droneStates.has_key(droneID):
             del self.__droneStates[droneID]
         
-        self.checkHealthTimer()
+        self.checkUpdateTimer()
 
 def initialize():
     global serviceRunning, serviceInstance
-    log("Initializing DroneHelper")
     serviceRunning = True
     serviceInstance = forceStartService("dronehelper", DroneHelperSvc)
 
 def __unload__():
-    global serviceRunning
+    global serviceRunning, serviceInstance
+    if serviceInstance:
+        serviceInstance.disabled = True
     if serviceRunning:
-        log("Tearing down DroneHelper")
         forceStopService("dronehelper")

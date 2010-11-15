@@ -25,6 +25,7 @@
         private void InitializeComponent () {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.AutoAttackWhat = new System.Windows.Forms.GroupBox();
+            this.AttackAsGroup = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
             this.MaxSigRadius = new System.Windows.Forms.NumericUpDown();
             this.label2 = new System.Windows.Forms.Label();
@@ -39,7 +40,6 @@
             this.RecallShieldThreshold = new System.Windows.Forms.NumericUpDown();
             this.RecallIfShieldsBelow = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.AttackAsGroup = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.AutoAttackWhat.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MaxSigRadius)).BeginInit();
@@ -84,6 +84,21 @@
             this.AutoAttackWhat.TabIndex = 1;
             this.AutoAttackWhat.TabStop = false;
             this.AutoAttackWhat.Text = "What";
+            // 
+            // AttackAsGroup
+            // 
+            this.AttackAsGroup.AutoSize = true;
+            this.AttackAsGroup.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.AttackAsGroup.Checked = true;
+            this.AttackAsGroup.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.AttackAsGroup.Location = new System.Drawing.Point(8, 46);
+            this.AttackAsGroup.Margin = new System.Windows.Forms.Padding(2, 2, 6, 2);
+            this.AttackAsGroup.Name = "AttackAsGroup";
+            this.AttackAsGroup.Size = new System.Drawing.Size(149, 20);
+            this.AttackAsGroup.TabIndex = 7;
+            this.AttackAsGroup.Text = "Attack As A Group";
+            this.AttackAsGroup.UseVisualStyleBackColor = true;
+            this.AttackAsGroup.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // label3
             // 
@@ -304,21 +319,6 @@
             this.label1.Size = new System.Drawing.Size(21, 16);
             this.label1.TabIndex = 2;
             this.label1.Text = "%";
-            // 
-            // AttackAsGroup
-            // 
-            this.AttackAsGroup.AutoSize = true;
-            this.AttackAsGroup.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.AttackAsGroup.Checked = true;
-            this.AttackAsGroup.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.AttackAsGroup.Location = new System.Drawing.Point(8, 46);
-            this.AttackAsGroup.Margin = new System.Windows.Forms.Padding(2, 2, 6, 2);
-            this.AttackAsGroup.Name = "AttackAsGroup";
-            this.AttackAsGroup.Size = new System.Drawing.Size(149, 20);
-            this.AttackAsGroup.TabIndex = 7;
-            this.AttackAsGroup.Text = "Attack As A Group";
-            this.AttackAsGroup.UseVisualStyleBackColor = true;
-            this.AttackAsGroup.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // DroneHelperConfig
             // 

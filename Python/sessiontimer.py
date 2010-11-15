@@ -14,7 +14,7 @@ class SessionTimerSvc(service.Service):
         service.Service.__init__(self)
 
     def OnSessionChanged(self, isRemote, session, change):
-        log("Session Changed. Suppressing client-side session change timer.")
+        log("Session changed, timer suppressed.")
         session.nextSessionChange = blue.os.GetTime(1) + 1
 
 forceStartService("sessiontimer", SessionTimerSvc)
