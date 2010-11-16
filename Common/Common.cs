@@ -19,11 +19,19 @@ namespace ShootBlues.Script {
             : base(name) {
             AddDependency("common.py");
 
-            CustomMenu = new ToolStripMenuItem("View Log", null, (s, e) => {
-                Program.Scheduler.Start(
-                    ShowLogWindow(), Squared.Task.TaskExecutionPolicy.RunAsBackgroundTask
-                );
-            });
+            CustomMenu = new ToolStripMenuItem("Log");
+            CustomMenu.DropDown.Items.Add(
+                new ToolStripMenuItem("Show", null, (s, e) => {
+                    Program.Scheduler.Start(
+                        ShowLogWindow(), Squared.Task.TaskExecutionPolicy.RunAsBackgroundTask
+                    );
+                })
+            );
+            CustomMenu.DropDown.Items.Add(
+                new ToolStripMenuItem("Clear", null, (s, e) => {
+                    LogClear();
+                })
+            );
             Program.AddCustomMenu(CustomMenu);
         }
 
@@ -78,11 +86,23 @@ namespace ShootBlues.Script {
         }
 
         public void LogPrint (ProcessInfo process, string text) {
-            var logText = String.Format("{0} {1:HH:mm:ss}: {2}", process.Process.Id, DateTime.Now, text);
+            string logText;
+            if (process != null)
+                logText = String.Format("{1:HH:mm:ss} {0}: {2}", process.Process.Id, DateTime.Now, text);
+            else
+                logText = String.Format("{0:HH:mm:ss}: {1}", DateTime.Now, text);
+
             Log.Add(logText);
             Console.WriteLine(logText);
             if (LogWindowInstance != null)
                 LogWindowInstance.AddLine(logText);
+        }
+
+        public void LogClear () {
+            Log.Clear();
+            if (LogWindowInstance != null)
+                LogWindowInstance.Clear();
+            LogPrint(null, "Log cleared");
         }
 
         private IEnumerator<object> RemoteCallTask (ProcessInfo process) {
@@ -162,6 +182,12 @@ namespace ShootBlues.Script {
 
         public void ShowMessageBox (ProcessInfo process, string text) {
             MessageBox.Show(text, String.Format("Message from process {0}", process.Process.Id));
+        }
+
+        public override IEnumerator<object> Reload () {
+            LogPrint(null, "Scripts loaded");
+
+            yield break;
         }
     }
 }

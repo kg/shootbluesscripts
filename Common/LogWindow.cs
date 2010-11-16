@@ -17,17 +17,21 @@ namespace ShootBlues.Script {
 
         public void SetText (string text) {
             LogText.Text = text;
-            LogText.SelectionStart = text.Length;
             LogText.SelectionLength = 0;
+            LogText.SelectionStart = text.Length;
         }
 
         public void AddLine (string line) {
-            LogText.SelectionStart = LogText.Text.Length;
             LogText.SelectionLength = 0;
+            LogText.SelectionStart = LogText.Text.Length;
             if (LogText.Text.Length > 0)
                 LogText.SelectedText = Environment.NewLine + line;
             else
                 LogText.SelectedText = line;
+        }
+
+        public void Clear () {
+            LogText.Text = "";
         }
     }
 }
