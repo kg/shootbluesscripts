@@ -300,14 +300,12 @@ class DroneHelperSvc(service.Service):
         if ((oldActivityState != const.entityIdle) and 
            (drone.state == const.entityIdle) and
            self.getPref("AutoAttackWhenIdle", False)):
-            if not shouldAutoAttack:
-                idleOnly = True
             shouldAutoAttack = True
         
         if shouldRecall:
             self.doRecall(droneID)
         elif shouldAutoAttack:
-            self.doAttack(idleOnly, droneID)
+            self.doAttack(False, droneID)
             
         self.checkUpdateTimer(droneID)
 
