@@ -7,6 +7,9 @@ import state
 import base
 import moniker
 import trinity
+import blue
+
+ActionThreshold = 10000000L
 
 serviceInstance = None
 
@@ -20,6 +23,34 @@ def notifyPrefsChanged(newPrefsJson):
     if serviceInstance:
         serviceInstance.prefs = json.loads(newPrefsJson)        
 
+class DroneInfo(object):
+    def __init__(self, droneID):
+        self.id = droneID
+        self.target = None
+        self.actionTimestamp = self.timestamp = 0
+        self.shield = self.armor = self.structure = 1.0
+        self.state = None
+    
+    def setState(self, newState, timestamp):
+        if timestamp > self.timestamp:
+            self.state = newState
+            self.timestamp = timestamp
+            self.update(timestamp)
+    
+    def setTarget(self, targetID, timestamp):
+        if timestamp > self.timestamp:
+            oldTarget = self.target
+            self.target = targetID
+            self.timestamp = timestamp
+
+    def update(self, timestamp):
+        if timestamp > self.timestamp:
+            ds = eve.LocalSvc("michelle").GetDroneState(self.id)
+            self.target = ds.targetID
+            ballpark = eve.LocalSvc("michelle").GetBallpark()
+            (self.shield, self.armor, self.structure) = ballpark.GetDamageState(self.id)
+            self.timestamp = timestamp
+
 class DroneHelperSvc(service.Service):
     __guid__ = "svc.dronehelper"
     __update_on_reload__ = 0
@@ -31,8 +62,7 @@ class DroneHelperSvc(service.Service):
 
     def __init__(self):
         service.Service.__init__(self)
-        self.__droneTargets = {}
-        self.__droneStates = {}
+        self.__drones = {}
         self.__pendingStateChanges = {}
         self.__updateTimer = None
         self.disabled = False
@@ -51,30 +81,21 @@ class DroneHelperSvc(service.Service):
     def getPref(self, key, default):
         return self.prefs.get(key, default)
     
-    def getDronePosition(self, droneID):
+    def getDistance(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
-        if self.getPref("AttackAsGroup", False):
-            drones = self.getDronesInLocalSpace()
-            if droneID not in drones:
-                drones.append(droneID)
+        
+        # Attempts to use the average location of all active drones
+        drones = self.getDronesInLocalSpace()
+        
+        divisor = float(len(drones))
+        if divisor <= 0:
+            divisor = 1.0
             
-            divisor = float(len(drones))
-            if divisor <= 0:
-                divisor = 1.0
-                
-            avg = (0, 0, 0)
-            for id in drones:
-                ball = ballpark.GetBall(id)
-                avg = (
-                    avg[0] + (ball.x / divisor), 
-                    avg[1] + (ball.y / divisor), 
-                    avg[2] + (ball.z / divisor)
-                )
-                        
-            return trinity.TriVector(avg[0] / divisor, avg[1] / divisor, avg[2] / divisor)
-        else:
-            ball = ballpark.GetBall(droneID)
-            return trinity.TriVector(ball.x, ball.y, ball.z)
+        avg = 0
+        for id in drones:
+            avg += ballpark.DistanceBetween(id, targetID)
+                    
+        return avg / divisor
         
     def getDronesInLocalSpace(self):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -86,16 +107,6 @@ class DroneHelperSvc(service.Service):
             (droneID in ballpark.slimItems) and
             ((drones[droneID].ownerID == eve.session.charid) or (drones[droneID].controllerID == eve.session.shipid))
         )]
-        
-    def getDroneState(self, droneID):
-        return eve.LocalSvc("michelle").GetDroneState(droneID)
-    
-    def getDistance(self, dronePosition, targetID):
-        ballpark = eve.LocalSvc("michelle").GetBallpark()
-        targetBall = ballpark.GetBall(targetID)
-        targetPosition = trinity.TriVector(targetBall.x, targetBall.y, targetBall.z)
-        distance = (dronePosition - targetPosition).Length()
-        return distance
     
     def getSignatureRadius(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -106,18 +117,16 @@ class DroneHelperSvc(service.Service):
             result = float(ballpark.GetBall(targetID).radius)
         return result
     
-    def makeDistanceSorter(self, dronePosition, reversed):
+    def makeDistanceSorter(self, reversed):
         def droneSorter(lhs, rhs):
-            result = cmp(
-                self.getSignatureRadius(lhs),
-                self.getSignatureRadius(rhs)
-            )
+            sigLhs = self.getSignatureRadius(lhs)
+            sigRhs = self.getSignatureRadius(rhs)
+            result = cmp(sigLhs, sigRhs)
             
             if result == 0:
-                result = cmp(
-                    self.getDistance(dronePosition, lhs),
-                    self.getDistance(dronePosition, rhs)
-                )
+                distLhs = self.getDistance(lhs)
+                distRhs = self.getDistance(rhs)
+                result = cmp(distLhs, distRhs)
             elif reversed:
                 result = -result
             
@@ -132,21 +141,20 @@ class DroneHelperSvc(service.Service):
             targetID for targetID in sm.services["target"].targets if
             minSigRadius <= self.getSignatureRadius(targetID) <= maxSigRadius
         ]
-        dronePosition = self.getDronePosition(droneID)
         if len(targets):
             if self.getPref("Largest", False):
                 targets.sort(
-                    self.makeDistanceSorter(dronePosition, True)
+                    self.makeDistanceSorter(True)
                 )
             if self.getPref("Smallest", True):
                 targets.sort(
-                    self.makeDistanceSorter(dronePosition, False)
+                    self.makeDistanceSorter(False)
                 )
             elif self.getPref("ClosestToDrones", False):
                 targets.sort(
                     lambda lhs, rhs: cmp(
-                        self.getDistance(dronePosition, lhs), 
-                        self.getDistance(dronePosition, rhs)
+                        self.getDistance(lhs), 
+                        self.getDistance(rhs)
                     )
                 )
             
@@ -156,50 +164,62 @@ class DroneHelperSvc(service.Service):
     
     def doAttack(self, droneID):
         if self.disabled:
-            return         
-        targetID = self.selectTarget(droneID)
-        if targetID:
-            ballpark = eve.LocalSvc("michelle").GetBallpark()
-            if targetID not in ballpark.slimItems:
-                log("Target %r rejected due to not being in ballpark", targetID)
-                return
+            return
             
+        timestamp = blue.os.GetTime()
+        targetID = self.selectTarget(droneID)
+        
+        if targetID:
+            ballpark = eve.LocalSvc("michelle").GetBallpark()           
             targetName = uix.GetSlimItemName(ballpark.GetInvItem(targetID))
             
-            if self.getPref("AttackAsGroup", False):
-                drones = self.getDronesInLocalSpace()
-                if droneID not in drones:
-                    drones.append(droneID)
-            else:
-                drones = [droneID]
+            drones = self.getDronesInLocalSpace()
+            if droneID not in drones:
+                drones.append(droneID)
                 
-            for id in list(drones):
-              if self.__droneTargets.get(id, None) == targetID:
-                drones.remove(id)
+            for _id in list(drones):            
+                droneObj = self.getDroneObject(_id)
+                if ((droneObj.target == targetID) or
+                   abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
+                    drones.remove(_id)
             
             if len(drones):
                 entity = moniker.GetEntityAccess()
                 if entity:
                     log("%r drone(s) attacking %s", len(drones), targetName)
+                    for _id in drones:
+                        droneObj = self.getDroneObject(_id)
+                        droneObj.setTarget(targetID, timestamp)
+                        droneObj.actionTimestamp = timestamp
                     ret = entity.CmdEngage(drones, targetID)
-                    for id in list(drones):
-                        self.__droneTargets[id] = targetID
     
-    def doRecall(self, droneID):
+    def doRecall(self, *dronesToRecall):
         if self.disabled:
             return
-        log("Drone %r returning", droneID)
-        entity = moniker.GetEntityAccess()
-        if entity:
-            entity.CmdReturnBay([droneID])            
-            if self.__droneStates.get(droneID, const.entityIdle) == const.entityIdle:
-                self.__droneStates[droneID] = const.entityDeparting
-            if self.__droneTargets.has_key(droneID):
-                del self.__droneTargets[droneID]
+        
+        timestamp = blue.os.GetTime()
+        
+        for droneID in list(dronesToRecall):
+            droneObj = self.getDroneObject(droneID)
+            if ((droneObj.state == const.entityDeparting) or
+               abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
+                dronesToRecall.remove(droneID)
+        
+        if len(dronesToRecall):
+            entity = moniker.GetEntityAccess()
+            if entity:
+                log("Drone(s) %r returning", dronesToRecall)
+                entity.CmdReturnBay(dronesToRecall)
+                for droneID in dronesToRecall:  
+                    droneObj = self.getDroneObject(id)
+                    droneObj.setState(const.entityDeparting, timestamp)
+                    droneObj.actionTimestamp = timestamp
     
     def updateDrones(self):
         if self.disabled:
             return
+        
+        timestamp = blue.os.GetTime()
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
         
@@ -207,76 +227,80 @@ class DroneHelperSvc(service.Service):
             if pendingID not in droneIDs:
                 continue
                 
-            args = self.__pendingStateChanges[pendingID]
+            (ts, oldState, newState) = self.__pendingStateChanges[pendingID]
             del self.__pendingStateChanges[pendingID]
-            self.OnDroneStateChange2(pendingID, args[0], args[1])
+            
+            self.OnDroneStateChange2(pendingID, oldState, newState, timestamp=ts)
         
         for droneID in droneIDs:
-            if self.checkDroneHealth(droneID):
+            drone = self.getDroneObject(droneID)
+            drone.update(timestamp)
+            if self.checkDroneHealth(drone):
                 dronesToRecall.append(droneID)
         
         if len(dronesToRecall):
-            log("Recalling drones: %r", dronesToRecall)
-            entity = moniker.GetEntityAccess()
-            if entity:
-                ret = entity.CmdReturnBay(dronesToRecall)
+            self.doRecall(*dronesToRecall)
     
-    def checkDroneHealth(self, droneID):
-        currentState = self.__droneStates.get(droneID, const.entityIdle)
-        if currentState == const.entityDeparting:
+    def checkDroneHealth(self, drone):
+        if not drone:
+            return False
+        if drone.state == const.entityDeparting:
             return False
         
-        ballpark = eve.LocalSvc("michelle").GetBallpark()
-        (shield, armor, structure) = ballpark.GetDamageState(droneID)
         result = False
         if self.getPref("RecallIfShieldsBelow", False):
             threshold = float(self.getPref("RecallShieldThreshold", 50)) / 100.0
-            if shield < threshold:
+            if drone.shield < threshold:
                 result = True
 
         return result
     
-    def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, deferred=False):
+    def getDroneObject(self, droneID):
+        if self.__drones.has_key(droneID):
+            drone = self.__drones[droneID]
+        else:
+            drone = DroneInfo(droneID)
+            self.__drones[droneID] = drone
+        
+        return drone    
+    
+    def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, timestamp=None):
+        if not timestamp:
+            timestamp = blue.os.GetTime()
+    
         dronesInLocal = self.getDronesInLocalSpace()
         if droneID not in dronesInLocal:
-            self.__pendingStateChanges[droneID] = (oldActivityState, newActivityState)
-            self.checkUpdateTimer(droneID=droneID)
+            self.__pendingStateChanges[droneID] = (timestamp, oldActivityState, newActivityState)
+            self.checkUpdateTimer(droneID)
             return
+                
+        drone = self.getDroneObject(droneID)
+        oldTarget = drone.target
+        drone.setState(newActivityState, timestamp)
         
-        droneState = self.getDroneState(droneID)
+        shouldAutoAttack = False
+        shouldRecall = self.checkDroneHealth(drone)
         
-        oldTarget = self.__droneTargets.get(droneID, None)
-        if droneState:
-            if (not self.__droneTargets.has_key(droneID)) or (not deferred):
-                self.__droneTargets[droneID] = droneState.targetID
-        else:
-            self.__droneTargets[droneID] = None
+        if ((oldTarget != None) and (drone.target == None) and 
+           (drone.state == const.entityIdle) and 
+           self.getPref("AutoAttackWhenTargetLost", False)):
+            shouldAutoAttack = True
         
-        self.__droneStates[droneID] = newActivityState
-        
-        shouldAutoAttack = False        
-        shouldRecall = self.checkDroneHealth(droneID)
-        
-        if oldTarget != self.__droneTargets[droneID]:
-            if (self.__droneTargets[droneID] == None) and (newActivityState == const.entityIdle) and self.getPref("AutoAttackWhenTargetLost", False):
-                shouldAutoAttack = True
-        
-        if (oldActivityState != const.entityIdle) and (newActivityState == const.entityIdle):
-            if self.getPref("AutoAttackWhenIdle", False):
-                shouldAutoAttack = True
+        if ((oldActivityState != const.entityIdle) and 
+           (drone.state == const.entityIdle) and
+           self.getPref("AutoAttackWhenIdle", False)):
+            shouldAutoAttack = True
         
         if shouldRecall:
             self.doRecall(droneID)
         elif shouldAutoAttack:
             self.doAttack(droneID)
             
-        self.checkUpdateTimer(droneID=droneID)
+        self.checkUpdateTimer(droneID)
 
     def OnDroneControlLost(self, droneID):
-        if self.__droneTargets.has_key(droneID):
-            del self.__droneTargets[droneID]
-        if self.__droneStates.has_key(droneID):
-            del self.__droneStates[droneID]
+        if self.__drones.has_key(droneID):
+            del self.__drones[droneID]
         
         self.checkUpdateTimer()
 

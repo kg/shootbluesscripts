@@ -25,11 +25,6 @@
         private void InitializeComponent () {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.AutoAttackWhat = new System.Windows.Forms.GroupBox();
-            this.AttackAsGroup = new System.Windows.Forms.CheckBox();
-            this.label3 = new System.Windows.Forms.Label();
-            this.MaxSigRadius = new System.Windows.Forms.NumericUpDown();
-            this.label2 = new System.Windows.Forms.Label();
-            this.MinSigRadius = new System.Windows.Forms.NumericUpDown();
             this.Smallest = new System.Windows.Forms.RadioButton();
             this.Largest = new System.Windows.Forms.RadioButton();
             this.ClosestToDrones = new System.Windows.Forms.RadioButton();
@@ -42,8 +37,6 @@
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.AutoAttackWhat.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.MaxSigRadius)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.MinSigRadius)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.RecallShieldThreshold)).BeginInit();
@@ -59,7 +52,7 @@
             this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox1.Size = new System.Drawing.Size(382, 191);
+            this.groupBox1.Size = new System.Drawing.Size(382, 142);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Auto Attack";
@@ -68,11 +61,6 @@
             // 
             this.AutoAttackWhat.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.AutoAttackWhat.Controls.Add(this.AttackAsGroup);
-            this.AutoAttackWhat.Controls.Add(this.label3);
-            this.AutoAttackWhat.Controls.Add(this.MaxSigRadius);
-            this.AutoAttackWhat.Controls.Add(this.label2);
-            this.AutoAttackWhat.Controls.Add(this.MinSigRadius);
             this.AutoAttackWhat.Controls.Add(this.Smallest);
             this.AutoAttackWhat.Controls.Add(this.Largest);
             this.AutoAttackWhat.Controls.Add(this.ClosestToDrones);
@@ -80,101 +68,10 @@
             this.AutoAttackWhat.Margin = new System.Windows.Forms.Padding(4);
             this.AutoAttackWhat.Name = "AutoAttackWhat";
             this.AutoAttackWhat.Padding = new System.Windows.Forms.Padding(4);
-            this.AutoAttackWhat.Size = new System.Drawing.Size(366, 100);
+            this.AutoAttackWhat.Size = new System.Drawing.Size(366, 51);
             this.AutoAttackWhat.TabIndex = 1;
             this.AutoAttackWhat.TabStop = false;
             this.AutoAttackWhat.Text = "What";
-            // 
-            // AttackAsGroup
-            // 
-            this.AttackAsGroup.AutoSize = true;
-            this.AttackAsGroup.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.AttackAsGroup.Checked = true;
-            this.AttackAsGroup.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.AttackAsGroup.Location = new System.Drawing.Point(8, 46);
-            this.AttackAsGroup.Margin = new System.Windows.Forms.Padding(2, 2, 6, 2);
-            this.AttackAsGroup.Name = "AttackAsGroup";
-            this.AttackAsGroup.Size = new System.Drawing.Size(149, 20);
-            this.AttackAsGroup.TabIndex = 7;
-            this.AttackAsGroup.Text = "Attack As A Group";
-            this.AttackAsGroup.UseVisualStyleBackColor = true;
-            this.AttackAsGroup.CheckedChanged += new System.EventHandler(this.ValuesChanged);
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(256, 70);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(32, 16);
-            this.label3.TabIndex = 5;
-            this.label3.Text = "and";
-            // 
-            // MaxSigRadius
-            // 
-            this.MaxSigRadius.Increment = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.MaxSigRadius.Location = new System.Drawing.Point(288, 68);
-            this.MaxSigRadius.Margin = new System.Windows.Forms.Padding(4);
-            this.MaxSigRadius.Maximum = new decimal(new int[] {
-            99999,
-            0,
-            0,
-            0});
-            this.MaxSigRadius.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.MaxSigRadius.Name = "MaxSigRadius";
-            this.MaxSigRadius.Size = new System.Drawing.Size(61, 23);
-            this.MaxSigRadius.TabIndex = 6;
-            this.MaxSigRadius.Value = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            0});
-            this.MaxSigRadius.ValueChanged += new System.EventHandler(this.ValuesChanged);
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 70);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(186, 16);
-            this.label2.TabIndex = 3;
-            this.label2.Text = "Signature Radius Between:";
-            // 
-            // MinSigRadius
-            // 
-            this.MinSigRadius.Increment = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.MinSigRadius.Location = new System.Drawing.Point(194, 68);
-            this.MinSigRadius.Margin = new System.Windows.Forms.Padding(4);
-            this.MinSigRadius.Maximum = new decimal(new int[] {
-            9999,
-            0,
-            0,
-            0});
-            this.MinSigRadius.Minimum = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            this.MinSigRadius.Name = "MinSigRadius";
-            this.MinSigRadius.Size = new System.Drawing.Size(61, 23);
-            this.MinSigRadius.TabIndex = 4;
-            this.MinSigRadius.Value = new decimal(new int[] {
-            5,
-            0,
-            0,
-            0});
-            this.MinSigRadius.ValueChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // Smallest
             // 
@@ -269,7 +166,7 @@
             this.groupBox4.Controls.Add(this.RecallShieldThreshold);
             this.groupBox4.Controls.Add(this.RecallIfShieldsBelow);
             this.groupBox4.Controls.Add(this.label1);
-            this.groupBox4.Location = new System.Drawing.Point(4, 203);
+            this.groupBox4.Location = new System.Drawing.Point(4, 154);
             this.groupBox4.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Padding = new System.Windows.Forms.Padding(4);
@@ -326,14 +223,12 @@
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.MinimumSize = new System.Drawing.Size(390, 260);
+            this.MinimumSize = new System.Drawing.Size(390, 220);
             this.Name = "DroneHelperConfig";
-            this.Size = new System.Drawing.Size(390, 260);
+            this.Size = new System.Drawing.Size(390, 220);
             this.groupBox1.ResumeLayout(false);
             this.AutoAttackWhat.ResumeLayout(false);
             this.AutoAttackWhat.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.MaxSigRadius)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.MinSigRadius)).EndInit();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.groupBox4.ResumeLayout(false);
@@ -357,10 +252,5 @@
         private System.Windows.Forms.CheckBox RecallIfShieldsBelow;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.RadioButton Smallest;
-        private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.NumericUpDown MaxSigRadius;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.NumericUpDown MinSigRadius;
-        private System.Windows.Forms.CheckBox AttackAsGroup;
     }
 }

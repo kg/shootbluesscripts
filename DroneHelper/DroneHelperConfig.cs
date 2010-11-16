@@ -27,9 +27,6 @@ namespace ShootBlues.Script {
                 BoundMember.New(() => ClosestToDrones.Checked),
                 BoundMember.New(() => RecallIfShieldsBelow.Checked),
                 BoundMember.New(() => RecallShieldThreshold.Value),
-                BoundMember.New(() => MinSigRadius.Value),
-                BoundMember.New(() => MaxSigRadius.Value),
-                BoundMember.New(() => AttackAsGroup.Checked)
             };
 
             Program.Scheduler.Start(LoadPreferences(), TaskExecutionPolicy.RunAsBackgroundTask);

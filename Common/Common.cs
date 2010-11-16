@@ -78,7 +78,7 @@ namespace ShootBlues.Script {
         }
 
         public void LogPrint (ProcessInfo process, string text) {
-            var logText = String.Format("{0}: {1}", process.Process.Id, text);
+            var logText = String.Format("{0} {1:HH:mm:ss}: {2}", process.Process.Id, DateTime.Now, text);
             Log.Add(logText);
             Console.WriteLine(logText);
             if (LogWindowInstance != null)
