@@ -9,7 +9,7 @@ import moniker
 import trinity
 import blue
 
-ActionThreshold = 10000000L
+ActionThreshold = ((10000000L) * 175) / 100
 
 serviceInstance = None
 
@@ -134,13 +134,8 @@ class DroneHelperSvc(service.Service):
         
         return droneSorter
     
-    def selectTarget(self, droneID):
-        minSigRadius = float(self.getPref("MinSigRadius", 0))
-        maxSigRadius = float(self.getPref("MaxSigRadius", 99999))
-        targets = [
-            targetID for targetID in sm.services["target"].targets if
-            minSigRadius <= self.getSignatureRadius(targetID) <= maxSigRadius
-        ]
+    def selectTarget(self):
+        targets = sm.services["target"].targets
         if len(targets):
             if self.getPref("Largest", False):
                 targets.sort(
@@ -162,33 +157,35 @@ class DroneHelperSvc(service.Service):
         else:
             return None
     
-    def doAttack(self, droneID):
+    def doAttack(self, *dronesToAttack):
         if self.disabled:
             return
             
         timestamp = blue.os.GetTime()
-        targetID = self.selectTarget(droneID)
+        targetID = self.selectTarget()
         
         if targetID:
             ballpark = eve.LocalSvc("michelle").GetBallpark()           
             targetName = uix.GetSlimItemName(ballpark.GetInvItem(targetID))
             
             drones = self.getDronesInLocalSpace()
-            if droneID not in drones:
-                drones.append(droneID)
+            for id in dronesToAttack:
+                if id not in drones:
+                    drones.append(id)
                 
-            for _id in list(drones):            
-                droneObj = self.getDroneObject(_id)
+            for id in list(drones):            
+                droneObj = self.getDroneObject(id)
                 if ((droneObj.target == targetID) or
-                   abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
-                    drones.remove(_id)
+                    (droneObj.state == const.entityDeparting) or
+                    abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
+                    drones.remove(id)
             
             if len(drones):
                 entity = moniker.GetEntityAccess()
                 if entity:
                     log("%r drone(s) attacking %s", len(drones), targetName)
-                    for _id in drones:
-                        droneObj = self.getDroneObject(_id)
+                    for id in drones:
+                        droneObj = self.getDroneObject(id)
                         droneObj.setTarget(targetID, timestamp)
                         droneObj.actionTimestamp = timestamp
                     ret = entity.CmdEngage(drones, targetID)
@@ -222,6 +219,7 @@ class DroneHelperSvc(service.Service):
         timestamp = blue.os.GetTime()
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
+        dronesToAttack = []
         
         for pendingID in self.__pendingStateChanges.keys():
             if pendingID not in droneIDs:
@@ -237,9 +235,18 @@ class DroneHelperSvc(service.Service):
             drone.update(timestamp)
             if self.checkDroneHealth(drone):
                 dronesToRecall.append(droneID)
+            elif ((drone.state == const.entityIdle) and
+                  self.getPref("AutoAttackWhenIdle", False)):
+                dronesToAttack.append(droneID)
         
         if len(dronesToRecall):
+            for id in dronesToRecall:
+                if id in dronesToAttack:
+                    dronesToAttack.remove(id)
             self.doRecall(*dronesToRecall)
+        
+        if len(dronesToAttack):
+            self.doAttack(*dronesToAttack)
     
     def checkDroneHealth(self, drone):
         if not drone:
@@ -283,6 +290,7 @@ class DroneHelperSvc(service.Service):
         
         if ((oldTarget != None) and (drone.target == None) and 
            (drone.state == const.entityIdle) and 
+           (oldTarget not in sm.services["target"].targets) and
            self.getPref("AutoAttackWhenTargetLost", False)):
             shouldAutoAttack = True
         
