@@ -157,7 +157,7 @@ class DroneHelperSvc(service.Service):
         else:
             return None
     
-    def doAttack(self, *dronesToAttack):
+    def doAttack(self, idleOnly, *dronesToAttack):
         if self.disabled:
             return
             
@@ -178,6 +178,8 @@ class DroneHelperSvc(service.Service):
                 if ((droneObj.target == targetID) or
                     (droneObj.state == const.entityDeparting) or
                     abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
+                    drones.remove(id)
+                elif (idleOnly and (droneObj.state != const.entityIdle)):
                     drones.remove(id)
             
             if len(drones):
@@ -246,7 +248,7 @@ class DroneHelperSvc(service.Service):
             self.doRecall(*dronesToRecall)
         
         if len(dronesToAttack):
-            self.doAttack(*dronesToAttack)
+            self.doAttack(True, *dronesToAttack)
     
     def checkDroneHealth(self, drone):
         if not drone:
@@ -287,6 +289,7 @@ class DroneHelperSvc(service.Service):
         
         shouldAutoAttack = False
         shouldRecall = self.checkDroneHealth(drone)
+        idleOnly = False
         
         if ((oldTarget != None) and (drone.target == None) and 
            (drone.state == const.entityIdle) and 
@@ -297,12 +300,14 @@ class DroneHelperSvc(service.Service):
         if ((oldActivityState != const.entityIdle) and 
            (drone.state == const.entityIdle) and
            self.getPref("AutoAttackWhenIdle", False)):
+            if not shouldAutoAttack:
+                idleOnly = True
             shouldAutoAttack = True
         
         if shouldRecall:
             self.doRecall(droneID)
         elif shouldAutoAttack:
-            self.doAttack(droneID)
+            self.doAttack(idleOnly, droneID)
             
         self.checkUpdateTimer(droneID)
 
