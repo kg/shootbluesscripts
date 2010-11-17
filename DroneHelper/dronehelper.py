@@ -108,6 +108,25 @@ class DroneHelperSvc(service.Service):
             ((drones[droneID].ownerID == eve.session.charid) or (drones[droneID].controllerID == eve.session.shipid))
         )]
     
+    def getCommonTarget(self, threshold):
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        
+        targetCounts = {}
+        for drone in self.__drones.values():
+            if drone.target and ballpark.GetInvItem(drone.target):
+                targetCounts[drone.target] = targetCounts.setdefault(drone.target, 0) + 1
+                
+        sortedTargets = sorted(
+            [(count, targetID) for targetID, count in 
+             targetCounts.items() if count > threshold],
+            cmp=lambda lhs, rhs: -cmp(lhs, rhs)
+        )
+        
+        if len(sortedTargets):
+            return sortedTargets[0][1]
+        else:
+            return None
+    
     def getSignatureRadius(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         targetitem = eve.LocalSvc("godma").GetType(ballpark.GetInvItem(targetID).typeID)
@@ -134,8 +153,12 @@ class DroneHelperSvc(service.Service):
         
         return droneSorter
     
+    def filterExisting(self, ids):
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        return [id for id in ids if ballpark.GetInvItem(id)]
+    
     def selectTarget(self):
-        targets = sm.services["target"].targets
+        targets = self.filterExisting(sm.services["target"].targets)
         if len(targets):
             if self.getPref("Largest", False):
                 targets.sort(
@@ -161,12 +184,25 @@ class DroneHelperSvc(service.Service):
         if self.disabled:
             return
             
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
         timestamp = blue.os.GetTime()
-        targetID = self.selectTarget()
+        isCommonTarget = False
+        targetID = self.getCommonTarget(len(dronesToAttack))
+        if targetID:
+            slimItem = ballpark.GetInvItem(targetID)
+            if slimItem:
+                targetName = uix.GetSlimItemName(slimItem)
+                isCommonTarget = True
+        
+        if not targetID:
+            targetID = self.selectTarget()
         
         if targetID:
-            ballpark = eve.LocalSvc("michelle").GetBallpark()           
-            targetName = uix.GetSlimItemName(ballpark.GetInvItem(targetID))
+            slimItem = ballpark.GetInvItem(targetID)
+            if slimItem:
+                targetName = uix.GetSlimItemName(slimItem)
+            else:
+                targetName = "Unknown"
             
             drones = self.getDronesInLocalSpace()
             for id in dronesToAttack:
@@ -175,8 +211,9 @@ class DroneHelperSvc(service.Service):
                 
             for id in list(drones):            
                 droneObj = self.getDroneObject(id)
-                if ((droneObj.target == targetID) or
-                    (droneObj.state == const.entityDeparting) or
+                if (droneObj.state == const.entityDeparting):
+                    drones.remove(id)
+                elif ((droneObj.target == targetID) or
                     abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
                     drones.remove(id)
                 elif (idleOnly and (droneObj.state != const.entityIdle)):
@@ -185,6 +222,8 @@ class DroneHelperSvc(service.Service):
             if len(drones):
                 entity = moniker.GetEntityAccess()
                 if entity:
+                    if isCommonTarget:
+                        targetName += " (existing target)"
                     log("%r drone(s) attacking %s", len(drones), targetName)
                     for id in drones:
                         droneObj = self.getDroneObject(id)
