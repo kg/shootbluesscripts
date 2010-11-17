@@ -292,8 +292,6 @@ class DroneHelperSvc(service.Service):
     def checkDroneHealth(self, drone):
         if not drone:
             return False
-        if drone.state == const.entityDeparting:
-            return False
         
         result = False
         if self.getPref("RecallIfShieldsBelow", False):
