@@ -12,14 +12,13 @@ namespace ShootBlues.Script {
         ToolStripMenuItem CustomMenu;
 
         public DroneHelper (ScriptName name)
-            : base (name) {
+            : base(name) {
 
             AddDependency("Common.script.dll");
-            AddDependency("EnemyPrioritizer.script.dll");
-            AddDependency("dronehelper.py");
+            AddDependency("enemyprioritizer.py");
 
-            CustomMenu = new ToolStripMenuItem("Drone Helper");
-            CustomMenu.DropDownItems.Add("Configure", null, ConfigureDroneHelper);
+            CustomMenu = new ToolStripMenuItem("Enemy Prioritizer");
+            CustomMenu.DropDownItems.Add("Configure", null, ConfigureEnemyPrioritizer);
             CustomMenu.DropDownItems.Add("-");
             Program.AddCustomMenu(CustomMenu);
         }
@@ -30,9 +29,9 @@ namespace ShootBlues.Script {
             CustomMenu.Dispose();
         }
 
-        public void ConfigureDroneHelper (object sender, EventArgs args) {
+        public void ConfigureEnemyPrioritizer (object sender, EventArgs args) {
             Program.Scheduler.Start(
-                Program.ShowStatusWindow("Drone Helper"),
+                Program.ShowStatusWindow("Enemy Prioritizer"),
                 TaskExecutionPolicy.RunAsBackgroundTask
             );
         }
@@ -42,9 +41,11 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> Initialize () {
+            /*
             // Hack to initialize prefs to defaults
             using (var configWindow = new DroneHelperConfig(this))
                 yield return configWindow.SavePreferences();
+             */
 
             yield return BaseInitialize();
         }
@@ -53,24 +54,24 @@ namespace ShootBlues.Script {
             var prefsJson = GetPreferencesJson();
 
             foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "dronehelper", "notifyPrefsChanged", prefsJson);
+                yield return Program.CallFunction(process, "enemyprioritizer", "notifyPrefsChanged", prefsJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
-            yield return Program.CallFunction(process, "dronehelper", "initialize");
+            yield return Program.CallFunction(process, "enemyprioritizer", "initialize");
 
             var prefsJson = GetPreferencesJson();
-            yield return Program.CallFunction(process, "dronehelper", "notifyPrefsChanged", prefsJson);
+            yield return Program.CallFunction(process, "enemyprioritizer", "notifyPrefsChanged", prefsJson);
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            var panel = new DroneHelperConfig(this);
-            statusWindow.ShowConfigurationPanel("Drone Helper", panel);
+            var panel = new Control();
+            statusWindow.ShowConfigurationPanel("Enemy Prioritizer", panel);
             yield break;
         }
 
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
-            statusWindow.HideConfigurationPanel("Drone Helper");
+            statusWindow.HideConfigurationPanel("Enemy Prioritizer");
             yield break;
         }
     }

@@ -235,6 +235,7 @@ class DroneHelperSvc(service.Service):
         if self.disabled:
             return
         
+        dronesToRecall = list(dronesToRecall)
         timestamp = blue.os.GetTime()
         
         for droneID in list(dronesToRecall):
