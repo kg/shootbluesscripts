@@ -49,20 +49,26 @@ namespace ShootBlues.Script {
         }
 
         public IEnumerator<object> LoadPreferences () {
+            var rtc = new RunToCompletion<Dictionary<string, object>>(Script.GetPreferences());
+            yield return rtc;
+
+            var dict = rtc.Result;
             object value;
 
             foreach (var bm in Prefs)
-                if (Script.GetPreference(GetMemberName(bm), out value))
+                if (dict.TryGetValue(GetMemberName(bm), out value))
                     bm.Value = value;
-
-            yield break;
         }
 
         public IEnumerator<object> SavePreferences () {
-            foreach (var bm in Prefs)
-                Script.SetPreference(GetMemberName(bm), bm.Value);
+            using (var xact = Program.Database.CreateTransaction()) {
+                yield return xact;
 
-            yield break;
+                foreach (var bm in Prefs)
+                    yield return Script.SetPreference(GetMemberName(bm), bm.Value);
+
+                yield return xact.Commit();
+            }
         }
 
         private void ValuesChanged (object sender, EventArgs args) {

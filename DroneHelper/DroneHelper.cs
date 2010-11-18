@@ -50,7 +50,8 @@ namespace ShootBlues.Script {
         }
 
         protected override IEnumerator<object> OnPreferencesChanged () {
-            var prefsJson = GetPreferencesJson();
+            string prefsJson = null;
+            yield return GetPreferencesJson().Bind(() => prefsJson);
 
             foreach (var process in Program.RunningProcesses)
                 yield return Program.CallFunction(process, "dronehelper", "notifyPrefsChanged", prefsJson);
@@ -59,7 +60,9 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "dronehelper", "initialize");
 
-            var prefsJson = GetPreferencesJson();
+            string prefsJson = null;
+            yield return GetPreferencesJson().Bind(() => prefsJson);
+
             yield return Program.CallFunction(process, "dronehelper", "notifyPrefsChanged", prefsJson);
         }
 

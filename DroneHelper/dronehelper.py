@@ -291,9 +291,6 @@ class DroneHelperSvc(service.Service):
             self.doAttack(True, *dronesToAttack)
     
     def checkDroneHealth(self, drone):
-        if not drone:
-            return False
-        
         result = False
         if self.getPref("RecallIfShieldsBelow", False):
             threshold = float(self.getPref("RecallShieldThreshold", 50)) / 100.0
