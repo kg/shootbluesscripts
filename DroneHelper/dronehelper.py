@@ -359,5 +359,7 @@ def __unload__():
     global serviceRunning, serviceInstance
     if serviceInstance:
         serviceInstance.disabled = True
+        serviceInstance = None
     if serviceRunning:
         forceStopService("dronehelper")
+        serviceRunning = False

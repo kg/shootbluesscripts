@@ -52,7 +52,7 @@
             this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox1.Size = new System.Drawing.Size(382, 142);
+            this.groupBox1.Size = new System.Drawing.Size(352, 142);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Auto Attack";
@@ -68,7 +68,7 @@
             this.AutoAttackWhat.Margin = new System.Windows.Forms.Padding(4);
             this.AutoAttackWhat.Name = "AutoAttackWhat";
             this.AutoAttackWhat.Padding = new System.Windows.Forms.Padding(4);
-            this.AutoAttackWhat.Size = new System.Drawing.Size(366, 51);
+            this.AutoAttackWhat.Size = new System.Drawing.Size(336, 51);
             this.AutoAttackWhat.TabIndex = 1;
             this.AutoAttackWhat.TabStop = false;
             this.AutoAttackWhat.Text = "What";
@@ -124,7 +124,7 @@
             this.groupBox2.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox2.Size = new System.Drawing.Size(366, 52);
+            this.groupBox2.Size = new System.Drawing.Size(336, 52);
             this.groupBox2.TabIndex = 0;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "When";
@@ -170,7 +170,7 @@
             this.groupBox4.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox4.Size = new System.Drawing.Size(382, 51);
+            this.groupBox4.Size = new System.Drawing.Size(352, 51);
             this.groupBox4.TabIndex = 1;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Auto Recall";
@@ -223,9 +223,9 @@
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
             this.Margin = new System.Windows.Forms.Padding(4);
-            this.MinimumSize = new System.Drawing.Size(390, 220);
+            this.MinimumSize = new System.Drawing.Size(360, 210);
             this.Name = "DroneHelperConfig";
-            this.Size = new System.Drawing.Size(390, 220);
+            this.Size = new System.Drawing.Size(360, 210);
             this.groupBox1.ResumeLayout(false);
             this.AutoAttackWhat.ResumeLayout(false);
             this.AutoAttackWhat.PerformLayout();
