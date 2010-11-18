@@ -11,7 +11,7 @@ def _initChannel(name, handle):
     __channels[name] = shootblues.createChannel(handle)
 
 def getChannel(name):
-    return __channels[name]
+    return __channels.get(name, None)
 
 def log(format, *args):
     logger = getChannel("log")
@@ -159,6 +159,9 @@ def initialize():
         isInitialized = True
 
 def __unload__():
+    for key in _channels:
+        _channels[key] = None
+    
     _channels = {}
 
     global isInitialized
