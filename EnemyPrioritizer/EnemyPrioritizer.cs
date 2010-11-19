@@ -6,12 +6,42 @@ using Squared.Task;
 using System.Windows.Forms;
 using System.Reflection;
 using System.IO;
+using Squared.Task.Data.Mapper;
 
 namespace ShootBlues.Script {
-    public class DroneHelper : ManagedScript {
+    [Mapper]
+    class PriorityEntry {
+        [Column("groupID")]
+        public int? GroupID {
+            get;
+            set;
+        }
+        [Column("typeID")]
+        public int? TypeID {
+            get;
+            set;
+        }
+        [Column("priority")]
+        public int Priority {
+            get;
+            set;
+        }
+        [Column("groupName")]
+        public string GroupName {
+            get;
+            set;
+        }
+        [Column("typeName")]
+        public string TypeName {
+            get;
+            set;
+        }
+    }
+
+    public class EnemyPrioritizer : ManagedScript {
         ToolStripMenuItem CustomMenu;
 
-        public DroneHelper (ScriptName name)
+        public EnemyPrioritizer (ScriptName name)
             : base(name) {
 
             AddDependency("Common.script.dll");
@@ -41,11 +71,14 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> Initialize () {
-            /*
-            // Hack to initialize prefs to defaults
-            using (var configWindow = new DroneHelperConfig(this))
-                yield return configWindow.SavePreferences();
-             */
+            yield return Program.AttachDB(
+                "evedata"
+            );
+
+            yield return Program.CreateDBTable(
+                "enemyPriorities",
+                "( groupID INTEGER NOT NULL, typeID INTEGER, priority INTEGER NOT NULL, PRIMARY KEY (groupID, typeID) )"
+            );
 
             yield return BaseInitialize();
         }
@@ -67,7 +100,16 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            var panel = new Control();
+            // Delete any stray items with a priority of 0 since the default is 0.
+            // When the user interacts with the config window, new items start at
+            //  priority 0, so if they never set a priority, they stick around.
+            // This kind of sucks, but it shouldn't be too confusing.
+            yield return Program.Database.ExecuteSQL(
+                "DELETE FROM enemyPriorities WHERE priority = 0"
+            );
+
+            var panel = new EnemyPrioritizerConfig(this);
+            yield return panel.RefreshList();
             statusWindow.ShowConfigurationPanel("Enemy Prioritizer", panel);
             yield break;
         }

@@ -43,8 +43,10 @@ namespace ShootBlues.Script {
 
         public override IEnumerator<object> Initialize () {
             // Hack to initialize prefs to defaults
-            using (var configWindow = new DroneHelperConfig(this))
+            using (var configWindow = new DroneHelperConfig(this)) {
+                yield return configWindow.LoadPreferences();
                 yield return configWindow.SavePreferences();
+            }
 
             yield return BaseInitialize();
         }
@@ -68,6 +70,7 @@ namespace ShootBlues.Script {
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
             var panel = new DroneHelperConfig(this);
+            yield return panel.LoadPreferences();
             statusWindow.ShowConfigurationPanel("Drone Helper", panel);
             yield break;
         }

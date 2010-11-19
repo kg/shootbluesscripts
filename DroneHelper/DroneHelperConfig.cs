@@ -11,11 +11,12 @@ using System.Web.Script.Serialization;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class DroneHelperConfig : UserControl {
+    public partial class DroneHelperConfig : TaskUserControl {
         IBoundMember[] Prefs;
         DroneHelper Script;
 
-        public DroneHelperConfig (DroneHelper script) {
+        public DroneHelperConfig (DroneHelper script)
+            : base (Program.Scheduler) {
             InitializeComponent();
             Script = script;
 
@@ -28,20 +29,11 @@ namespace ShootBlues.Script {
                 BoundMember.New(() => RecallIfShieldsBelow.Checked),
                 BoundMember.New(() => RecallShieldThreshold.Value),
             };
-
-            Program.Scheduler.Start(LoadPreferences(), TaskExecutionPolicy.RunAsBackgroundTask);
         }
 
         private void RecallIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
             RecallShieldThreshold.Enabled = RecallIfShieldsBelow.Checked;
             ValuesChanged(sender, e);
-        }
-
-        public string GetPrefsPath () {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                Path.Combine("ShootBlues", "DroneHelperPreferences.json")
-            );
         }
 
         public string GetMemberName (IBoundMember member) {
@@ -72,9 +64,7 @@ namespace ShootBlues.Script {
         }
 
         private void ValuesChanged (object sender, EventArgs args) {
-            Program.Scheduler.Start(
-                SavePreferences(), TaskExecutionPolicy.RunAsBackgroundTask
-            );
+            Start(SavePreferences());
         }
     }
 }

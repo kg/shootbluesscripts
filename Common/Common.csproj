@@ -88,6 +88,7 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>copy $(SolutionDir)\Python\*.py $(TargetDir)</PostBuildEvent>
+    <PostBuildEvent>copy $(SolutionDir)\Python\*.py $(TargetDir)
+copy $(SolutionDir)\Common\*.db $(TargetDir)</PostBuildEvent>
   </PropertyGroup>
 </Project>
