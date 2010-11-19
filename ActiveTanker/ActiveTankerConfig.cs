@@ -10,25 +10,37 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class DroneHelperConfig : TaskUserControl {
+    public partial class ActiveTankerConfig : TaskUserControl {
         IBoundMember[] Prefs;
-        DroneHelper Script;
+        ActiveTanker Script;
 
-        public DroneHelperConfig (DroneHelper script)
+        public ActiveTankerConfig (ActiveTanker script)
             : base (Program.Scheduler) {
             InitializeComponent();
             Script = script;
 
             Prefs = new IBoundMember[] {
-                BoundMember.New(() => WhenIdle.Checked),
-                BoundMember.New(() => WhenTargetLost.Checked),
-                BoundMember.New(() => RecallIfShieldsBelow.Checked),
-                BoundMember.New(() => RecallShieldThreshold.Value),
+                BoundMember.New(() => RepairIfShieldsBelow.Checked),
+                BoundMember.New(() => ShieldRepairThreshold.Value),
+                BoundMember.New(() => RepairIfArmorBelow.Checked),
+                BoundMember.New(() => ArmorRepairThreshold.Value),
+                BoundMember.New(() => RepairIfHullBelow.Checked),
+                BoundMember.New(() => HullRepairThreshold.Value),
             };
         }
 
-        private void RecallIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
-            RecallShieldThreshold.Enabled = RecallIfShieldsBelow.Checked;
+        private void RepairIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
+            ShieldRepairThreshold.Enabled = RepairIfShieldsBelow.Checked;
+            ValuesChanged(sender, e);
+        }
+
+        private void RepairIfArmorBelow_CheckedChanged (object sender, EventArgs e) {
+            ArmorRepairThreshold.Enabled = RepairIfArmorBelow.Checked;
+            ValuesChanged(sender, e);
+        }
+
+        private void RepairIfHullBelow_CheckedChanged (object sender, EventArgs e) {
+            HullRepairThreshold.Enabled = RepairIfHullBelow.Checked;
             ValuesChanged(sender, e);
         }
 
@@ -61,10 +73,6 @@ namespace ShootBlues.Script {
 
         private void ValuesChanged (object sender, EventArgs args) {
             Start(SavePreferences());
-        }
-
-        private void ConfigurePriorities_Click (object sender, EventArgs e) {
-            Start(Program.ShowStatusWindow("Enemy Prioritizer"));
         }
     }
 }

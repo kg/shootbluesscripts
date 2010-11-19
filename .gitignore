@@ -9,5 +9,6 @@
 /Profile_EVE/obj
 /EnemyPrioritizer/bin
 /EnemyPrioritizer/obj
-
+/ActiveTanker/bin
+/ActiveTanker/obj
 /Common/evedata.db

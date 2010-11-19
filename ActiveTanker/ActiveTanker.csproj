@@ -40,6 +40,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActiveTanker.cs" />
+    <Compile Include="ActiveTankerConfig.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ActiveTankerConfig.Designer.cs">
+      <DependentUpon>ActiveTankerConfig.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -64,6 +70,11 @@
     <Content Include="activetanker.py">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ActiveTankerConfig.resx">
+      <DependentUpon>ActiveTankerConfig.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
