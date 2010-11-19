@@ -31,10 +31,6 @@ def remoteCall(script, methodName, *args):
 def logException(*args, **kwargs):
     global oldLogException
     try:
-        log("An unhandled exception was thrown and I stopped it from being reported.")
-    except:
-        pass
-    try:
         if len(args) > 3:
             args[3] = False
         if len(args) > 4:
@@ -49,10 +45,6 @@ def logException(*args, **kwargs):
 
 def logTraceback(*args, **kwargs):
     global oldLogTraceback
-    try:
-        log("I stopped a traceback from being reported.")
-    except:
-        pass
     try:
         if len(args) > 3:
             args[3] = False
