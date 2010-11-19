@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using System.Reflection;
 using System.IO;
 using Squared.Task.Data.Mapper;
+using System.Web.Script.Serialization;
 
 namespace ShootBlues.Script {
     [Mapper]
@@ -84,19 +85,31 @@ namespace ShootBlues.Script {
         }
 
         protected override IEnumerator<object> OnPreferencesChanged () {
-            string prefsJson = null;
-            yield return GetPreferencesJson().Bind(() => prefsJson);
+            var priorityDict = new Dictionary<string, object>();
+
+            using (var q = Program.Database.BuildQuery("SELECT groupID, typeID, priority FROM enemyPriorities"))
+            using (var e = q.Execute<PriorityEntry>())
+            while (!e.Disposed) {
+                yield return e.Fetch();
+
+                foreach (var item in e)
+                    if (item.TypeID.HasValue)
+                        priorityDict[String.Format("type:{0}", item.TypeID.Value)] = item.Priority;
+                    else
+                        priorityDict[String.Format("group:{0}", item.GroupID.Value)] = item.Priority;
+            }
+
+            var serializer = new JavaScriptSerializer();
+            var prioritiesJson = serializer.Serialize(priorityDict);
 
             foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "enemyprioritizer", "notifyPrefsChanged", prefsJson);
+                yield return Program.CallFunction(process, "enemyprioritizer", "notifyPrioritiesChanged", prioritiesJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "enemyprioritizer", "initialize");
 
-            string prefsJson = null;
-            yield return GetPreferencesJson().Bind(() => prefsJson);
-            yield return Program.CallFunction(process, "enemyprioritizer", "notifyPrefsChanged", prefsJson);
+            yield return OnPreferencesChanged();
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

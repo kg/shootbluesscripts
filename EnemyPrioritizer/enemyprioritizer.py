@@ -4,48 +4,24 @@ import service
 import uix
 import json
 
-prefs = {}
-serviceInstance = None
+priorities = {}
 
-def notifyPrefsChanged(newPrefsJson):
-    prefs = json.loads(newPrefsJson)   
-     
-class EnemyPrioritizerSvc(service.Service):
-    __guid__ = "svc.enemyprioritizer"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
-    __notifyevents__ = [
-        "OnTargets",
-        "OnTarget"
-    ]
-
-    def __init__(self):
-        service.Service.__init__(self)
+def notifyPrioritiesChanged(newPrioritiesJson):
+    global priorities
+    priorities = json.loads(newPrioritiesJson)
     
-    def OnTarget(self, what, tid = None, reason = None):
+def getPriority(targetID=None, slimItem=None):
+    global priorities
+    
+    if targetID and not slimItem:    
         ballpark = eve.LocalSvc('michelle').GetBallpark()
-        targetName = None
-        targetType = None
-        targetGroup = None
-        if tid:
-            slimItem = ballpark.GetInvItem(tid)
-            if slimItem:
-                targetName = uix.GetSlimItemName(slimItem)
-                targetType = slimItem.typeID
-                targetGroup = getattr(slimItem, "groupID")
-        
-        log("OnTarget %r (type %r group %r) what=%r reason=%r", targetName, targetType, targetGroup, what, reason)
+        slimItem = ballpark.GetInvItem(targetID)
     
-    def OnTargets(self, targets):
-        for target in targets:
-            self.OnTarget(*(target[1:]))
-
-def initialize():
-    global serviceInstance
-    # serviceInstance = forceStartService("enemyprioritizer", EnemyPrioritizerSvc)
-
-def __unload__():
-    global serviceInstance
-    if serviceInstance:
-        forceStopService("enemyprioritizer")
-        serviceInstance = None
+    if not slimItem:
+        return 0
+    
+    priority = priorities.get("type:%d" % (slimItem.typeID,), 0)
+    if priority == 0:
+        priority = priorities.get("group:%d" % (slimItem.groupID,), 0)
+    
+    return priority

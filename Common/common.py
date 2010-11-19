@@ -159,12 +159,12 @@ def initialize():
         isInitialized = True
 
 def __unload__():
-    for key in _channels:
-        _channels[key] = None
+    global isInitialized, __channels
+    for key in __channels:
+        __channels[key] = None
     
-    _channels = {}
+    __channels = {}
 
-    global isInitialized
     if isInitialized:
         forceStopService("charmonitor")
         global oldLogException, oldLogTraceback

@@ -21,11 +21,8 @@ namespace ShootBlues.Script {
             Script = script;
 
             Prefs = new IBoundMember[] {
-                BoundMember.New(() => AutoAttackWhenIdle.Checked),
-                BoundMember.New(() => AutoAttackWhenTargetLost.Checked),
-                BoundMember.New(() => Largest.Checked),
-                BoundMember.New(() => Smallest.Checked),
-                BoundMember.New(() => ClosestToDrones.Checked),
+                BoundMember.New(() => WhenIdle.Checked),
+                BoundMember.New(() => WhenTargetLost.Checked),
                 BoundMember.New(() => RecallIfShieldsBelow.Checked),
                 BoundMember.New(() => RecallShieldThreshold.Value),
             };
@@ -65,6 +62,10 @@ namespace ShootBlues.Script {
 
         private void ValuesChanged (object sender, EventArgs args) {
             Start(SavePreferences());
+        }
+
+        private void ConfigurePriorities_Click (object sender, EventArgs e) {
+            Start(Program.ShowStatusWindow("Enemy Prioritizer"));
         }
     }
 }

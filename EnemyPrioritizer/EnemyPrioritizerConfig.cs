@@ -99,11 +99,16 @@ namespace ShootBlues.Script {
                 }
 
                 List.EndUpdate();
+
+                if (List.SelectedIndices.Count > 0) {
+                    List.EnsureVisible(List.SelectedIndices[List.SelectedIndices.Count - 1]);
+                    List.EnsureVisible(List.SelectedIndices[0]);
+                }
             }
         }
 
         private void List_SelectedIndexChanged (object sender, EventArgs e) {
-            PriorityDown.Enabled = PriorityUp.Enabled = 
+            PriorityDown.Enabled = PriorityUp.Enabled = Remove.Enabled = 
                 SelectedEntries.Count() > 0;
         }
 
@@ -151,6 +156,8 @@ namespace ShootBlues.Script {
                     yield return xact.Commit();
                 }
 
+                Script.PreferencesChanged.Set();
+
                 yield return RefreshList(new PriorityEntry { GroupID = newGroup.ID });
             }
         }
@@ -189,6 +196,8 @@ namespace ShootBlues.Script {
                     "REPLACE INTO enemyPriorities (groupID, typeID, priority) VALUES (?, ?, ?)",
                     newType.GroupID, newType.TypeID, priority
                 );
+
+                Script.PreferencesChanged.Set();
 
                 yield return RefreshList(new PriorityEntry { GroupID = newType.GroupID, TypeID = newType.TypeID });
             }
@@ -235,12 +244,46 @@ namespace ShootBlues.Script {
                 yield return xact.Commit();
             }
 
+            Script.PreferencesChanged.Set();
+
             yield return RefreshList();
         }
 
         private void List_SizeChanged (object sender, EventArgs e) {
             var clientWidth = List.ClientSize.Width - 4;
             List.Columns[0].Width = clientWidth;
+        }
+
+        private void Remove_Click (object sender, EventArgs e) {
+            Start(RemoveItemsTask(SelectedEntries.ToArray()));
+        }
+
+        private IEnumerator<object> RemoveItemsTask (PriorityEntry[] items) {
+            using (new ControlWaitCursor(this))
+            using (var xact = Program.Database.CreateTransaction()) {
+                yield return xact;
+
+                object[] args;
+
+                foreach (var item in items) {
+                    string sql = "DELETE FROM enemyPriorities WHERE ";
+                    if (item.TypeID.HasValue) {
+                        sql += "typeID = ? AND groupID = ?";
+                        args = new object[] { item.TypeID.Value, item.GroupID.Value };
+                    } else {
+                        sql += "groupID = ? AND typeID IS NULL";
+                        args = new object[] { item.GroupID.Value };
+                    }
+
+                    yield return Program.Database.ExecuteSQL(sql, args);
+                }
+
+                yield return xact.Commit();
+            }
+
+            Script.PreferencesChanged.Set();
+
+            yield return RefreshList();
         }
     }
 }

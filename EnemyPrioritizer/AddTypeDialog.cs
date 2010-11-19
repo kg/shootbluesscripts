@@ -96,6 +96,13 @@ namespace ShootBlues.Script {
         private void Types_SelectedIndexChanged (object sender, EventArgs e) {
             OKButton.Enabled = (Types.SelectedItem is TypeEntry);
         }
+
+        private void Types_DoubleClick (object sender, EventArgs e) {
+            if (OKButton.Enabled) {
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+            }
+        }
     }
 
     [Mapper]

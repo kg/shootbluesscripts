@@ -78,6 +78,7 @@
             this.Types.Size = new System.Drawing.Size(370, 140);
             this.Types.TabIndex = 6;
             this.Types.SelectedIndexChanged += new System.EventHandler(this.Types_SelectedIndexChanged);
+            this.Types.DoubleClick += new System.EventHandler(this.Types_DoubleClick);
             // 
             // AddTypeDialog
             // 

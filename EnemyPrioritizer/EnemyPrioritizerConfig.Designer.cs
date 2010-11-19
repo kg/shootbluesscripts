@@ -36,6 +36,7 @@
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.PriorityUp = new System.Windows.Forms.ToolStripButton();
             this.PriorityDown = new System.Windows.Forms.ToolStripButton();
+            this.Remove = new System.Windows.Forms.ToolStripButton();
             this.Toolbar.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -94,7 +95,8 @@
             this.AddGroup,
             this.toolStripSeparator1,
             this.PriorityUp,
-            this.PriorityDown});
+            this.PriorityDown,
+            this.Remove});
             this.Toolbar.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
             this.Toolbar.Location = new System.Drawing.Point(460, 3);
             this.Toolbar.Name = "Toolbar";
@@ -160,6 +162,19 @@
             this.PriorityDown.Text = "Priority Down";
             this.PriorityDown.Click += new System.EventHandler(this.PriorityDown_Click);
             // 
+            // Remove
+            // 
+            this.Remove.AutoSize = false;
+            this.Remove.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.Remove.Enabled = false;
+            this.Remove.Image = ((System.Drawing.Image)(resources.GetObject("Remove.Image")));
+            this.Remove.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.Remove.Margin = new System.Windows.Forms.Padding(0);
+            this.Remove.Name = "Remove";
+            this.Remove.Size = new System.Drawing.Size(36, 36);
+            this.Remove.Text = "Remove";
+            this.Remove.Click += new System.EventHandler(this.Remove_Click);
+            // 
             // EnemyPrioritizerConfig
             // 
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
@@ -185,5 +200,6 @@
         private System.Windows.Forms.ToolStripButton PriorityDown;
         private System.Windows.Forms.ImageList Icons;
         private System.Windows.Forms.ColumnHeader NameColumn;
+        private System.Windows.Forms.ToolStripButton Remove;
     }
 }

@@ -8,18 +8,17 @@ using System.Reflection;
 using System.IO;
 
 namespace ShootBlues.Script {
-    public class DroneHelper : ManagedScript {
+    public class ActiveTanker : ManagedScript {
         ToolStripMenuItem CustomMenu;
 
-        public DroneHelper (ScriptName name)
-            : base (name) {
+        public ActiveTanker (ScriptName name)
+            : base(name) {
 
             AddDependency("Common.script.dll");
-            AddDependency("EnemyPrioritizer.script.dll");
-            AddDependency("dronehelper.py");
+            AddDependency("activetanker.py");
 
-            CustomMenu = new ToolStripMenuItem("Drone Helper");
-            CustomMenu.DropDownItems.Add("Configure", null, ConfigureDroneHelper);
+            CustomMenu = new ToolStripMenuItem("Active Tanker");
+            CustomMenu.DropDownItems.Add("Configure", null, ConfigureActiveTanker);
             CustomMenu.DropDownItems.Add("-");
             Program.AddCustomMenu(CustomMenu);
         }
@@ -30,9 +29,9 @@ namespace ShootBlues.Script {
             CustomMenu.Dispose();
         }
 
-        public void ConfigureDroneHelper (object sender, EventArgs args) {
+        public void ConfigureActiveTanker (object sender, EventArgs args) {
             Program.Scheduler.Start(
-                Program.ShowStatusWindow("Drone Helper"),
+                Program.ShowStatusWindow("Active Tanker"),
                 TaskExecutionPolicy.RunAsBackgroundTask
             );
         }
@@ -42,11 +41,13 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> Initialize () {
+            /*
             // Hack to initialize prefs to defaults
             using (var configWindow = new DroneHelperConfig(this)) {
                 yield return configWindow.LoadPreferences();
                 yield return configWindow.SavePreferences();
             }
+             */
 
             yield return BaseInitialize();
         }
@@ -56,24 +57,24 @@ namespace ShootBlues.Script {
             yield return GetPreferencesJson().Bind(() => prefsJson);
 
             foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "dronehelper", "notifyPrefsChanged", prefsJson);
+                yield return Program.CallFunction(process, "activetanker", "notifyPrefsChanged", prefsJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
-            yield return Program.CallFunction(process, "dronehelper", "initialize");
+            yield return Program.CallFunction(process, "activetanker", "initialize");
 
             yield return OnPreferencesChanged();
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            var panel = new DroneHelperConfig(this);
-            yield return panel.LoadPreferences();
-            statusWindow.ShowConfigurationPanel("Drone Helper", panel);
+            var panel = new Control(); // new ActiveTankerConfig(this);
+            // yield return panel.LoadPreferences();
+            statusWindow.ShowConfigurationPanel("Active Tanker", panel);
             yield break;
         }
 
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
-            statusWindow.HideConfigurationPanel("Drone Helper");
+            statusWindow.HideConfigurationPanel("Active Tanker");
             yield break;
         }
     }

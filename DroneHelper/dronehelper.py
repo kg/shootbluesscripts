@@ -11,17 +11,27 @@ import blue
 
 ActionThreshold = ((10000000L) * 175) / 100
 
+prefs = {}
 serviceInstance = None
+
+try:
+    from shootblues.enemyprioritizer import getPriority
+except:
+    def getPriority(*args, **kwargs):
+        return 0
 
 def getLockedTargets():
     ballpark = eve.LocalSvc('michelle').GetBallpark()
     targetSvc = sm.services['target']
     return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
 
+def getPref(key, default):
+    global prefs
+    return prefs.get(key, default)
+
 def notifyPrefsChanged(newPrefsJson):
-    global serviceInstance
-    if serviceInstance:
-        serviceInstance.prefs = json.loads(newPrefsJson)        
+    global prefs
+    prefs = json.loads(newPrefsJson)        
 
 class DroneInfo(object):
     def __init__(self, droneID):
@@ -66,7 +76,6 @@ class DroneHelperSvc(service.Service):
         self.__pendingStateChanges = {}
         self.__updateTimer = None
         self.disabled = False
-        self.prefs = {}
     
     def checkUpdateTimer(self, droneID = None):
         drones = self.getDronesInLocalSpace()
@@ -77,10 +86,7 @@ class DroneHelperSvc(service.Service):
             self.__updateTimer = base.AutoTimer(500, self.updateDrones)
         elif (droneCount <= 0) and (self.__updateTimer != None):
             self.__updateTimer = None
-    
-    def getPref(self, key, default):
-        return self.prefs.get(key, default)
-    
+        
     def getDistance(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         
@@ -116,14 +122,16 @@ class DroneHelperSvc(service.Service):
             if drone.target and ballpark.GetInvItem(drone.target):
                 targetCounts[drone.target] = targetCounts.setdefault(drone.target, 0) + 1
                 
-        sortedTargets = sorted(
+        sortedTargets = [st[1] for st in sorted(
             [(count, targetID) for targetID, count in 
              targetCounts.items() if count > threshold],
             cmp=lambda lhs, rhs: -cmp(lhs, rhs)
-        )
+        )]
+        
+        sortedTargets = self.filterTargets(sortedTargets)
         
         if len(sortedTargets):
-            return sortedTargets[0][1]
+            return sortedTargets[0]
         else:
             return None
     
@@ -136,45 +144,28 @@ class DroneHelperSvc(service.Service):
             result = float(ballpark.GetBall(targetID).radius)
         return result
     
-    def makeDistanceSorter(self, reversed):
-        def droneSorter(lhs, rhs):
-            sigLhs = self.getSignatureRadius(lhs)
-            sigRhs = self.getSignatureRadius(rhs)
-            result = cmp(sigLhs, sigRhs)
-            
-            if result == 0:
-                distLhs = self.getDistance(lhs)
-                distRhs = self.getDistance(rhs)
-                result = cmp(distLhs, distRhs)
-            elif reversed:
-                result = -result
-            
-            return result
+    def targetSorter(self, lhs, rhs):
+        # Highest priority first
+        priLhs = getPriority(targetID=lhs)
+        priRhs = getPriority(targetID=rhs)
+        result = cmp(priRhs, priLhs)
         
-        return droneSorter
+        if result == 0:
+            distLhs = self.getDistance(lhs)
+            distRhs = self.getDistance(rhs)
+            result = cmp(distLhs, distRhs)
+        
+        return result
     
-    def filterExisting(self, ids):
+    def filterTargets(self, ids):
+        targetSvc = sm.services['target']
         ballpark = eve.LocalSvc("michelle").GetBallpark()
-        return [id for id in ids if ballpark.GetInvItem(id)]
+        return [id for id in ids if ballpark.GetInvItem(id) and id in targetSvc.targets]
     
     def selectTarget(self):
-        targets = self.filterExisting(sm.services["target"].targets)
+        targets = self.filterTargets(sm.services["target"].targets)
         if len(targets):
-            if self.getPref("Largest", False):
-                targets.sort(
-                    self.makeDistanceSorter(True)
-                )
-            if self.getPref("Smallest", True):
-                targets.sort(
-                    self.makeDistanceSorter(False)
-                )
-            elif self.getPref("ClosestToDrones", False):
-                targets.sort(
-                    lambda lhs, rhs: cmp(
-                        self.getDistance(lhs), 
-                        self.getDistance(rhs)
-                    )
-                )
+            targets.sort(self.targetSorter)
             
             return targets[0]
         else:
@@ -278,7 +269,7 @@ class DroneHelperSvc(service.Service):
             if self.checkDroneHealth(drone):
                 dronesToRecall.append(droneID)
             elif ((drone.state == const.entityIdle) and
-                  self.getPref("AutoAttackWhenIdle", False)):
+                  getPref("WhenIdle", False)):
                 dronesToAttack.append(droneID)
         
         if len(dronesToRecall):
@@ -292,8 +283,8 @@ class DroneHelperSvc(service.Service):
     
     def checkDroneHealth(self, drone):
         result = False
-        if self.getPref("RecallIfShieldsBelow", False):
-            threshold = float(self.getPref("RecallShieldThreshold", 50)) / 100.0
+        if getPref("RecallIfShieldsBelow", False):
+            threshold = float(getPref("RecallShieldThreshold", 50)) / 100.0
             if drone.shield < threshold:
                 result = True
 
@@ -329,12 +320,12 @@ class DroneHelperSvc(service.Service):
         if ((oldTarget != None) and (drone.target == None) and 
            (drone.state == const.entityIdle) and 
            (oldTarget not in sm.services["target"].targets) and
-           self.getPref("AutoAttackWhenTargetLost", False)):
+           getPref("WhenTargetLost", False)):
             shouldAutoAttack = True
         
         if ((oldActivityState != const.entityIdle) and 
            (drone.state == const.entityIdle) and
-           self.getPref("AutoAttackWhenIdle", False)):
+           getPref("WhenIdle", False)):
             shouldAutoAttack = True
         
         if shouldRecall:
