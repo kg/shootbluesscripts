@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnemyPrioritizer", "EnemyPr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActiveTanker", "ActiveTanker\ActiveTanker.csproj", "{197163F4-45DF-4CAF-A836-4562D8570829}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoTargeter", "AutoTargeter\AutoTargeter.csproj", "{CF82DAF8-A027-4DCE-958F-2AC4B6903BEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -61,6 +63,10 @@ Global
 		{197163F4-45DF-4CAF-A836-4562D8570829}.Debug|x86.Build.0 = Debug|x86
 		{197163F4-45DF-4CAF-A836-4562D8570829}.Release|x86.ActiveCfg = Release|x86
 		{197163F4-45DF-4CAF-A836-4562D8570829}.Release|x86.Build.0 = Release|x86
+		{CF82DAF8-A027-4DCE-958F-2AC4B6903BEE}.Debug|x86.ActiveCfg = Debug|x86
+		{CF82DAF8-A027-4DCE-958F-2AC4B6903BEE}.Debug|x86.Build.0 = Debug|x86
+		{CF82DAF8-A027-4DCE-958F-2AC4B6903BEE}.Release|x86.ActiveCfg = Release|x86
+		{CF82DAF8-A027-4DCE-958F-2AC4B6903BEE}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

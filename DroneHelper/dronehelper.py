@@ -135,15 +135,6 @@ class DroneHelperSvc(service.Service):
         else:
             return None
     
-    def getSignatureRadius(self, targetID):
-        ballpark = eve.LocalSvc("michelle").GetBallpark()
-        targetitem = eve.LocalSvc("godma").GetType(ballpark.GetInvItem(targetID).typeID)
-        if targetitem.AttributeExists("signatureRadius"):
-            result = float(targetitem.signatureRadius)
-        else:
-            result = float(ballpark.GetBall(targetID).radius)
-        return result
-    
     def targetSorter(self, lhs, rhs):
         # Highest priority first
         priLhs = getPriority(targetID=lhs)
@@ -232,6 +223,8 @@ class DroneHelperSvc(service.Service):
         for droneID in list(dronesToRecall):
             droneObj = self.getDroneObject(droneID)
             if ((droneObj.state == const.entityDeparting) or
+               (droneObj.state == const.entityDeparting2) or
+               (droneObj.state == const.entityPursuit) or
                abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
                 dronesToRecall.remove(droneID)
         
@@ -240,7 +233,7 @@ class DroneHelperSvc(service.Service):
             if entity:
                 log("Drone(s) %r returning", dronesToRecall)
                 entity.CmdReturnBay(dronesToRecall)
-                for droneID in dronesToRecall:  
+                for droneID in dronesToRecall:                    
                     droneObj = self.getDroneObject(id)
                     droneObj.setState(const.entityDeparting, timestamp)
                     droneObj.actionTimestamp = timestamp

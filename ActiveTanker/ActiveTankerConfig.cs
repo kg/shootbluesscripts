@@ -20,28 +20,10 @@ namespace ShootBlues.Script {
             Script = script;
 
             Prefs = new IBoundMember[] {
-                BoundMember.New(() => RepairIfShieldsBelow.Checked),
-                BoundMember.New(() => ShieldRepairThreshold.Value),
-                BoundMember.New(() => RepairIfArmorBelow.Checked),
-                BoundMember.New(() => ArmorRepairThreshold.Value),
-                BoundMember.New(() => RepairIfHullBelow.Checked),
-                BoundMember.New(() => HullRepairThreshold.Value),
+                BoundMember.New(() => KeepShieldsFull.Checked),
+                BoundMember.New(() => KeepArmorFull.Checked),
+                BoundMember.New(() => KeepStructureFull.Checked),
             };
-        }
-
-        private void RepairIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
-            ShieldRepairThreshold.Enabled = RepairIfShieldsBelow.Checked;
-            ValuesChanged(sender, e);
-        }
-
-        private void RepairIfArmorBelow_CheckedChanged (object sender, EventArgs e) {
-            ArmorRepairThreshold.Enabled = RepairIfArmorBelow.Checked;
-            ValuesChanged(sender, e);
-        }
-
-        private void RepairIfHullBelow_CheckedChanged (object sender, EventArgs e) {
-            HullRepairThreshold.Enabled = RepairIfHullBelow.Checked;
-            ValuesChanged(sender, e);
         }
 
         public string GetMemberName (IBoundMember member) {

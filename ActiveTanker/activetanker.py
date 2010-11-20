@@ -3,6 +3,7 @@ from shootblues.common import forceStartService, forceStopService, log
 import service
 import json
 import base
+import uix
 
 prefs = {}
 serviceInstance = None
@@ -13,7 +14,22 @@ def getPref(key, default):
 
 def notifyPrefsChanged(newPrefsJson):
     global prefs
-    prefs = json.loads(newPrefsJson)        
+    prefs = json.loads(newPrefsJson)
+
+RepairTypes = {
+    "shield": {
+        "groupName": "Shield Booster",
+        "attributeName": "shieldBonus"
+    },
+    "armor": {
+        "groupName": "Armor Repair Unit",
+        "attributeName": "armorDamageAmount"
+    },
+    "structure": {
+        "groupName": "Hull Repair Unit",
+        "attributeName": "structureDamageAmount"
+    }
+}
 
 class ActiveTankerSvc(service.Service):
     __guid__ = "svc.activetanker"
@@ -23,7 +39,8 @@ class ActiveTankerSvc(service.Service):
         "OnDamageMessage",
         "OnDamageMessages",
         "OnSessionChanged",
-        "OnWarpFinished"
+        "OnWarpFinished",
+        "ProcessShipEffect"
     ]
 
     def __init__(self):
@@ -34,47 +51,44 @@ class ActiveTankerSvc(service.Service):
     def checkUpdateTimer(self):
         if self.disabled:
             self.__updateTimer = None
-        else:
-            self.__updateTimer = base.AutoTimer(2000, self.updateHealth)
+        elif self.__updateTimer is None:
+            self.__updateTimer = base.AutoTimer(1000, self.updateHealth)
     
     def updateHealth(self):
-        ballpark = eve.LocalSvc("michelle").GetBallpark()
-        damageState = ballpark.GetDamageState(eve.session.shipid)
-        if not damageState:
+        ship = eve.LocalSvc("godma").GetItem(eve.session.shipid)
+        if not ship:
             return
-        (self.shield, self.armor, self.structure) = damageState
         
-        needShieldRepair = False
-        needArmorRepair = False
+        self.shieldMax = ship.shieldCapacity
+        self.shield = ship.shieldCharge
+        self.armorMax = ship.armorHP
+        self.armor = ship.armorHP - ship.armorDamage
+        self.structureMax = ship.hp
+        self.structure = ship.hp - ship.damage
         
-        if getPref("RepairShields", True):
-            threshold = float(getPref("RepairShieldThreshold", 80)) / 100.0
-            if self.shield < threshold:
-                needShieldRepair = True
+        if getPref("KeepShieldsFull", False):
+            self.repairIfNeeded("shield")
         
-        if getPref("RepairArmor", True):
-            threshold = float(getPref("RepairArmorThreshold", 96)) / 100.0
-            if self.armor < threshold:
-                needArmorRepair = True
+        if getPref("KeepArmorFull", False):
+            self.repairIfNeeded("armor")
         
-        if needShieldRepair:
-            module = self.findModule("shield")
-            if module:
-                self.pulseModule(module)
-        
-        if needArmorRepair:
-            module = self.findModule("armor")
-            if module:
+        if getPref("KeepStructureFull", False):
+            self.repairIfNeeded("structure")
+    
+    def repairIfNeeded(self, repairType):
+        module = self.findModule(repairType)
+        if module:
+            attributeName = RepairTypes[repairType]["attributeName"]
+            repairAmount = self.getModuleAttributes(module)[attributeName]
+            threshold = getattr(self, repairType + "Max") - repairAmount
+            current = getattr(self, repairType)
+            if current < threshold:
+                log("%s needs repair: %r < %r", repairType, current, threshold)
                 self.pulseModule(module)
     
     def findModule(self, repairType):
-        if repairType == "shield":
-            groupName = "Shield Booster"
-        elif repairType == "armor":
-            groupName = "Armor Repair Unit"
-        elif repairType == "structure":
-            groupName = "Hull Repair Unit"
-        else:
+        groupName = RepairTypes.get(repairType, {}).get("groupName", None)
+        if not groupName:
             log("Invalid repair module type: %r", repairType)
             return None
         
@@ -92,6 +106,27 @@ class ActiveTankerSvc(service.Service):
         
         return None
     
+    def getModuleAttributes(self, module):
+        moduleInfo = module.sr.moduleInfo
+        moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
+   
+        def_effect = getattr(module, "def_effect", None)
+        if not def_effect:
+            log("Module %r has no default effect", moduleName)
+            return None
+        
+        result = {}
+        
+        attribs = cfg.dgmtypeattribs.get(moduleInfo.typeID, None)
+        if not attribs:
+            return result
+                
+        for attrib in attribs:
+            attribName = cfg.dgmattribs.get(attrib.attributeID, None).attributeName
+            result[attribName] = attrib.value
+        
+        return result
+    
     def pulseModule(self, module):
         moduleInfo = module.sr.moduleInfo
         moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
@@ -102,6 +137,10 @@ class ActiveTankerSvc(service.Service):
             return
         
         if def_effect.isActive:
+            return
+        
+        if module.state == uix.UI_DISABLED:
+            log("Module %r is disabled", moduleName)
             return
         
         onlineEffect = moduleInfo.effects.get("online", None)
@@ -122,6 +161,9 @@ class ActiveTankerSvc(service.Service):
             if oldautorepeat:
                 module.SetRepeat(oldautorepeat)
     
+    def ProcessShipEffect(self, godmaStm, effectState):
+        self.checkUpdateTimer()
+        
     def OnDamageMessage(self, key, args):
         self.checkUpdateTimer()
 
