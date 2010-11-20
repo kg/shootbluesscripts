@@ -15,6 +15,9 @@ def getPriority(targetID=None, slimItem=None):
     
     if targetID and not slimItem:    
         ballpark = eve.LocalSvc('michelle').GetBallpark()
+        if not ballpark:
+            return 0
+        
         slimItem = ballpark.GetInvItem(targetID)
     
     if not slimItem:

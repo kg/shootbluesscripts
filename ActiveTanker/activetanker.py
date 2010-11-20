@@ -1,5 +1,5 @@
 ﻿import shootblues
-from shootblues.common import forceStartService, forceStopService, log
+from shootblues.common import forceStartService, forceStopService, log, SafeTimer
 import service
 import json
 import base
@@ -36,23 +36,12 @@ class ActiveTankerSvc(service.Service):
     __update_on_reload__ = 0
     __exportedcalls__ = {}
     __notifyevents__ = [
-        "OnDamageMessage",
-        "OnDamageMessages",
-        "OnSessionChanged",
-        "OnWarpFinished",
-        "ProcessShipEffect"
     ]
 
     def __init__(self):
         service.Service.__init__(self)
-        self.__updateTimer = None
         self.disabled = False
-    
-    def checkUpdateTimer(self):
-        if self.disabled:
-            self.__updateTimer = None
-        elif self.__updateTimer is None:
-            self.__updateTimer = base.AutoTimer(1000, self.updateHealth)
+        self.__updateTimer = SafeTimer(1000, self.updateHealth)
     
     def updateHealth(self):
         ship = eve.LocalSvc("godma").GetItem(eve.session.shipid)
@@ -83,7 +72,7 @@ class ActiveTankerSvc(service.Service):
             threshold = getattr(self, repairType + "Max") - repairAmount
             current = getattr(self, repairType)
             if current < threshold:
-                log("%s needs repair: %r < %r", repairType, current, threshold)
+                #log("%s needs repair: %r < %r", repairType, current, threshold)
                 self.pulseModule(module)
     
     def findModule(self, repairType):
@@ -94,6 +83,12 @@ class ActiveTankerSvc(service.Service):
         
         shipui = uicore.GetLayer("l_shipui")
         godma = eve.LocalSvc("godma")
+        
+        if not shipui:
+            return None
+        if not shipui.sr.modules:
+            return 
+                    
         for moduleId, module in shipui.sr.modules.items():
             item = godma.GetItem(moduleId)
             if not item:
@@ -160,21 +155,6 @@ class ActiveTankerSvc(service.Service):
         finally:
             if oldautorepeat:
                 module.SetRepeat(oldautorepeat)
-    
-    def ProcessShipEffect(self, godmaStm, effectState):
-        self.checkUpdateTimer()
-        
-    def OnDamageMessage(self, key, args):
-        self.checkUpdateTimer()
-
-    def OnDamageMessages(self, msgs):
-        self.checkUpdateTimer()
-    
-    def OnWarpFinished(self):
-        self.checkUpdateTimer()
-    
-    def OnSessionChanged(self, isRemote, session, change):
-        self.checkUpdateTimer()
 
 def initialize():
     global serviceRunning, serviceInstance

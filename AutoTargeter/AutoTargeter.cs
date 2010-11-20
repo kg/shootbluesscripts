@@ -42,13 +42,11 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> Initialize () {
-            /*
             // Hack to initialize prefs to defaults
             using (var configWindow = new AutoTargeterConfig(this)) {
                 yield return configWindow.LoadPreferences();
                 yield return configWindow.SavePreferences();
             }
-             */
 
             yield return BaseInitialize();
         }
@@ -68,8 +66,8 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            var panel = new Control(); // new AutoTargeterConfig(this);
-            // yield return panel.LoadPreferences();
+            var panel = new AutoTargeterConfig(this);
+            yield return panel.LoadPreferences();
             statusWindow.ShowConfigurationPanel("Auto Targeter", panel);
             yield break;
         }

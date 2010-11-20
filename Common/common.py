@@ -2,6 +2,7 @@ import shootblues
 import types
 import traceback
 import pprint
+import threading
 
 __channels = {}
 
@@ -68,16 +69,17 @@ def forceStopService(serviceName):
     old_block_trap = stackless.getcurrent().block_trap
     stackless.getcurrent().block_trap = 1
     try:
-        serviceInstance = sm.services[serviceName]
-        del sm.services[serviceName]
-        
-        for event in serviceInstance.__notifyevents__:
-            notifies = sm.notify.get(event, None)
-            if notifies is None:
-                continue
+        serviceInstance = sm.services.get(serviceName, None)
+        if serviceInstance:
+            del sm.services[serviceName]
             
-            if serviceInstance in notifies:
-                notifies.remove(serviceInstance)
+            for event in serviceInstance.__notifyevents__:
+                notifies = sm.notify.get(event, None)
+                if notifies is None:
+                    continue
+                
+                if serviceInstance in notifies:
+                    notifies.remove(serviceInstance)
     finally:
         stackless.getcurrent().block_trap = old_block_trap
 
@@ -114,6 +116,13 @@ def replaceEveLogger():
     log.LogException = logException
     log.LogTraceback = logTraceback
 
+def onMainThread():
+    try:
+        thread = threading.currentThread()
+        return isinstance(thread, threading._MainThread)
+    except:
+        return None
+
 def installCharacterMonitor():
     import blue
     import service
@@ -142,6 +151,117 @@ def installCharacterMonitor():
     
     svcInstance = forceStartService("charmonitor", CharacterMonitorSvc)
     svcInstance.OnSessionChanged(False, eve.session, None)
+
+class MainThreadInvoker(object):
+    __notifyevents__ = [
+        "OnStateSetupChance",
+        "OnDamageMessage",
+        "OnDamageMessages",
+        "DoBallsAdded",
+        "DoBallRemove",
+        "OnStateChange",
+        "ProcessShipEffect",
+        "OnLSC",
+        "OnSessionChanged"
+    ]
+    
+    def __init__(self, handler):
+        self.__handler = handler
+        sm.RegisterNotify(self)
+    
+    def doInvoke(self):
+        handler = self.__handler
+        if handler:
+            self.dispose()
+            handler()
+    
+    def dispose(self):
+        if self.__handler:
+            sm.UnregisterNotify(self)    
+        self.__handler = None
+    
+    def DoBallsAdded(self, lst, **kwargs):
+        self.doInvoke()
+    
+    def DoBallRemove(self, ball, slimItem, *args, **kwargs):
+        self.doInvoke()
+    
+    def DoBallClear(self, solItem, **kwargs):
+        self.doInvoke()
+        
+    def ProcessShipEffect(self, godmaStm, effectState):
+        self.doInvoke()
+        
+    def OnDamageMessage(self, key, args):
+        self.doInvoke()
+
+    def OnDamageMessages(self, msgs):
+        self.doInvoke()
+        
+    def OnStateSetupChance(self, what):
+        self.doInvoke()
+        
+    def OnLSC(self, channelID, estimatedMemberCount, method, who, args):
+        self.doInvoke()
+        
+    def OnSessionChanged(self, isRemote, session, change):
+        self.doInvoke()
+    
+class SafeTimer(object):
+    __notifyevents__ = [
+        "OnSessionChanged"
+    ]
+        
+    def __init__(self, interval, handler):
+        self.__interval = interval
+        self.__handler = handler
+        self.__timer = None
+        self.__started = True
+        self.__invoker = None
+        
+        self.syncState()
+        sm.RegisterNotify(self)
+    
+    def start(self):
+        if self.__started:
+            return
+        
+        self.__started = True
+        self.resetState()
+           
+    def stop(self):
+        self.__started = False
+        self.__timer = None
+        self.__invoker = None
+    
+    def getName(self):
+        func = self.__handler
+        if hasattr(func, "im_func"):
+            func = func.im_func
+        
+        return getattr(func, "func_name", "<unknown>")
+        
+    def syncState(self):
+        self.__invoker = None
+        
+        if onMainThread():
+            if self.__started and (not self.__timer):
+                import base
+                self.__timer = base.AutoTimer(self.__interval, self.tick)
+            elif (not self.__started) and self.__timer:
+                self.__timer = None
+        else:
+            self.__invoker = MainThreadInvoker(self.syncState)
+    
+    def tick(self):
+        try:
+            self.__handler()
+        except:
+            log("SafeTimer %r temporarily disabled due to error", self.getName())
+            self.__timer = None                
+            self.__invoker = MainThreadInvoker(self.syncState)
+            
+            raise
 
 def initialize():
     global isInitialized

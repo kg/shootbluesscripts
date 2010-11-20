@@ -1,5 +1,5 @@
 import shootblues
-from shootblues.common import forceStartService, forceStopService, log
+from shootblues.common import forceStartService, forceStopService, log, SafeTimer
 import service
 import uix
 import json
@@ -19,11 +19,6 @@ try:
 except:
     def getPriority(*args, **kwargs):
         return 0
-
-def getLockedTargets():
-    ballpark = eve.LocalSvc('michelle').GetBallpark()
-    targetSvc = sm.services['target']
-    return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
 
 def getPref(key, default):
     global prefs
@@ -76,14 +71,16 @@ class DroneHelperSvc(service.Service):
         self.__pendingStateChanges = {}
         self.__updateTimer = None
         self.disabled = False
+        self.checkUpdateTimer()
     
     def checkUpdateTimer(self, droneID = None):
         drones = self.getDronesInLocalSpace()
         if (droneID != None) and (droneID not in drones):
             drones.append(droneID)
         droneCount = len(drones)
+        
         if (droneCount > 0) and (self.__updateTimer == None):
-            self.__updateTimer = base.AutoTimer(500, self.updateDrones)
+            self.__updateTimer = SafeTimer(500, self.updateDrones)
         elif (droneCount <= 0) and (self.__updateTimer != None):
             self.__updateTimer = None
         
@@ -149,9 +146,15 @@ class DroneHelperSvc(service.Service):
         return result
     
     def filterTargets(self, ids):
-        targetSvc = sm.services['target']
+        targetSvc = sm.services.get('target', None)
+        if not targetSvc:
+            return []
+        
         ballpark = eve.LocalSvc("michelle").GetBallpark()
-        return [id for id in ids if ballpark.GetInvItem(id) and id in targetSvc.targets]
+        return [id for id in ids if 
+                ballpark.GetInvItem(id) and 
+                (id in targetSvc.targets) and
+                (getPriority(targetID=id) >= 0)]
     
     def selectTarget(self):
         targets = self.filterTargets(sm.services["target"].targets)
@@ -241,19 +244,22 @@ class DroneHelperSvc(service.Service):
     def updateDrones(self):
         if self.disabled:
             return
+        if not eve.LocalSvc("michelle").GetBallpark():
+            return
         
         timestamp = blue.os.GetTime()
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
         dronesToAttack = []
         
-        for pendingID in self.__pendingStateChanges.keys():
+        for (pendingID, psc) in list(self.__pendingStateChanges.items()):
+            if self.__pendingStateChanges.has_key(pendingID):
+                del self.__pendingStateChanges[pendingID]
+
             if pendingID not in droneIDs:
                 continue
-                
-            (ts, oldState, newState) = self.__pendingStateChanges[pendingID]
-            del self.__pendingStateChanges[pendingID]
             
+            (ts, oldState, newState) = psc
             self.OnDroneStateChange2(pendingID, oldState, newState, timestamp=ts)
         
         for droneID in droneIDs:
@@ -292,7 +298,7 @@ class DroneHelperSvc(service.Service):
         
         return drone    
     
-    def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, timestamp=None):
+    def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, timestamp=None):       
         if not timestamp:
             timestamp = blue.os.GetTime()
     

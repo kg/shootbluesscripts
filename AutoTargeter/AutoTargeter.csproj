@@ -40,6 +40,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AutoTargeter.cs" />
+    <Compile Include="AutoTargeterConfig.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AutoTargeterConfig.Designer.cs">
+      <DependentUpon>AutoTargeterConfig.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -64,6 +70,11 @@
     <Content Include="autotargeter.py">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AutoTargeterConfig.resx">
+      <DependentUpon>AutoTargeterConfig.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
