@@ -1,5 +1,5 @@
 ﻿import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker, getFlagName
+from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker, getFlagName, getNamesOfIDs
 import service
 import uix
 import json
@@ -143,7 +143,8 @@ class AutoTargeterSvc(service.Service):
             self.__updateTimer = None
             return
         
-        if not eve.LocalSvc("michelle").GetBallpark():
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        if not ballpark:
             return
     
         targetSvc = sm.services.get('target', None)
@@ -154,7 +155,10 @@ class AutoTargeterSvc(service.Service):
         if maxTargets <= 0:
             return
         
-        currentTargets = self.filterTargets([id for id in self.__lockedTargets if id in targetSvc.targets])
+        currentTargets = self.filterTargets([
+            id for id in self.__lockedTargets 
+            if id in targetSvc.targets
+        ])
         exclusionSet = set(targetSvc.targeting + targetSvc.autoTargeting + currentTargets)
         targetSorter = self.makeTargetSorter(exclusionSet)
         
@@ -162,7 +166,10 @@ class AutoTargeterSvc(service.Service):
         targets.sort(targetSorter)
                 
         if len(targets):
-            currentlyTargeting = set(targetSvc.targeting + targetSvc.autoTargeting)
+            currentlyTargeting = set([
+                id for id in (targetSvc.targeting + targetSvc.autoTargeting) 
+                if id in self.__lockedTargets
+            ])
             
             maxNewTargets = max(
                 maxTargets - len(currentlyTargeting),
@@ -178,7 +185,7 @@ class AutoTargeterSvc(service.Service):
             targetsToLock = list(targetsToLock)[0:maxNewTargets]
         
             if len(targetsToUnlock):
-                log("Unlocking %r lockedTargets=%r currentTargets=%r", targetsToUnlock, self.__lockedTargets, currentTargets)
+                log("Unlocking %s", ", ".join(getNamesOfIDs(targetsToUnlock)))
                 for targetID in targetsToUnlock:
                     if targetID in self.__lockedTargets:
                         self.__lockedTargets.remove(targetID)
@@ -190,7 +197,7 @@ class AutoTargeterSvc(service.Service):
                     )
             
             if len(targetsToLock):
-                log("Locking %r target(s)", len(targetsToLock))
+                log("Locking %s", ", ".join(getNamesOfIDs(targetsToLock)))
                 for targetID in targetsToLock:
                     if targetID not in self.__lockedTargets:
                         self.__lockedTargets.append(targetID)
@@ -206,6 +213,10 @@ class AutoTargeterSvc(service.Service):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         if not ballpark:
             return
+        
+        targetSvc = sm.services.get('target', None)
+        if targetSvc:
+            self.__lockedTargets = list(targetSvc.targets)
         
         lst = []
         for ballID in ballpark.balls.keys():

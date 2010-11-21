@@ -64,6 +64,31 @@ def getLockedTargets():
     targetSvc = sm.services["target"]
     return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
 
+def getNamesOfIDs(ids):
+    import uix
+
+    ballpark = eve.LocalSvc("michelle").GetBallpark()
+    if not ballpark:
+        return [str(id) for id in ids]
+    
+    def getName(id):
+        slimItem = ballpark.GetInvItem(id)
+        if not slimItem:
+            return str(id)
+        return uix.GetSlimItemName(slimItem)
+    
+    names = [getName(id) for id in ids]
+    result = []
+    
+    for name in set(names):
+        count = names.count(name)
+        if count > 1:
+            result.append("%s x%d" % (name, count))
+        else:
+            result.append(name)
+    
+    return result
+
 def forceStopService(serviceName):
     import stackless
     old_block_trap = stackless.getcurrent().block_trap

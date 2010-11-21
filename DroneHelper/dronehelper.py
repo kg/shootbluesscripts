@@ -1,5 +1,5 @@
 import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer, getFlagName
+from shootblues.common import forceStartService, forceStopService, log, SafeTimer, getFlagName, getNamesOfIDs
 import service
 import uix
 import json
@@ -9,7 +9,7 @@ import moniker
 import trinity
 import blue
 
-ActionThreshold = ((10000000L) * 175) / 100
+ActionThreshold = ((10000000L) * 150) / 100
 
 prefs = {}
 serviceInstance = None
@@ -84,6 +84,7 @@ class DroneHelperSvc(service.Service):
             self.__updateTimer = SafeTimer(500, self.updateDrones)
         elif (droneCount <= 0) and (self.__updateTimer != None):
             self.__updateTimer = None
+            self.__lastAttackOrder = None
         
     def getDistance(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -215,7 +216,10 @@ class DroneHelperSvc(service.Service):
                     drones.remove(id)
             
             if len(drones):
-                self.__lastAttackOrder = targetID
+                if ((len(drones) > 1) or 
+                    (not self.__lastAttackOrder) or 
+                    isCommonTarget):
+                    self.__lastAttackOrder = targetID
                 
                 entity = moniker.GetEntityAccess()
                 if entity:
@@ -246,7 +250,7 @@ class DroneHelperSvc(service.Service):
         if len(dronesToRecall):
             entity = moniker.GetEntityAccess()
             if entity:
-                log("Drone(s) %r returning", dronesToRecall)
+                log("Drone(s) returning: %s", ", ".join(getNamesOfIDs(dronesToRecall)))
                 entity.CmdReturnBay(dronesToRecall)
                 for droneID in dronesToRecall:                    
                     droneObj = self.getDroneObject(id)
