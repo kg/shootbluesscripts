@@ -266,6 +266,10 @@ class DroneHelperSvc(service.Service):
         if not ballpark:
             return
         
+        if self.__lastAttackOrder:
+            if not ballpark.GetBall(self.__lastAttackOrder):
+                self.__lastAttackOrder = None
+        
         timestamp = blue.os.GetTime()
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
