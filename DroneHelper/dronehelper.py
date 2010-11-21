@@ -217,8 +217,7 @@ class DroneHelperSvc(service.Service):
             
             if len(drones):
                 if ((len(drones) > 1) or 
-                    (not self.__lastAttackOrder) or 
-                    isCommonTarget):
+                    (not self.__lastAttackOrder)):
                     self.__lastAttackOrder = targetID
                 
                 entity = moniker.GetEntityAccess()
