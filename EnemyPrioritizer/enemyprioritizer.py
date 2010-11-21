@@ -21,7 +21,7 @@ def getPriority(targetID=None, slimItem=None):
         slimItem = ballpark.GetInvItem(targetID)
     
     if not slimItem:
-        return 0
+        return -1
     
     priority = priorities.get("type:%d" % (slimItem.typeID,), 0)
     if priority == 0:

@@ -43,9 +43,8 @@ class AutoTargeterSvc(service.Service):
         self.__updateTimer = SafeTimer(2000, self.updateTargets)
         self.__potentialTargets = []
         self.__populateTargets = MainThreadInvoker(self.populateTargets)
+        self.__lockedTargets = []
         self.warping = False
-        self.targetsToLock = set([])
-        self.targetsToUnlock = set([])
         
     def getDistance(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -96,20 +95,54 @@ class AutoTargeterSvc(service.Service):
     def filterTargets(self, ids):
         targetSvc = sm.services['target']
         ballpark = eve.LocalSvc("michelle").GetBallpark()
+        if not ballpark:
+            return []
+        
         myBall = ballpark.GetBall(eve.session.shipid)
         
         if not myBall:
             return []
         elif self.isBallWarping(myBall):
             return []
-        else:
-            return [id for id in ids if
-                    self.isBallTargetable(ballpark.GetBall(id)) and 
-                    (getPriority(targetID=id) >= 0)]
+        
+        result = []
+        
+        for id in ids:
+            ball = ballpark.GetBall(id)
+            if not ball:
+                continue
+            if not self.isBallTargetable(ball):
+                continue
+                
+            slimItem = ballpark.GetInvItem(id)
+            if not slimItem:
+                continue
+            
+            if getPriority(slimItem=slimItem) < 0:
+                continue
+                
+            flag = getFlagName(slimItem)
+            if flag == "HostileNPC":
+                if not getPref("TargetHostileNPCs", False):
+                    continue
+            elif ((flag == "StandingBad") or 
+                  (flag == "StandingHorrible") or
+                  (flag == "AtWarCanFight")):
+                if not getPref("TargetHostilePlayers", False):
+                    continue
+            elif flag == "StandingNeutral":
+                if not getPref("TargetNeutralPlayers", False):
+                    continue                
+            
+            result.append(id)
+        
+        return result
     
     def updateTargets(self):
         if self.disabled:
+            self.__updateTimer = None
             return
+        
         if not eve.LocalSvc("michelle").GetBallpark():
             return
     
@@ -121,7 +154,7 @@ class AutoTargeterSvc(service.Service):
         if maxTargets <= 0:
             return
         
-        currentTargets = self.filterTargets(targetSvc.targets)
+        currentTargets = self.filterTargets([id for id in self.__lockedTargets if id in targetSvc.targets])
         exclusionSet = set(targetSvc.targeting + targetSvc.autoTargeting + currentTargets)
         targetSorter = self.makeTargetSorter(exclusionSet)
         
@@ -140,22 +173,28 @@ class AutoTargeterSvc(service.Service):
             currentTargets.sort(targetSorter)
             currentTargets = set(currentTargets)
                         
-            self.targetsToUnlock = (currentTargets - targets) - currentlyTargeting
-            self.targetsToLock = (targets - currentTargets) - currentlyTargeting
-            self.targetsToLock = list(self.targetsToLock)[0:maxNewTargets]
+            targetsToUnlock = (currentTargets - targets) - currentlyTargeting
+            targetsToLock = (targets - set(targetSvc.targets)) - currentlyTargeting
+            targetsToLock = list(targetsToLock)[0:maxNewTargets]
         
-            if len(self.targetsToUnlock):
-                log("Unlocking %r target(s)", len(self.targetsToUnlock))
-                for targetID in self.targetsToUnlock:
+            if len(targetsToUnlock):
+                log("Unlocking %r lockedTargets=%r currentTargets=%r", targetsToUnlock, self.__lockedTargets, currentTargets)
+                for targetID in targetsToUnlock:
+                    if targetID in self.__lockedTargets:
+                        self.__lockedTargets.remove(targetID)
+                        
                     uthread.pool(
                         "UnlockTarget",
                         targetSvc.UnlockTarget,
                         targetID
                     )
             
-            if len(self.targetsToLock):
-                log("Locking %r target(s)", len(self.targetsToLock))
-                for targetID in self.targetsToLock:
+            if len(targetsToLock):
+                log("Locking %r target(s)", len(targetsToLock))
+                for targetID in targetsToLock:
+                    if targetID not in self.__lockedTargets:
+                        self.__lockedTargets.append(targetID)
+                    
                     uthread.pool(
                         "LockTarget",
                         targetSvc.TryLockTarget,
@@ -180,15 +219,13 @@ class AutoTargeterSvc(service.Service):
             isValidTarget = False
             flag = getFlagName(slimItem)
             
-            if getPref("TargetHostileNPCs", True) and (flag == "HostileNPC"):
+            if flag == "HostileNPC":
                 self.__potentialTargets.append(slimItem.itemID)
-            elif getPref("TargetHostilePlayers", True) and (
-                    (flag == "StandingBad") or 
-                    (flag == "StandingHorrible") or
-                    (flag == "AtWarCanFight")
-                ):
+            elif ((flag == "StandingBad") or 
+                  (flag == "StandingHorrible") or
+                  (flag == "AtWarCanFight")):
                 self.__potentialTargets.append(slimItem.itemID)
-            elif getPref("TargetNeutralPlayers", True) and (flag == "StandingNeutral"):
+            elif flag == "StandingNeutral":
                 self.__potentialTargets.append(slimItem.itemID)                
     
     def DoBallRemove(self, ball, slimItem, *args, **kwargs):
@@ -204,8 +241,12 @@ class AutoTargeterSvc(service.Service):
     
     def OnTarget(self, what, tid=None, reason=None):
         if (what == "lost"):
-            if (reason == None) and (tid in self.__potentialTargets):            
+            if (reason == None) and (tid in self.__potentialTargets):
                 self.__potentialTargets.remove(tid)
+            if tid in self.__lockedTargets:
+                self.__lockedTargets.remove(tid)        
+        elif (what == "clear"):
+            self.__lockedTargets = []
 
 def initialize():
     global serviceRunning, serviceInstance

@@ -70,6 +70,7 @@ class DroneHelperSvc(service.Service):
         self.__drones = {}
         self.__pendingStateChanges = {}
         self.__updateTimer = None
+        self.__lastAttackOrder = None
         self.disabled = False
         self.checkUpdateTimer()
     
@@ -139,9 +140,16 @@ class DroneHelperSvc(service.Service):
         result = cmp(priRhs, priLhs)
         
         if result == 0:
-            distLhs = self.getDistance(lhs)
-            distRhs = self.getDistance(rhs)
-            result = cmp(distLhs, distRhs)
+            # targets of equal priority that were already attacked by dronehelper come first
+            result = cmp(
+                rhs is self.__lastAttackOrder,
+                lhs is self.__lastAttackOrder
+            )
+            
+            if result == 0:        
+                distLhs = self.getDistance(lhs)
+                distRhs = self.getDistance(rhs)
+                result = cmp(distLhs, distRhs)
         
         return result
     
@@ -166,24 +174,25 @@ class DroneHelperSvc(service.Service):
         else:
             return None
     
-    def doAttack(self, idleOnly, *dronesToAttack):
+    def doAttack(self, idleOnly, targetID=None, dronesToAttack=[]):
         if self.disabled:
             return
             
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         timestamp = blue.os.GetTime()
         isCommonTarget = False
-        targetID = self.getCommonTarget(len(dronesToAttack))
-        if targetID:
-            slimItem = ballpark.GetInvItem(targetID)
-            if slimItem:
-                targetName = uix.GetSlimItemName(slimItem)
-                isCommonTarget = True
+        if not targetID:
+            targetID = self.getCommonTarget(len(dronesToAttack))
+            if targetID:
+                slimItem = ballpark.GetInvItem(targetID)
+                if slimItem:
+                    targetName = uix.GetSlimItemName(slimItem)
+                    isCommonTarget = True
         
         if not targetID:
             targetID = self.selectTarget()
         
-        if targetID:
+        if targetID:        
             slimItem = ballpark.GetInvItem(targetID)
             if slimItem:
                 targetName = uix.GetSlimItemName(slimItem)
@@ -206,6 +215,8 @@ class DroneHelperSvc(service.Service):
                     drones.remove(id)
             
             if len(drones):
+                self.__lastAttackOrder = targetID
+                
                 entity = moniker.GetEntityAccess()
                 if entity:
                     if isCommonTarget:
@@ -215,7 +226,7 @@ class DroneHelperSvc(service.Service):
                         droneObj = self.getDroneObject(id)
                         droneObj.setTarget(targetID, timestamp)
                         droneObj.actionTimestamp = timestamp
-                    ret = entity.CmdEngage(drones, targetID)
+                    ret = entity.CmdEngage(drones, targetID)    
     
     def doRecall(self, *dronesToRecall):
         if self.disabled:
@@ -244,8 +255,11 @@ class DroneHelperSvc(service.Service):
     
     def updateDrones(self):
         if self.disabled:
+            self.__updateTimer = None
             return
-        if not eve.LocalSvc("michelle").GetBallpark():
+        
+        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        if not ballpark:
             return
         
         timestamp = blue.os.GetTime()
@@ -270,7 +284,7 @@ class DroneHelperSvc(service.Service):
                 dronesToRecall.append(droneID)
             elif ((drone.state == const.entityIdle) and
                   getPref("WhenIdle", False)):
-                dronesToAttack.append(droneID)
+                dronesToAttack.append(droneID)        
         
         if len(dronesToRecall):
             for id in dronesToRecall:
@@ -279,7 +293,19 @@ class DroneHelperSvc(service.Service):
             self.doRecall(*dronesToRecall)
         
         if len(dronesToAttack):
-            self.doAttack(True, *dronesToAttack)
+            self.doAttack(idleOnly=True, targetID=None, dronesToAttack=dronesToAttack)
+        elif self.__lastAttackOrder and getPref("WhenTargetLost", False):
+            oldPriority = getPriority(targetID=self.__lastAttackOrder)
+            newTarget = self.selectTarget()
+            newPriority = getPriority(targetID=newTarget)
+            if newPriority > oldPriority:
+                commonTarget = self.getCommonTarget(2)
+                if commonTarget == self.__lastAttackOrder:
+                    slimItem = ballpark.GetInvItem(commonTarget)
+                    if slimItem:
+                        log("Abandoning low-priority drone target %s", uix.GetSlimItemName(slimItem))
+                    
+                    self.doAttack(idleOnly=False, targetID=newTarget)
     
     def checkDroneHealth(self, drone):
         result = False
@@ -331,7 +357,7 @@ class DroneHelperSvc(service.Service):
         if shouldRecall:
             self.doRecall(droneID)
         elif shouldAutoAttack:
-            self.doAttack(False, droneID)
+            self.doAttack(idleOnly=False, dronesToAttack=[droneID])
             
         self.checkUpdateTimer(droneID)
 

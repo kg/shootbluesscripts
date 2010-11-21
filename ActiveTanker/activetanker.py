@@ -44,6 +44,10 @@ class ActiveTankerSvc(service.Service):
         self.__updateTimer = SafeTimer(1000, self.updateHealth)
     
     def updateHealth(self):
+        if self.disabled:
+            self.__updateTimer = None
+            return
+        
         ship = eve.LocalSvc("godma").GetItem(eve.session.shipid)
         if not ship:
             return
@@ -86,7 +90,9 @@ class ActiveTankerSvc(service.Service):
         
         if not shipui:
             return None
-        if not shipui.sr.modules:
+        if not getattr(shipui, "sr", None):
+            return
+        if not getattr(shipui.sr, "modules", None):
             return 
                     
         for moduleId, module in shipui.sr.modules.items():
@@ -95,6 +101,9 @@ class ActiveTankerSvc(service.Service):
                 continue
             
             if cfg.invgroups.Get(item.groupID).name != groupName:
+                continue
+            
+            if not hasattr(module, "sr"):
                 continue
             
             return module
@@ -128,22 +137,22 @@ class ActiveTankerSvc(service.Service):
    
         def_effect = getattr(module, "def_effect", None)
         if not def_effect:
-            log("Module %r has no default effect", moduleName)
+            log("Module %s cannot be activated", moduleName)
             return
         
         if def_effect.isActive:
             return
         
         if module.state == uix.UI_DISABLED:
-            log("Module %r is disabled", moduleName)
+            log("Module %s is disabled", moduleName)
             return
         
         onlineEffect = moduleInfo.effects.get("online", None)
         if onlineEffect and not onlineEffect.isActive:
-            log("Module %r is not online", moduleName)
+            log("Module %s is not online", moduleName)
             return
         
-        log("Activating module %r", moduleName)
+        log("Activating %s", moduleName)
         
         oldautorepeat = getattr(module, "autorepeat", False)
         if oldautorepeat:

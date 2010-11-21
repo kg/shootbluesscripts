@@ -108,7 +108,7 @@ def forceStartService(serviceName, serviceType):
     finally:
         stackless.getcurrent().block_trap = old_block_trap
                 
-def getFlagName(self, slimItem):
+def getFlagName(slimItem):
     if (slimItem.categoryID != const.categoryEntity):
         return None
 

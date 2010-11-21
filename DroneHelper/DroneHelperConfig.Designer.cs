@@ -24,13 +24,13 @@
         /// </summary>
         private void InitializeComponent () {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.ConfigurePriorities = new System.Windows.Forms.Button();
             this.WhenIdle = new System.Windows.Forms.CheckBox();
             this.WhenTargetLost = new System.Windows.Forms.CheckBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.RecallShieldThreshold = new System.Windows.Forms.NumericUpDown();
             this.RecallIfShieldsBelow = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
-            this.ConfigurePriorities = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.RecallShieldThreshold)).BeginInit();
@@ -53,6 +53,18 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Auto Attack";
             // 
+            // ConfigurePriorities
+            // 
+            this.ConfigurePriorities.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.ConfigurePriorities.Location = new System.Drawing.Point(7, 44);
+            this.ConfigurePriorities.Name = "ConfigurePriorities";
+            this.ConfigurePriorities.Size = new System.Drawing.Size(257, 25);
+            this.ConfigurePriorities.TabIndex = 4;
+            this.ConfigurePriorities.Text = "Edit Target Priorities";
+            this.ConfigurePriorities.UseVisualStyleBackColor = true;
+            this.ConfigurePriorities.Click += new System.EventHandler(this.ConfigurePriorities_Click);
+            // 
             // WhenIdle
             // 
             this.WhenIdle.AutoSize = true;
@@ -66,6 +78,7 @@
             this.WhenIdle.TabIndex = 2;
             this.WhenIdle.Text = "When Idle";
             this.WhenIdle.UseVisualStyleBackColor = true;
+            this.WhenIdle.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // WhenTargetLost
             // 
@@ -80,6 +93,7 @@
             this.WhenTargetLost.TabIndex = 3;
             this.WhenTargetLost.Text = "When Target Lost";
             this.WhenTargetLost.UseVisualStyleBackColor = true;
+            this.WhenTargetLost.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // groupBox4
             // 
@@ -138,18 +152,6 @@
             this.label1.Size = new System.Drawing.Size(21, 16);
             this.label1.TabIndex = 2;
             this.label1.Text = "%";
-            // 
-            // ConfigurePriorities
-            // 
-            this.ConfigurePriorities.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
-            this.ConfigurePriorities.Location = new System.Drawing.Point(7, 44);
-            this.ConfigurePriorities.Name = "ConfigurePriorities";
-            this.ConfigurePriorities.Size = new System.Drawing.Size(257, 25);
-            this.ConfigurePriorities.TabIndex = 4;
-            this.ConfigurePriorities.Text = "Edit Target Priorities";
-            this.ConfigurePriorities.UseVisualStyleBackColor = true;
-            this.ConfigurePriorities.Click += new System.EventHandler(this.ConfigurePriorities_Click);
             // 
             // DroneHelperConfig
             // 
