@@ -107,6 +107,31 @@ def forceStartService(serviceName, serviceType):
         return result
     finally:
         stackless.getcurrent().block_trap = old_block_trap
+                
+def getFlagName(self, slimItem):
+    if (slimItem.categoryID != const.categoryEntity):
+        return None
+
+    stateSvc = eve.LocalSvc("state")
+    props = stateSvc.GetProps()
+    
+    flag = stateSvc.CheckStates(slimItem, "flag")
+    if flag:
+        flagProps = props.get(flag, None)
+        if flagProps:
+            return flagProps[1]
+    
+    colorFlag = 0
+    if slimItem.typeID:
+        itemType = eve.LocalSvc("godma").GetType(slimItem.typeID)
+        for attr in itemType.displayAttributes:
+            if attr.attributeID == const.attributeEntityBracketColour:
+                if attr.value == 1:
+                    return "HostileNPC"
+                elif attr.value == 0:
+                    return "NeutralNPC"
+    
+    return None
 
 def replaceEveLogger():
     global oldLogException, oldLogTraceback

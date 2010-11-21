@@ -1,5 +1,5 @@
 ﻿import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker
+from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker, getFlagName
 import service
 import uix
 import json
@@ -161,31 +161,6 @@ class AutoTargeterSvc(service.Service):
                         targetSvc.TryLockTarget,
                         targetID
                     )
-                
-    def getFlagName(self, slimItem):
-        if (slimItem.categoryID != const.categoryEntity):
-            return None
-    
-        stateSvc = eve.LocalSvc("state")
-        props = stateSvc.GetProps()
-        
-        flag = stateSvc.CheckStates(slimItem, "flag")
-        if flag:
-            flagProps = props.get(flag, None)
-            if flagProps:
-                return flagProps[1]
-        
-        colorFlag = 0
-        if slimItem.typeID:
-            itemType = eve.LocalSvc("godma").GetType(slimItem.typeID)
-            for attr in itemType.displayAttributes:
-                if attr.attributeID == const.attributeEntityBracketColour:
-                    if attr.value == 1:
-                        return "HostileNPC"
-                    elif attr.value == 0:
-                        return "NeutralNPC"
-        
-        return None
     
     def populateTargets(self):
         self.__populateTargets = None
@@ -203,7 +178,7 @@ class AutoTargeterSvc(service.Service):
     def DoBallsAdded(self, lst, **kwargs):
         for (ball, slimItem) in lst:
             isValidTarget = False
-            flag = self.getFlagName(slimItem)
+            flag = getFlagName(slimItem)
             
             if getPref("TargetHostileNPCs", True) and (flag == "HostileNPC"):
                 self.__potentialTargets.append(slimItem.itemID)

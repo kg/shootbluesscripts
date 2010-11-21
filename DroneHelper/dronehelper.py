@@ -1,5 +1,5 @@
 import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer
+from shootblues.common import forceStartService, forceStopService, log, SafeTimer, getFlagName
 import service
 import uix
 import json
@@ -154,6 +154,7 @@ class DroneHelperSvc(service.Service):
         return [id for id in ids if 
                 ballpark.GetInvItem(id) and 
                 (id in targetSvc.targets) and
+                getFlagName(ballpark.GetInvItem(id)) == "HostileNPC" and
                 (getPriority(targetID=id) >= 0)]
     
     def selectTarget(self):
