@@ -161,6 +161,8 @@ class ActiveTankerSvc(service.Service):
         
         try:
             module.Click()
+        except Exception, e:
+            log("Pulsing module %s failed: %r", moduleName, e)
         finally:
             if oldautorepeat:
                 module.SetRepeat(oldautorepeat)

@@ -7,6 +7,7 @@ import state
 import base
 import destiny
 import uthread
+import trinity
 
 prefs = {}
 serviceInstance = None
@@ -40,7 +41,7 @@ class AutoTargeterSvc(service.Service):
     def __init__(self):
         service.Service.__init__(self)
         self.disabled = False
-        self.__updateTimer = SafeTimer(2000, self.updateTargets)
+        self.__updateTimer = SafeTimer(500, self.updateTargets)
         self.__potentialTargets = []
         self.__populateTargets = MainThreadInvoker(self.populateTargets)
         self.__lockedTargets = []
@@ -207,6 +208,22 @@ class AutoTargeterSvc(service.Service):
                         targetSvc.TryLockTarget,
                         targetID
                     )
+        
+        color = (1.0, 1.0, 0.8, 1.0)
+               
+        for id in self.__lockedTargets:
+            targetFrame = targetSvc.targetsByID.get(id, None)
+            if not targetFrame:
+                continue
+            if not hasattr(targetFrame, "sr"):
+                continue
+            
+            if hasattr(targetFrame.sr, "label"):            
+                targetFrame.sr.label.color.SetRGB(*color)
+            if hasattr(targetFrame.sr, "iconPar"):
+                for obj in targetFrame.sr.iconPar.children:
+                    if hasattr(obj, "color"):
+                        obj.color.SetRGB(*color)
     
     def populateTargets(self):
         self.__populateTargets = None

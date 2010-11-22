@@ -113,12 +113,14 @@ class DroneHelperSvc(service.Service):
             ((drones[droneID].ownerID == eve.session.charid) or (drones[droneID].controllerID == eve.session.shipid))
         )]
     
-    def getCommonTarget(self, threshold):
+    def getCommonTarget(self, threshold, filtered=True):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         
         targetCounts = {}
         for drone in self.__drones.values():
-            if drone.target and ballpark.GetInvItem(drone.target):
+            if (drone.state == const.entityCombat and 
+                drone.target and 
+                ballpark.GetInvItem(drone.target)):
                 targetCounts[drone.target] = targetCounts.setdefault(drone.target, 0) + 1
                 
         sortedTargets = [st[1] for st in sorted(
@@ -127,7 +129,8 @@ class DroneHelperSvc(service.Service):
             cmp=lambda lhs, rhs: -cmp(lhs, rhs)
         )]
         
-        sortedTargets = self.filterTargets(sortedTargets)
+        if filtered:
+            sortedTargets = self.filterTargets(sortedTargets)
         
         if len(sortedTargets):
             return sortedTargets[0]
@@ -224,7 +227,7 @@ class DroneHelperSvc(service.Service):
                 if entity:
                     if isCommonTarget:
                         targetName += " (existing target)"
-                    log("%r drone(s) attacking %s", len(drones), targetName)
+                    log("%s attacking %s", ", ".join(getNamesOfIDs(drones)), targetName)
                     for id in drones:
                         droneObj = self.getDroneObject(id)
                         droneObj.setTarget(targetID, timestamp)
@@ -265,6 +268,10 @@ class DroneHelperSvc(service.Service):
         if not ballpark:
             return
         
+        targetSvc = sm.services["target"]
+        if not targetSvc:
+            return
+        
         if self.__lastAttackOrder:
             if not ballpark.GetBall(self.__lastAttackOrder):
                 self.__lastAttackOrder = None
@@ -301,13 +308,15 @@ class DroneHelperSvc(service.Service):
         
         if len(dronesToAttack):
             self.doAttack(idleOnly=True, targetID=None, dronesToAttack=dronesToAttack)
-        elif self.__lastAttackOrder and getPref("WhenTargetLost", False):
-            oldPriority = getPriority(targetID=self.__lastAttackOrder)
+        elif getPref("WhenTargetLost", False):
+            commonTarget = self.getCommonTarget(3, filtered=False)
+            oldPriority = getPriority(targetID=commonTarget)
             newTarget = self.selectTarget()
             newPriority = getPriority(targetID=newTarget)
-            if newPriority > oldPriority:
-                commonTarget = self.getCommonTarget(2)
-                if commonTarget == self.__lastAttackOrder:
+            
+            if commonTarget and (newPriority > oldPriority):
+                if ((commonTarget == self.__lastAttackOrder) or 
+                    (commonTarget not in targetSvc.targets)):
                     slimItem = ballpark.GetInvItem(commonTarget)
                     if slimItem:
                         log("Abandoning low-priority drone target %s", uix.GetSlimItemName(slimItem))
