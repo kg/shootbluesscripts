@@ -9,7 +9,7 @@ import moniker
 import trinity
 import blue
 
-ActionThreshold = ((10000000L) * 150) / 100
+ActionThreshold = ((10000000L) * 190) / 100
 
 prefs = {}
 serviceInstance = None
@@ -178,7 +178,7 @@ class DroneHelperSvc(service.Service):
         else:
             return None
     
-    def doAttack(self, idleOnly, targetID=None, dronesToAttack=[]):
+    def doAttack(self, idleOnly, targetID=None, dronesToAttack=[], oldTarget=None):
         if self.disabled:
             return
             
@@ -227,7 +227,17 @@ class DroneHelperSvc(service.Service):
                 if entity:
                     if isCommonTarget:
                         targetName += " (existing target)"
-                    log("%s attacking %s", ", ".join(getNamesOfIDs(drones)), targetName)
+                    
+                    oldTargetName = None
+                    if oldTarget:
+                        slimItem = ballpark.GetInvItem(oldTarget)
+                        oldTargetName = uix.GetSlimItemName(slimItem)
+                    
+                    if oldTargetName:
+                        log("%s changing target from %s to %s", ", ".join(getNamesOfIDs(drones)), oldTargetName, targetName)
+                    else:
+                        log("%s attacking %s", ", ".join(getNamesOfIDs(drones)), targetName)
+                    
                     for id in drones:
                         droneObj = self.getDroneObject(id)
                         droneObj.setTarget(targetID, timestamp)
@@ -310,18 +320,17 @@ class DroneHelperSvc(service.Service):
             self.doAttack(idleOnly=True, targetID=None, dronesToAttack=dronesToAttack)
         elif getPref("WhenTargetLost", False):
             commonTarget = self.getCommonTarget(3, filtered=False)
+            if commonTarget == eve.session.shipid:
+                return
+            
             oldPriority = getPriority(targetID=commonTarget)
             newTarget = self.selectTarget()
             newPriority = getPriority(targetID=newTarget)
             
             if commonTarget and (newPriority > oldPriority):
                 if ((commonTarget == self.__lastAttackOrder) or 
-                    (commonTarget not in targetSvc.targets)):
-                    slimItem = ballpark.GetInvItem(commonTarget)
-                    if slimItem:
-                        log("Abandoning low-priority drone target %s", uix.GetSlimItemName(slimItem))
-                    
-                    self.doAttack(idleOnly=False, targetID=newTarget)
+                    (commonTarget not in targetSvc.targets)):                    
+                    self.doAttack(idleOnly=False, targetID=newTarget, oldTarget=commonTarget)
     
     def checkDroneHealth(self, drone):
         result = False

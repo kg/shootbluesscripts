@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{E5C92645-B67F-4F4E-936D-E258E8C6130E}</ProjectGuid>
+    <ProjectGuid>{DAFCCDEB-9C2D-46C5-8B36-A615AB76AF2E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ShootBlues.Script</RootNamespace>
-    <AssemblyName>EnemyPrioritizer.Script</AssemblyName>
+    <AssemblyName>TargetColors.Script</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -34,40 +34,34 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Web.Extensions">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AddGroupDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="AddGroupDialog.Designer.cs">
-      <DependentUpon>AddGroupDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="AddTypeDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="AddTypeDialog.Designer.cs">
-      <DependentUpon>AddTypeDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="EnemyPrioritizer.cs" />
-    <Compile Include="EnemyPrioritizerConfig.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="EnemyPrioritizerConfig.Designer.cs">
-      <DependentUpon>EnemyPrioritizerConfig.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="TargetColorsConfig.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="TargetColorsConfig.Designer.cs">
+      <DependentUpon>TargetColorsConfig.cs</DependentUpon>
+    </Compile>
+    <Compile Include="TargetColors.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Fracture\Squared\TaskLib\Squared.Task.csproj">
@@ -87,24 +81,18 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="enemyprioritizer.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="AddGroupDialog.resx">
-      <DependentUpon>AddGroupDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="AddTypeDialog.resx">
-      <DependentUpon>AddTypeDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="EnemyPrioritizerConfig.resx">
-      <DependentUpon>EnemyPrioritizerConfig.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <EmbeddedResource Include="TargetColorsConfig.resx">
+      <DependentUpon>TargetColorsConfig.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="targetcolors.py">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -4,9 +4,12 @@ import service
 import json
 import base
 import uix
+import blue
 
 prefs = {}
 serviceInstance = None
+
+ActionThreshold = 20000000L
 
 def getPref(key, default):
     global prefs
@@ -41,7 +44,8 @@ class ActiveTankerSvc(service.Service):
     def __init__(self):
         service.Service.__init__(self)
         self.disabled = False
-        self.__updateTimer = SafeTimer(1000, self.updateHealth)
+        self.__updateTimer = SafeTimer(500, self.updateHealth)
+        self.__lastAction = 0
     
     def updateHealth(self):
         if self.disabled:
@@ -76,7 +80,6 @@ class ActiveTankerSvc(service.Service):
             threshold = getattr(self, repairType + "Max") - repairAmount
             current = getattr(self, repairType)
             if current < threshold:
-                #log("%s needs repair: %r < %r", repairType, current, threshold)
                 self.pulseModule(module)
     
     def findModule(self, repairType):
@@ -152,13 +155,18 @@ class ActiveTankerSvc(service.Service):
             log("Module %s is not online", moduleName)
             return
         
+        timestamp = blue.os.GetTime()
+        if abs(self.__lastAction - timestamp) <= ActionThreshold:
+            return
+        
+        self.__lastAction = timestamp        
         log("Activating %s", moduleName)
         
         oldautorepeat = getattr(module, "autorepeat", False)
         if oldautorepeat:
             # Temporarily disable auto-repeat for this module so that we can just pulse it once
             module.SetRepeat(0)
-        
+                
         try:
             module.Click()
         except Exception, e:

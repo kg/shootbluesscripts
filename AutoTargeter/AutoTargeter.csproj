@@ -52,18 +52,27 @@
     <ProjectReference Include="..\..\Fracture\Squared\TaskLib\Squared.Task.csproj">
       <Project>{173ABDCA-7278-46FF-A300-D3BF8CCEF181}</Project>
       <Name>Squared.Task</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\Fracture\Squared\Util\Squared.Util.csproj">
       <Project>{D7F549CF-E0A6-491C-A78C-ECAB590BB2A7}</Project>
       <Name>Squared.Util</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\ShootBlues\ShootBlues.csproj">
       <Project>{25141725-8333-425F-B5B6-7E096A19608E}</Project>
       <Name>ShootBlues</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\Common\Common.csproj">
       <Project>{390A5CD1-F8DE-491E-BECC-AD16FD237E50}</Project>
       <Name>Common</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\TargetColors\TargetColors.csproj">
+      <Project>{DAFCCDEB-9C2D-46C5-8B36-A615AB76AF2E}</Project>
+      <Name>TargetColors</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

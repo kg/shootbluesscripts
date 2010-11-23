@@ -18,6 +18,12 @@ except:
     def getPriority(*args, **kwargs):
         return 0
 
+try:
+    from shootblues.targetcolors import setItemColor
+except:
+    def setItemColor(*args, **kwargs):
+        return
+
 def getPref(key, default):
     global prefs
     return prefs.get(key, default)
@@ -190,40 +196,22 @@ class AutoTargeterSvc(service.Service):
                 for targetID in targetsToUnlock:
                     if targetID in self.__lockedTargets:
                         self.__lockedTargets.remove(targetID)
-                        
-                    uthread.pool(
-                        "UnlockTarget",
-                        targetSvc.UnlockTarget,
-                        targetID
-                    )
+                        setItemColor(targetID, None)
+                    
+                    targetSvc.UnlockTarget(targetID)
             
             if len(targetsToLock):
                 log("Locking %s", ", ".join(getNamesOfIDs(targetsToLock)))
                 for targetID in targetsToLock:
                     if targetID not in self.__lockedTargets:
                         self.__lockedTargets.append(targetID)
+                        setItemColor(targetID, "Automatic Target")
                     
                     uthread.pool(
                         "LockTarget",
                         targetSvc.TryLockTarget,
                         targetID
                     )
-        
-        color = (1.0, 1.0, 0.8, 1.0)
-               
-        for id in self.__lockedTargets:
-            targetFrame = targetSvc.targetsByID.get(id, None)
-            if not targetFrame:
-                continue
-            if not hasattr(targetFrame, "sr"):
-                continue
-            
-            if hasattr(targetFrame.sr, "label"):            
-                targetFrame.sr.label.color.SetRGB(*color)
-            if hasattr(targetFrame.sr, "iconPar"):
-                for obj in targetFrame.sr.iconPar.children:
-                    if hasattr(obj, "color"):
-                        obj.color.SetRGB(*color)
     
     def populateTargets(self):
         self.__populateTargets = None
@@ -234,6 +222,8 @@ class AutoTargeterSvc(service.Service):
         targetSvc = sm.services.get('target', None)
         if targetSvc:
             self.__lockedTargets = list(targetSvc.targets)
+            for id in self.__lockedTargets:
+                setItemColor(id, "Automatic Target")
         
         lst = []
         for ballID in ballpark.balls.keys():
@@ -272,8 +262,13 @@ class AutoTargeterSvc(service.Service):
             if (reason == None) and (tid in self.__potentialTargets):
                 self.__potentialTargets.remove(tid)
             if tid in self.__lockedTargets:
-                self.__lockedTargets.remove(tid)        
+                self.__lockedTargets.remove(tid) 
+                setItemColor(tid, None)
+        
         elif (what == "clear"):
+            for id in self.__lockedTargets:
+                setItemColor(id, None)
+            
             self.__lockedTargets = []
 
 def initialize():

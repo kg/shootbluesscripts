@@ -13,6 +13,8 @@ namespace ShootBlues.Script {
         public LogWindow (TaskScheduler scheduler) 
             : base(scheduler) {
             InitializeComponent();
+
+            GC.Collect();
         }
 
         public void SetText (string text) {

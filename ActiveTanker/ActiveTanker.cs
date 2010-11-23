@@ -43,8 +43,8 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> Initialize () {
             // Hack to initialize prefs to defaults
             using (var configWindow = new ActiveTankerConfig(this)) {
-                yield return configWindow.LoadPreferences();
-                yield return configWindow.SavePreferences();
+                yield return configWindow.LoadConfiguration();
+                yield return configWindow.SaveConfiguration();
             }
 
             yield return BaseInitialize();
@@ -66,9 +66,8 @@ namespace ShootBlues.Script {
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
             var panel = new ActiveTankerConfig(this);
-            yield return panel.LoadPreferences();
+            yield return panel.LoadConfiguration();
             statusWindow.ShowConfigurationPanel("Active Tanker", panel);
-            yield break;
         }
 
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {

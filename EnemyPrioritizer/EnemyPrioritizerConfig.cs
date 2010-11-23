@@ -9,7 +9,7 @@ using System.Windows.Forms;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class EnemyPrioritizerConfig : TaskUserControl {
+    public partial class EnemyPrioritizerConfig : TaskUserControl, IConfigurationPanel {
         EnemyPrioritizer Script;
 
         public EnemyPrioritizerConfig (EnemyPrioritizer script) 
@@ -18,8 +18,12 @@ namespace ShootBlues.Script {
             Script = script;
         }
 
-        public IEnumerator<object> RefreshList () {
-            return RefreshList(null);
+        public IEnumerator<object> LoadConfiguration () {
+            yield return Program.Database.ExecuteSQL(
+                "DELETE FROM enemyPriorities WHERE priority = 0"
+            ); 
+            
+            yield return RefreshList(null);
         }
 
         private IEnumerator<object> RefreshList (PriorityEntry newSelection) {
@@ -105,6 +109,10 @@ namespace ShootBlues.Script {
                     List.EnsureVisible(List.SelectedIndices[0]);
                 }
             }
+        }
+
+        public IEnumerator<object> SaveConfiguration () {
+            yield break;
         }
 
         private void List_SelectedIndexChanged (object sender, EventArgs e) {
@@ -246,7 +254,7 @@ namespace ShootBlues.Script {
 
             Script.PreferencesChanged.Set();
 
-            yield return RefreshList();
+            yield return LoadConfiguration();
         }
 
         private void List_SizeChanged (object sender, EventArgs e) {
@@ -283,7 +291,7 @@ namespace ShootBlues.Script {
 
             Script.PreferencesChanged.Set();
 
-            yield return RefreshList();
+            yield return LoadConfiguration();
         }
     }
 }

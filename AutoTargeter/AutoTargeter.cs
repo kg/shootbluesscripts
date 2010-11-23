@@ -6,6 +6,7 @@ using Squared.Task;
 using System.Windows.Forms;
 using System.Reflection;
 using System.IO;
+using System.Drawing;
 
 namespace ShootBlues.Script {
     public class AutoTargeter : ManagedScript {
@@ -16,6 +17,7 @@ namespace ShootBlues.Script {
 
             AddDependency("Common.script.dll");
             AddDependency("EnemyPrioritizer.script.dll");
+            AddDependency("TargetColors.script.dll", true);
             AddDependency("autotargeter.py");
 
             CustomMenu = new ToolStripMenuItem("Auto Targeter");
@@ -44,11 +46,18 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> Initialize () {
             // Hack to initialize prefs to defaults
             using (var configWindow = new AutoTargeterConfig(this)) {
-                yield return configWindow.LoadPreferences();
-                yield return configWindow.SavePreferences();
+                yield return configWindow.LoadConfiguration();
+                yield return configWindow.SaveConfiguration();
             }
 
             yield return BaseInitialize();
+        }
+
+        public override IEnumerator<object> Reload () {
+            var targetColors = Program.GetScriptInstance<TargetColors>("TargetColors.script.dll");
+
+            if (targetColors != null)
+                yield return targetColors.DefineColor("Automatic Target", Color.FromArgb(255, 255, 255, 204));
         }
 
         protected override IEnumerator<object> OnPreferencesChanged () {
@@ -67,9 +76,8 @@ namespace ShootBlues.Script {
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
             var panel = new AutoTargeterConfig(this);
-            yield return panel.LoadPreferences();
+            yield return panel.LoadConfiguration();
             statusWindow.ShowConfigurationPanel("Auto Targeter", panel);
-            yield break;
         }
 
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {

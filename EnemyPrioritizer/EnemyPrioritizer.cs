@@ -84,6 +84,16 @@ namespace ShootBlues.Script {
             yield return BaseInitialize();
         }
 
+        public override IEnumerator<object> Reload () {
+            // Delete any stray items with a priority of 0 since the default is 0.
+            // When the user interacts with the config window, new items start at
+            //  priority 0, so if they never set a priority, they stick around.
+            // This kind of sucks, but it shouldn't be too confusing.
+            yield return Program.Database.ExecuteSQL(
+                "DELETE FROM enemyPriorities WHERE priority = 0"
+            );
+        }
+
         protected override IEnumerator<object> OnPreferencesChanged () {
             var priorityDict = new Dictionary<string, object>();
 
@@ -113,18 +123,9 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            // Delete any stray items with a priority of 0 since the default is 0.
-            // When the user interacts with the config window, new items start at
-            //  priority 0, so if they never set a priority, they stick around.
-            // This kind of sucks, but it shouldn't be too confusing.
-            yield return Program.Database.ExecuteSQL(
-                "DELETE FROM enemyPriorities WHERE priority = 0"
-            );
-
             var panel = new EnemyPrioritizerConfig(this);
-            yield return panel.RefreshList();
+            yield return panel.LoadConfiguration();
             statusWindow.ShowConfigurationPanel("Enemy Prioritizer", panel);
-            yield break;
         }
 
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {

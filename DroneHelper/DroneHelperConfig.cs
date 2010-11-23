@@ -10,7 +10,7 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class DroneHelperConfig : TaskUserControl {
+    public partial class DroneHelperConfig : TaskUserControl, IConfigurationPanel {
         IBoundMember[] Prefs;
         DroneHelper Script;
 
@@ -36,7 +36,7 @@ namespace ShootBlues.Script {
             return ((Control)member.Target).Name;
         }
 
-        public IEnumerator<object> LoadPreferences () {
+        public IEnumerator<object> LoadConfiguration () {
             var rtc = new RunToCompletion<Dictionary<string, object>>(Script.GetPreferences());
             yield return rtc;
 
@@ -48,7 +48,7 @@ namespace ShootBlues.Script {
                     bm.Value = value;
         }
 
-        public IEnumerator<object> SavePreferences () {
+        public IEnumerator<object> SaveConfiguration () {
             using (var xact = Program.Database.CreateTransaction()) {
                 yield return xact;
 
@@ -60,7 +60,7 @@ namespace ShootBlues.Script {
         }
 
         private void ValuesChanged (object sender, EventArgs args) {
-            Start(SavePreferences());
+            Start(SaveConfiguration());
         }
 
         private void ConfigurePriorities_Click (object sender, EventArgs e) {

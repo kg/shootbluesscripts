@@ -10,7 +10,7 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class ActiveTankerConfig : TaskUserControl {
+    public partial class ActiveTankerConfig : TaskUserControl, IConfigurationPanel {
         IBoundMember[] Prefs;
         ActiveTanker Script;
 
@@ -30,7 +30,7 @@ namespace ShootBlues.Script {
             return ((Control)member.Target).Name;
         }
 
-        public IEnumerator<object> LoadPreferences () {
+        public IEnumerator<object> LoadConfiguration () {
             var rtc = new RunToCompletion<Dictionary<string, object>>(Script.GetPreferences());
             yield return rtc;
 
@@ -42,7 +42,7 @@ namespace ShootBlues.Script {
                     bm.Value = value;
         }
 
-        public IEnumerator<object> SavePreferences () {
+        public IEnumerator<object> SaveConfiguration () {
             using (var xact = Program.Database.CreateTransaction()) {
                 yield return xact;
 
@@ -54,7 +54,7 @@ namespace ShootBlues.Script {
         }
 
         private void ValuesChanged (object sender, EventArgs args) {
-            Start(SavePreferences());
+            Start(SaveConfiguration());
         }
     }
 }
