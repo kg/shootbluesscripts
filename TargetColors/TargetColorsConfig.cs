@@ -148,7 +148,7 @@ namespace ShootBlues.Script {
                     yield return q.ExecuteNonQuery(item.Key);
             }
 
-            Script.PreferencesChanged.Set();
+            Program.EventBus.Broadcast(Script, "PreferenceChanged", "*");
 
             yield return LoadConfiguration();
         }

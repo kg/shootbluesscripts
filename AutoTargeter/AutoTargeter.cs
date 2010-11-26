@@ -4,7 +4,7 @@ using System.Text;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
-using System.Reflection;
+using Squared.Util.Event;
 using System.IO;
 using System.Drawing;
 
@@ -60,7 +60,7 @@ namespace ShootBlues.Script {
                 yield return targetColors.DefineColor("Automatic Target", Color.FromArgb(255, 220, 180));
         }
 
-        protected override IEnumerator<object> OnPreferencesChanged () {
+        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
             string prefsJson = null;
             yield return GetPreferencesJson().Bind(() => prefsJson);
 
@@ -71,7 +71,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "autotargeter", "initialize");
 
-            yield return OnPreferencesChanged();
+            EventBus.Broadcast(this, "PreferenceChanged", "*");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

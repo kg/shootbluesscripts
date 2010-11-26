@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using ShootBlues;
 using Squared.Task;
-using System.Reflection;
+using Squared.Util.Event;
 using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
@@ -63,7 +63,7 @@ namespace ShootBlues.Script {
             }
         }
 
-        protected override IEnumerator<object> OnPreferencesChanged () {
+        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
             string prefsJson = null;
             yield return GetPreferencesJson().Bind(() => prefsJson);
 
@@ -74,7 +74,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "broadcasthelper", "initialize");
 
-            yield return OnPreferencesChanged();
+            EventBus.Broadcast(this, "PreferenceChanged", "*");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

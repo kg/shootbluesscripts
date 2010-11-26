@@ -19,7 +19,7 @@ namespace ShootBlues.Profile {
             );
             if (filename != null) {
                 Program.Scripts.Add(filename);
-                Program.ScriptsChanged.Set();
+                Program.EventBus.Broadcast(this, "ScriptsAdded", new Filename[] { filename });
             }
         }
 

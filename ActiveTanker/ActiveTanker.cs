@@ -4,8 +4,8 @@ using System.Text;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
-using System.Reflection;
 using System.IO;
+using Squared.Util.Event;
 
 namespace ShootBlues.Script {
     public class ActiveTanker : ManagedScript {
@@ -50,7 +50,7 @@ namespace ShootBlues.Script {
             yield return BaseInitialize();
         }
 
-        protected override IEnumerator<object> OnPreferencesChanged () {
+        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
             string prefsJson = null;
             yield return GetPreferencesJson().Bind(() => prefsJson);
 
@@ -61,7 +61,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "activetanker", "initialize");
 
-            yield return OnPreferencesChanged();
+            EventBus.Broadcast(this, "PreferenceChanged", "*");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

@@ -10,6 +10,7 @@ using System.Web.Script.Serialization;
 namespace ShootBlues.Script {
     public class Common : ManagedScript {
         protected LogWindow LogWindowInstance = null;
+        protected PythonExplorer PythonExplorerInstance = null;
 
         public List<string> Log = new List<string>();
 
@@ -19,17 +20,25 @@ namespace ShootBlues.Script {
             : base(name) {
             AddDependency("common.py");
 
-            CustomMenu = new ToolStripMenuItem("Log");
+            CustomMenu = new ToolStripMenuItem("Common");
             CustomMenu.DropDown.Items.Add(
-                new ToolStripMenuItem("Show", null, (s, e) => {
+                new ToolStripMenuItem("Show Log", null, (s, e) => {
                     Program.Scheduler.Start(
                         ShowLogWindow(), Squared.Task.TaskExecutionPolicy.RunAsBackgroundTask
                     );
                 })
             );
             CustomMenu.DropDown.Items.Add(
-                new ToolStripMenuItem("Clear", null, (s, e) => {
+                new ToolStripMenuItem("Clear Log", null, (s, e) => {
                     LogClear();
+                })
+            );
+            CustomMenu.DropDown.Items.Add(new ToolStripSeparator());
+            CustomMenu.DropDown.Items.Add(
+                new ToolStripMenuItem("Python Explorer", null, (s, e) => {
+                    Program.Scheduler.Start(
+                        ShowPythonExplorer(), Squared.Task.TaskExecutionPolicy.RunAsBackgroundTask
+                    );
                 })
             );
             Program.AddCustomMenu(CustomMenu);
@@ -39,6 +48,19 @@ namespace ShootBlues.Script {
             base.Dispose();
             Program.RemoveCustomMenu(CustomMenu);
             CustomMenu.Dispose();
+        }
+
+        public IEnumerator<object> ShowPythonExplorer () {
+            if (PythonExplorerInstance != null) {
+                PythonExplorerInstance.Activate();
+                PythonExplorerInstance.Focus();
+                yield break;
+            }
+
+            using (PythonExplorerInstance = new PythonExplorer(Program.Scheduler, this))
+                yield return PythonExplorerInstance.Show();
+
+            PythonExplorerInstance = null;
         }
 
         public IEnumerator<object> ShowLogWindow () {
@@ -177,7 +199,8 @@ namespace ShootBlues.Script {
 
         public void LoggedInCharacterChanged (ProcessInfo process, object characterName) {
             process.Status = characterName as string ?? "Not Logged In";
-            Program.RunningProcessesChanged.Set();
+
+            EventBus.Broadcast(Profile, "RunningProcessChanged", process);
         }
 
         public void ShowMessageBox (ProcessInfo process, string text) {

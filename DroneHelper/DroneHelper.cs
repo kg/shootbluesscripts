@@ -4,7 +4,7 @@ using System.Text;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
-using System.Reflection;
+using Squared.Util.Event;
 using System.IO;
 
 namespace ShootBlues.Script {
@@ -51,7 +51,7 @@ namespace ShootBlues.Script {
             yield return BaseInitialize();
         }
 
-        protected override IEnumerator<object> OnPreferencesChanged () {
+        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
             string prefsJson = null;
             yield return GetPreferencesJson().Bind(() => prefsJson);
 
@@ -62,7 +62,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "dronehelper", "initialize");
 
-            yield return OnPreferencesChanged();
+            EventBus.Broadcast(this, "PreferenceChanged", "*");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

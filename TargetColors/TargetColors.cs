@@ -4,11 +4,11 @@ using System.Text;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
-using System.Reflection;
 using System.IO;
 using Squared.Task.Data.Mapper;
 using System.Web.Script.Serialization;
 using System.Drawing;
+using Squared.Util.Event;
 
 namespace ShootBlues.Script {
     [Mapper]
@@ -87,7 +87,7 @@ namespace ShootBlues.Script {
             yield break;
         }
 
-        protected override IEnumerator<object> OnPreferencesChanged () {
+        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
             var colorDict = new Dictionary<string, object>();
 
             foreach (var kvp in DefinedColors)
@@ -112,7 +112,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "targetcolors", "initialize");
 
-            yield return OnPreferencesChanged();
+            EventBus.Broadcast(this, "PreferenceChanged", "*");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

@@ -4,7 +4,7 @@ using System.Text;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
-using System.Reflection;
+using Squared.Util.Event;
 using System.IO;
 using Squared.Task.Data.Mapper;
 using System.Web.Script.Serialization;
@@ -94,7 +94,7 @@ namespace ShootBlues.Script {
             );
         }
 
-        protected override IEnumerator<object> OnPreferencesChanged () {
+        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
             var priorityDict = new Dictionary<string, object>();
 
             using (var q = Program.Database.BuildQuery("SELECT groupID, typeID, priority FROM enemyPriorities"))
@@ -119,7 +119,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "enemyprioritizer", "initialize");
 
-            yield return OnPreferencesChanged();
+            EventBus.Broadcast(this, "PreferenceChanged", "*");
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
