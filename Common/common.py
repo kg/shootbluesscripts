@@ -1,7 +1,5 @@
 import shootblues
 import types
-import traceback
-import pprint
 import threading
 import json
 
@@ -28,66 +26,6 @@ def log(format, *args):
 def remoteCall(script, methodName, *args):
     channel = getChannel("remotecall")
     channel.send(json.dumps([script, methodName, args]))
-
-def explorerResolveKey(obj, key):
-    if key.startswith("["):
-        indexer = json.loads(key)[0]
-        return obj[indexer]
-    else:
-        return getattr(obj, key)
-
-def explorerResolveContext(context, index):
-    import sys
-    obj = sys.modules.get(context[0])
-    currentKey = []
-    for key in context[1:index+1]:
-        nextObj = explorerResolveKey(obj, key)       
-        currentKey.append(key)
-        obj = nextObj
-    
-    return obj
-
-def explorerGetKeys(context, index):
-    obj = explorerResolveContext(context, index)
-    result = dir(obj)
-    
-    if isinstance(obj, types.ListType):
-        for i in xrange(len(obj)):
-            result.append(json.dumps([i]))
-    elif isinstance(obj, types.DictType):
-        for key in obj.iterkeys():
-            result.append(json.dumps([key]))
-    elif hasattr(obj, "__keys__"):
-        for key in getattr(obj, "__keys__"):
-            result.append(json.dumps([key]))            
-    
-    return result
-    
-def explorerRepr(value, maxLength=512):
-    result = repr(value)
-    if len(result) > maxLength:
-        result = result[0:maxLength - 3] + "..."
-    return result
-
-def explorerGetValues(context, index, keys):
-    obj = explorerResolveContext(context, index)
-    result = []
-    
-    for key in keys:
-        value = None
-        try:
-            value = explorerResolveKey(obj, key)
-        except Exception, e:
-            value = e
-        
-        if value is not None:
-            value = explorerRepr(value)
-        else:
-            value = ""
-        
-        result.append(value)
-    
-    return result
 
 def logException(*args, **kwargs):
     global oldLogException
@@ -118,11 +56,6 @@ def logTraceback(*args, **kwargs):
         oldLogTraceback(*args, **kwargs)
     except:
         pass
-    
-def getLockedTargets():
-    ballpark = eve.LocalSvc("michelle").GetBallpark()
-    targetSvc = sm.services["target"]
-    return [ballpark.GetInvItem(id) for id in targetSvc.targetsByID.keys()]
 
 def getNamesOfIDs(ids):
     import uix

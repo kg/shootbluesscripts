@@ -27,11 +27,11 @@
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PythonExplorer));
             this.DataGrid = new System.Windows.Forms.DataGridView();
+            this.Key = new System.Windows.Forms.DataGridViewButtonColumn();
+            this.Value = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.panel1 = new System.Windows.Forms.Panel();
             this.ProcessList = new System.Windows.Forms.ComboBox();
             this.Breadcrumbs = new System.Windows.Forms.ToolStrip();
-            this.Key = new System.Windows.Forms.DataGridViewButtonColumn();
-            this.Value = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).BeginInit();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
@@ -66,50 +66,9 @@
             this.DataGrid.Size = new System.Drawing.Size(565, 420);
             this.DataGrid.TabIndex = 1;
             this.DataGrid.VirtualMode = true;
+            this.DataGrid.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGrid_CellDoubleClick);
             this.DataGrid.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.DataGrid_CellValueNeeded);
             this.DataGrid.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGrid_CellContentClick);
-            // 
-            // panel1
-            // 
-            this.panel1.Controls.Add(this.ProcessList);
-            this.panel1.Controls.Add(this.Breadcrumbs);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel1.Location = new System.Drawing.Point(0, 0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(565, 24);
-            this.panel1.TabIndex = 2;
-            // 
-            // ProcessList
-            // 
-            this.ProcessList.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)));
-            this.ProcessList.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.ProcessList.FormattingEnabled = true;
-            this.ProcessList.Location = new System.Drawing.Point(0, 0);
-            this.ProcessList.Name = "ProcessList";
-            this.ProcessList.Size = new System.Drawing.Size(175, 24);
-            this.ProcessList.Sorted = true;
-            this.ProcessList.TabIndex = 2;
-            this.ProcessList.SelectedValueChanged += new System.EventHandler(this.ProcessList_SelectedValueChanged);
-            // 
-            // Breadcrumbs
-            // 
-            this.Breadcrumbs.AllowMerge = false;
-            this.Breadcrumbs.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
-            this.Breadcrumbs.AutoSize = false;
-            this.Breadcrumbs.CanOverflow = false;
-            this.Breadcrumbs.Dock = System.Windows.Forms.DockStyle.None;
-            this.Breadcrumbs.GripMargin = new System.Windows.Forms.Padding(0);
-            this.Breadcrumbs.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            this.Breadcrumbs.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
-            this.Breadcrumbs.Location = new System.Drawing.Point(175, 0);
-            this.Breadcrumbs.Name = "Breadcrumbs";
-            this.Breadcrumbs.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
-            this.Breadcrumbs.ShowItemToolTips = false;
-            this.Breadcrumbs.Size = new System.Drawing.Size(390, 24);
-            this.Breadcrumbs.TabIndex = 1;
             // 
             // Key
             // 
@@ -147,6 +106,48 @@
             this.Value.ReadOnly = true;
             this.Value.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             this.Value.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
+            // 
+            // panel1
+            // 
+            this.panel1.Controls.Add(this.ProcessList);
+            this.panel1.Controls.Add(this.Breadcrumbs);
+            this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel1.Location = new System.Drawing.Point(0, 0);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(565, 24);
+            this.panel1.TabIndex = 0;
+            // 
+            // ProcessList
+            // 
+            this.ProcessList.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)));
+            this.ProcessList.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.ProcessList.FormattingEnabled = true;
+            this.ProcessList.Location = new System.Drawing.Point(0, 0);
+            this.ProcessList.Name = "ProcessList";
+            this.ProcessList.Size = new System.Drawing.Size(175, 24);
+            this.ProcessList.Sorted = true;
+            this.ProcessList.TabIndex = 0;
+            this.ProcessList.SelectedValueChanged += new System.EventHandler(this.ProcessList_SelectedValueChanged);
+            // 
+            // Breadcrumbs
+            // 
+            this.Breadcrumbs.AllowMerge = false;
+            this.Breadcrumbs.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.Breadcrumbs.AutoSize = false;
+            this.Breadcrumbs.CanOverflow = false;
+            this.Breadcrumbs.Dock = System.Windows.Forms.DockStyle.None;
+            this.Breadcrumbs.GripMargin = new System.Windows.Forms.Padding(0);
+            this.Breadcrumbs.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.Breadcrumbs.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
+            this.Breadcrumbs.Location = new System.Drawing.Point(178, 0);
+            this.Breadcrumbs.Name = "Breadcrumbs";
+            this.Breadcrumbs.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
+            this.Breadcrumbs.ShowItemToolTips = false;
+            this.Breadcrumbs.Size = new System.Drawing.Size(387, 24);
+            this.Breadcrumbs.TabIndex = 1;
             // 
             // PythonExplorer
             // 

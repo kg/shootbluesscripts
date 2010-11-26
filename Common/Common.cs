@@ -19,6 +19,7 @@ namespace ShootBlues.Script {
         public Common (ScriptName name)
             : base(name) {
             AddDependency("common.py");
+            AddDependency("pythonexplorer.py");
 
             CustomMenu = new ToolStripMenuItem("Common");
             CustomMenu.DropDown.Items.Add(

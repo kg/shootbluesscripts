@@ -60,31 +60,43 @@ namespace ShootBlues.Script {
 
         public void RefreshBreadcrumbs () {
             using (new ControlWaitCursor(this)) {
-                while (Breadcrumbs.Items.Count > Context.Length)
-                    Breadcrumbs.Items.RemoveAt(Breadcrumbs.Items.Count - 1);
+                Breadcrumbs.Items.Clear();
 
-                ToolStripButton button;
                 for (int i = 0; i < Context.Length; i++) {
-                    if (i >= Breadcrumbs.Items.Count) {
-                        button = new ToolStripButton();
-                        {
-                            int _i = i;
-                            button.Click += (s, e) => BreadcrumbClick(_i);
-                        }
-                    } else {
-                        button = (ToolStripButton)Breadcrumbs.Items[i];
+                    var button = new ToolStripButton();
+                    {
+                        int _i = i;
+                        button.Click += (s, e) => BreadcrumbClick(_i);
                     }
 
-                    if ((i > 0) && (!Context[i].StartsWith("[")))
-                        button.Text = "." + Context[i];
-                    else
-                        button.Text = Context[i];
-
+                    button.Text = Context[i];
                     button.Checked = (i == ActiveContext);
+                    button.DisplayStyle = ToolStripItemDisplayStyle.Text;
 
-                    if (i >= Breadcrumbs.Items.Count)
-                        Breadcrumbs.Items.Add(button);
+                    Breadcrumbs.Items.Add(button);
+
+                    if (i == 0) {
+                        var ellipsis = new ToolStripButton();
+                        ellipsis.Text = "…";
+                        ellipsis.ToolTipText = "Select new module";
+                        ellipsis.DisplayStyle = ToolStripItemDisplayStyle.Text;
+                        ellipsis.Click += (s, e) =>
+                            Start(SelectModuleTask(ProcessList.SelectedItem as ProcessInfo, Context[0]));
+                        Breadcrumbs.Items.Add(ellipsis);
+                    }
                 }
+            }
+        }
+
+        public IEnumerator<object> SelectModuleTask (ProcessInfo pi, string oldText) {
+            var fModules = Program.CallFunction<string[]>(pi, "pythonexplorer", "getModules");
+            yield return fModules;
+
+            using (var dlg = new SelectModuleDialog()) {
+                dlg.Modules.Items.AddRange(fModules.Result);
+                dlg.Modules.Text = oldText;
+                if (dlg.ShowDialog(this) == DialogResult.OK)
+                    ReplaceContext(dlg.Modules.Text);
             }
         }
 
@@ -116,9 +128,8 @@ namespace ShootBlues.Script {
 
                 string[] keys = null;
                 yield return Program.CallFunction<string[]>(
-                    process, "common", "explorerGetKeys", context, activeContext
+                    process, "pythonexplorer", "getKeys", context, activeContext
                 ).Bind(() => keys);
-                Array.Sort(keys);
                 Values = new string[keys.Length];
                 Keys = keys;
 
@@ -140,7 +151,7 @@ namespace ShootBlues.Script {
                     );
 
                     yield return Program.CallFunction<string[]>(
-                        process, "common", "explorerGetValues", context, activeContext, windowKeys
+                        process, "pythonexplorer", "getValues", context, activeContext, windowKeys
                     ).Bind(() => values);
 
                     Array.Copy(values, 0, Values, windowPos, values.Length);
@@ -169,6 +180,14 @@ namespace ShootBlues.Script {
                 e.Value = Keys[e.RowIndex];
             else if (e.ColumnIndex == 1)
                 e.Value = Values[e.RowIndex];
+        }
+
+        private void DataGrid_CellDoubleClick (object sender, DataGridViewCellEventArgs e) {
+            if ((e.RowIndex < 0) || (e.RowIndex >= Values.Length))
+                return;
+
+            if (e.ColumnIndex == 1) {
+            }
         }
     }
 }
