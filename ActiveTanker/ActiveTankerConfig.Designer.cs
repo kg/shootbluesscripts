@@ -76,7 +76,7 @@
             this.Controls.Add(this.KeepArmorFull);
             this.Controls.Add(this.KeepShieldsFull);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
-            this.Margin = new System.Windows.Forms.Padding(4);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.MinimumSize = new System.Drawing.Size(200, 85);
             this.Name = "ActiveTankerConfig";
             this.Size = new System.Drawing.Size(200, 85);

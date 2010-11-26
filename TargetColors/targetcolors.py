@@ -1,11 +1,24 @@
 ﻿from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker, getFlagName, getNamesOfIDs
 import service
 import json
+import blue
+import uthread
+import math
 
-DefaultColor = (1, 1, 1, 1)
+PulseRate = 500.0
+DefaultDuration = 12000.0
+Alphas = {
+    "icon": 1.0,
+    "framesprite": 0.5,
+    "fill": 0.13,
+    "frame": 0.5,
+    "corner": 0.25,
+    "simplepic": 0.9
+}
 
 namedColors = {}
 itemColors = {}
+pendingFlashes = {}
 
 def notifyColorsChanged(newColorsJson):
     global namedColors
@@ -16,10 +29,8 @@ def getNamedColor(name):
     global namedColors
     
     if name:
-        return namedColors.get(name, DefaultColor)
-    else:
-        return DefaultColor
-
+        return namedColors.get(name, None)
+        
 def getItemColor(itemID):
     global itemColors
     
@@ -34,6 +45,14 @@ def setItemColor(itemID, name):
     elif itemColors.has_key(itemID):
         del itemColors[itemID]
 
+def flashItemColor(itemID, name):
+    global pendingFlashes
+    
+    pendingFlashes[itemID] = {
+        "name": name,
+        "started": blue.os.GetTime()
+    }
+
 class TargetColorsSvc(service.Service):
     __guid__ = "svc.targetcolors"
     __update_on_reload__ = 0
@@ -47,8 +66,58 @@ class TargetColorsSvc(service.Service):
         service.Service.__init__(self)
         self.disabled = False
         self.__updateTimer = SafeTimer(1000, self.updateTargets)
+        self.__activeBlinks = {}
+    
+    def setObjectColor(self, obj, color=None, alpha=1.0):
+        global Alphas
+    
+        name = getattr(obj, "name", None)
+        if hasattr(obj, "color"):
+            baseAlpha = Alphas.get(name, 1.0)
+            
+            if color:            
+                obj.color.SetRGB(
+                    1.0 + (color[0] - 1.0) * alpha,
+                    1.0 + (color[1] - 1.0) * alpha,
+                    1.0 + (color[2] - 1.0) * alpha,
+                    baseAlpha
+                )
+            else:
+                obj.color.SetRGB(1.0, 1.0, 1.0, baseAlpha)
+        
+        if hasattr(obj, "children"):
+            for child in obj.children:
+                self.setObjectColor(child, color, alpha)
+    
+    def _blinkThread(self, obj):
+        try:
+            while True:
+                if self.disabled:
+                    break
+            
+                info = self.__activeBlinks.get(obj, None)
+                if not info:
+                    break
+                
+                startTime = info["started"]
+                duration = info["duration"]
+                color = info["color"]
+                
+                elapsed = blue.os.TimeDiffInMs(startTime)                
+                alpha = math.sin(((elapsed % PulseRate) / PulseRate) * math.pi)
+                self.setObjectColor(obj, color, alpha)
+                
+                if elapsed > duration:
+                    break
+            
+                blue.pyos.synchro.Yield()
+        finally:
+            if obj in self.__activeBlinks:
+                del self.__activeBlinks[obj]
     
     def updateTargets(self):
+        global pendingFlashes
+    
         if self.disabled:
             self.__updateTimer = None
             return
@@ -66,12 +135,35 @@ class TargetColorsSvc(service.Service):
             
             color = getItemColor(id)
             
-            if hasattr(targetFrame.sr, "label"):            
-                targetFrame.sr.label.color.SetRGB(*color)
             if hasattr(targetFrame.sr, "iconPar"):
-                for obj in targetFrame.sr.iconPar.children:
-                    if hasattr(obj, "color"):
-                        obj.color.SetRGB(*color)
+                obj = targetFrame.sr.iconPar
+                
+                blinkActive = self.__activeBlinks.has_key(obj)
+                
+                flashColor = None
+                flash = pendingFlashes.get(id, None)
+                if flash:
+                    del pendingFlashes[id]
+                    flashColor = getNamedColor(flash["name"])
+                    needStart = not blinkActive
+                    self.__activeBlinks[obj] = {
+                        "started": flash["started"],
+                        "duration": DefaultDuration,
+                        "color": flashColor
+                    }
+                    
+                    if needStart:
+                        uthread.new(self._blinkThread, obj)
+                    
+                    continue
+                
+                if blinkActive:
+                    continue
+                
+                if color:
+                    self.setObjectColor(obj, color)
+                else:
+                    self.setObjectColor(obj)
     
     def OnTargets(self, targets):
         self.updateTargets()

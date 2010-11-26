@@ -3,25 +3,24 @@ using System.Collections.Generic;
 using System.Text;
 using ShootBlues;
 using Squared.Task;
-using System.Windows.Forms;
 using System.Reflection;
 using System.IO;
 using System.Drawing;
+using System.Windows.Forms;
 
 namespace ShootBlues.Script {
-    public class AutoTargeter : ManagedScript {
+    public class BroadcastHelper : ManagedScript {
         ToolStripMenuItem CustomMenu;
 
-        public AutoTargeter (ScriptName name)
+        public BroadcastHelper (ScriptName name)
             : base(name) {
 
             AddDependency("Common.script.dll");
-            AddDependency("EnemyPrioritizer.script.dll");
             AddDependency("TargetColors.script.dll", true);
-            AddDependency("autotargeter.py");
+            AddDependency("broadcasthelper.py");
 
-            CustomMenu = new ToolStripMenuItem("Auto Targeter");
-            CustomMenu.DropDownItems.Add("Configure", null, ConfigureAutoTargeter);
+            CustomMenu = new ToolStripMenuItem("Broadcast Helper");
+            CustomMenu.DropDownItems.Add("Configure", null, ConfigureBroadcastHelper);
             CustomMenu.DropDownItems.Add("-");
             Program.AddCustomMenu(CustomMenu);
         }
@@ -32,9 +31,9 @@ namespace ShootBlues.Script {
             CustomMenu.Dispose();
         }
 
-        public void ConfigureAutoTargeter (object sender, EventArgs args) {
+        public void ConfigureBroadcastHelper (object sender, EventArgs args) {
             Program.Scheduler.Start(
-                Program.ShowStatusWindow("Auto Targeter"),
+                Program.ShowStatusWindow("Broadcast Helper"),
                 TaskExecutionPolicy.RunAsBackgroundTask
             );
         }
@@ -45,7 +44,7 @@ namespace ShootBlues.Script {
 
         public override IEnumerator<object> Initialize () {
             // Hack to initialize prefs to defaults
-            using (var configWindow = new AutoTargeterConfig(this)) {
+            using (var configWindow = new BroadcastHelperConfig(this)) {
                 yield return configWindow.LoadConfiguration();
                 yield return configWindow.SaveConfiguration();
             }
@@ -56,8 +55,12 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> Reload () {
             var targetColors = Program.GetScriptInstance<TargetColors>("TargetColors.script.dll");
 
-            if (targetColors != null)
-                yield return targetColors.DefineColor("Automatic Target", Color.FromArgb(255, 220, 180));
+            if (targetColors != null) {
+                yield return targetColors.DefineColor("Broadcast: Target", Color.FromArgb(255, 128, 180));
+                yield return targetColors.DefineColor("Broadcast: Need Shield", Color.FromArgb(128, 180, 255));
+                yield return targetColors.DefineColor("Broadcast: Need Armor", Color.FromArgb(255, 180, 128));
+                yield return targetColors.DefineColor("Broadcast: Need Capacitor", Color.FromArgb(180, 255, 128));
+            }
         }
 
         protected override IEnumerator<object> OnPreferencesChanged () {
@@ -65,23 +68,23 @@ namespace ShootBlues.Script {
             yield return GetPreferencesJson().Bind(() => prefsJson);
 
             foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "autotargeter", "notifyPrefsChanged", prefsJson);
+                yield return Program.CallFunction(process, "broadcasthelper", "notifyPrefsChanged", prefsJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
-            yield return Program.CallFunction(process, "autotargeter", "initialize");
+            yield return Program.CallFunction(process, "broadcasthelper", "initialize");
 
             yield return OnPreferencesChanged();
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
-            var panel = new AutoTargeterConfig(this);
+            var panel = new BroadcastHelperConfig(this);
             yield return panel.LoadConfiguration();
-            statusWindow.ShowConfigurationPanel("Auto Targeter", panel);
+            statusWindow.ShowConfigurationPanel("Broadcast Helper", panel);
         }
 
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
-            statusWindow.HideConfigurationPanel("Auto Targeter");
+            statusWindow.HideConfigurationPanel("Broadcast Helper");
             yield break;
         }
     }

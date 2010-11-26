@@ -158,6 +158,14 @@ def getFlagName(slimItem):
     
     return None
 
+def getCharacterName(charID):
+    if not charID:
+        return None
+    
+    char = cfg.eveowners.Get(charID)
+    if char:
+        return char.name    
+
 def replaceEveLogger():
     global oldLogException, oldLogTraceback
     import log
@@ -192,11 +200,7 @@ def installCharacterMonitor():
         def OnSessionChanged(self, isRemote, session, change):
             if self.loggedInCharacter != session.charid:
                 self.loggedInCharacter = session.charid
-                characterName = None
-                try:
-                    characterName = cfg.eveowners.Get(session.charid).name
-                except:
-                    pass
+                characterName = getCharacterName(session.charid)
                 remoteCall("common.script.dll", "LoggedInCharacterChanged", characterName)
     
     svcInstance = forceStartService("charmonitor", CharacterMonitorSvc)
@@ -209,6 +213,8 @@ class MainThreadInvoker(object):
         "OnDamageMessages",
         "DoBallsAdded",
         "DoBallRemove",
+        "OnTarget",
+        "OnTargets",
         "OnStateChange",
         "ProcessShipEffect",
         "OnLSC",
@@ -257,6 +263,12 @@ class MainThreadInvoker(object):
     def OnSessionChanged(self, isRemote, session, change):
         self.doInvoke()
     
+    def OnTargets(self, targets):
+        self.doInvoke()
+    
+    def OnTarget(self, what, tid=None, reason=None):
+        self.doInvoke()
+            
 class SafeTimer(object):
     __notifyevents__ = [
         "OnSessionChanged"

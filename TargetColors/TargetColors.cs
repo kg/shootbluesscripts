@@ -91,7 +91,7 @@ namespace ShootBlues.Script {
             var colorDict = new Dictionary<string, object>();
 
             foreach (var kvp in DefinedColors)
-                colorDict[kvp.Key] = new float[] { kvp.Value.R / 255.0f, kvp.Value.G / 255.0f, kvp.Value.B / 255.0f, 1.0f };
+                colorDict[kvp.Key] = new float[] { kvp.Value.R / 255.0f, kvp.Value.G / 255.0f, kvp.Value.B / 255.0f };
 
             using (var q = Program.Database.BuildQuery("SELECT key, red, green, blue FROM targetColors"))
             using (var e = q.Execute<ColorEntry>())
@@ -99,7 +99,7 @@ namespace ShootBlues.Script {
                 yield return e.Fetch();
 
                 foreach (var item in e)
-                    colorDict[item.Key] = new float[] { item.Red, item.Green, item.Blue, 1.0f };
+                    colorDict[item.Key] = new float[] { item.Red, item.Green, item.Blue };
             }
 
             var serializer = new JavaScriptSerializer();

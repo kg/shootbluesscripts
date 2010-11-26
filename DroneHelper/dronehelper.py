@@ -51,9 +51,12 @@ class DroneInfo(object):
     def update(self, timestamp):
         if timestamp > self.timestamp:
             ds = eve.LocalSvc("michelle").GetDroneState(self.id)
-            self.target = ds.targetID
+            if ds:
+                self.target = ds.targetID
             ballpark = eve.LocalSvc("michelle").GetBallpark()
-            (self.shield, self.armor, self.structure) = ballpark.GetDamageState(self.id)
+            ds = ballpark.GetDamageState(self.id)
+            if ds:
+                (self.shield, self.armor, self.structure) = ds
             self.timestamp = timestamp
 
 class DroneHelperSvc(service.Service):
@@ -71,6 +74,7 @@ class DroneHelperSvc(service.Service):
         self.__pendingStateChanges = {}
         self.__updateTimer = None
         self.__lastAttackOrder = None
+        self.__recalledDrones = {}
         self.disabled = False
         self.checkUpdateTimer()
     
@@ -112,6 +116,13 @@ class DroneHelperSvc(service.Service):
             (droneID in ballpark.slimItems) and
             ((drones[droneID].ownerID == eve.session.charid) or (drones[droneID].controllerID == eve.session.shipid))
         )]
+    
+    def getDroneControlRange(self):
+        godma = eve.LocalSvc("godma")
+        return int(max(
+            godma.GetItem(eve.session.shipid).droneControlDistance,
+            godma.GetItem(eve.session.charid).droneControlDistance
+        ))
     
     def getCommonTarget(self, threshold, filtered=True):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -163,11 +174,32 @@ class DroneHelperSvc(service.Service):
             return []
         
         ballpark = eve.LocalSvc("michelle").GetBallpark()
-        return [id for id in ids if 
-                ballpark.GetInvItem(id) and 
-                (id in targetSvc.targets) and
-                getFlagName(ballpark.GetInvItem(id)) == "HostileNPC" and
-                (getPriority(targetID=id) >= 0)]
+        if not ballpark:
+            return []
+            
+        controlRange = self.getDroneControlRange()
+        result = []
+        
+        for id in ids:
+            invItem = ballpark.GetInvItem(id)
+            if not invItem:
+                continue
+            
+            if not (id in targetSvc.targets):
+                continue
+            
+            if getFlagName(invItem) != "HostileNPC":
+                continue
+            
+            if getPriority(targetID=id) < 0:
+                continue
+            
+            if ballpark.DistanceBetween(eve.session.shipid, id) > controlRange:
+                continue
+                
+            result.append(id)
+        
+        return result
     
     def selectTarget(self):
         targets = self.filterTargets(sm.services["target"].targets)
@@ -268,6 +300,7 @@ class DroneHelperSvc(service.Service):
                     droneObj = self.getDroneObject(id)
                     droneObj.setState(const.entityDeparting, timestamp)
                     droneObj.actionTimestamp = timestamp
+                    self.__recalledDrones[droneID] = droneObj
     
     def updateDrones(self):
         if self.disabled:
@@ -308,7 +341,10 @@ class DroneHelperSvc(service.Service):
                 dronesToRecall.append(droneID)
             elif ((drone.state == const.entityIdle) and
                   getPref("WhenIdle", False)):
-                dronesToAttack.append(droneID)        
+                dronesToAttack.append(droneID)
+        
+        for droneID in self.__recalledDrones:
+            droneObj = self.__recalledDrones[droneID]
         
         if len(dronesToRecall):
             for id in dronesToRecall:
@@ -387,6 +423,10 @@ class DroneHelperSvc(service.Service):
         self.checkUpdateTimer(droneID)
 
     def OnDroneControlLost(self, droneID):
+        timestamp = blue.os.GetTime()
+        drone = self.getDroneObject(droneID)
+        drone.setState(None, timestamp)
+        
         if self.__drones.has_key(droneID):
             del self.__drones[droneID]
         

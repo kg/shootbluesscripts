@@ -130,16 +130,23 @@ namespace ShootBlues.Script {
             if (item == null)
                 return;
 
-            Start(SetItemColor(item, Script.DefinedColors[item.Key]));
+            Start(SetItemColor(item, null));
         }
 
-        public IEnumerator<object> SetItemColor (ColorEntry item, Color newColor) {
-            item.Color = newColor;
+        public IEnumerator<object> SetItemColor (ColorEntry item, Color? newColor) {
+            if (newColor.HasValue) {
+                item.Color = newColor.Value;
 
-            using (var q = Program.Database.BuildQuery(
-                "REPLACE INTO targetColors (key, red, green, blue) VALUES (?, ?, ?, ?)"
-            ))
-                yield return q.ExecuteNonQuery(item.Key, item.Red, item.Green, item.Blue);
+                using (var q = Program.Database.BuildQuery(
+                    "REPLACE INTO targetColors (key, red, green, blue) VALUES (?, ?, ?, ?)"
+                ))
+                    yield return q.ExecuteNonQuery(item.Key, item.Red, item.Green, item.Blue);
+            } else {
+                using (var q = Program.Database.BuildQuery(
+                    "DELETE FROM targetColors WHERE key = ?"
+                ))
+                    yield return q.ExecuteNonQuery(item.Key);
+            }
 
             Script.PreferencesChanged.Set();
 

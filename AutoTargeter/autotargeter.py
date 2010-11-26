@@ -79,6 +79,10 @@ class AutoTargeterSvc(service.Service):
         
         return targetSorter
     
+    def getMaxTargetRange(self):
+        godma = eve.LocalSvc("godma")
+        return float(godma.GetItem(eve.session.shipid).maxTargetRange)        
+    
     def getMaxTargets(self):
         godma = eve.LocalSvc("godma")
         reservedSlots = int(getPref("ReservedTargetSlots", 1))
@@ -88,10 +92,13 @@ class AutoTargeterSvc(service.Service):
         ))
         return max(maxTargets - reservedSlots, 0)
     
+    def isPlayerJumping(self):
+        return ("jumping" in eve.session.sessionChangeReason) and (eve.session.changing)
+    
     def isBallWarping(self, ball):
         return ball.mode == destiny.DSTBALL_WARP
     
-    def isBallTargetable(self, ball):
+    def isBallTargetable(self, ball):        
         if ball is None:
             return False
         elif self.isBallWarping(ball):
@@ -111,8 +118,12 @@ class AutoTargeterSvc(service.Service):
             return []
         elif self.isBallWarping(myBall):
             return []
+        elif self.isPlayerJumping():
+            return []
         
         result = []
+        
+        maxTargetRange = self.getMaxTargetRange()
         
         for id in ids:
             ball = ballpark.GetBall(id)
@@ -140,6 +151,11 @@ class AutoTargeterSvc(service.Service):
             elif flag == "StandingNeutral":
                 if not getPref("TargetNeutralPlayers", False):
                     continue                
+                
+            distance = ballpark.DistanceBetween(eve.session.shipid, id)
+            if distance > maxTargetRange:
+                log("distance %r > %r", distance, maxTargetRange)
+                continue
             
             result.append(id)
         

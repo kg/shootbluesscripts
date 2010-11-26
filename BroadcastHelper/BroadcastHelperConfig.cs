@@ -2,36 +2,26 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Data;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using ShootBlues;
-using Squared.Util.Bind;
-using System.IO;
 using Squared.Task;
+using Squared.Util.Bind;
 
 namespace ShootBlues.Script {
-    public partial class DroneHelperConfig : TaskUserControl, IConfigurationPanel {
+    public partial class BroadcastHelperConfig : TaskUserControl, IConfigurationPanel {
         IBoundMember[] Prefs;
-        DroneHelper Script;
+        BroadcastHelper Script;
 
-        public DroneHelperConfig (DroneHelper script)
+        public BroadcastHelperConfig (BroadcastHelper script)
             : base (Program.Scheduler) {
             InitializeComponent();
             Script = script;
 
             Prefs = new IBoundMember[] {
-                BoundMember.New(() => WhenIdle.Checked),
-                BoundMember.New(() => WhenTargetLost.Checked),
-                BoundMember.New(() => RecallIfShieldsBelow.Checked),
-                BoundMember.New(() => RecallShieldThreshold.Value),
-                BoundMember.New(() => RedeployWhenShieldsAbove.Checked),
-                BoundMember.New(() => RedeployShieldThreshold.Value),
+                BoundMember.New(() => TargetPriorityBoost.Value)
             };
-        }
-
-        private void RecallIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
-            RecallShieldThreshold.Enabled = RecallIfShieldsBelow.Checked;
-            ValuesChanged(sender, e);
         }
 
         public string GetMemberName (IBoundMember member) {
@@ -63,15 +53,6 @@ namespace ShootBlues.Script {
 
         private void ValuesChanged (object sender, EventArgs args) {
             Start(SaveConfiguration());
-        }
-
-        private void ConfigurePriorities_Click (object sender, EventArgs e) {
-            Start(Program.ShowStatusWindow("Enemy Prioritizer"));
-        }
-
-        private void RedeployWhenShieldsAbove_CheckedChanged (object sender, EventArgs e) {
-            RedeployShieldThreshold.Enabled = RedeployWhenShieldsAbove.Checked;
-            ValuesChanged(sender, e);
         }
     }
 }

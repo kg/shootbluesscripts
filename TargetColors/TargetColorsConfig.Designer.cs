@@ -36,9 +36,9 @@
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.List.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.List.IntegralHeight = false;
-            this.List.Location = new System.Drawing.Point(3, 3);
+            this.List.Location = new System.Drawing.Point(0, 0);
             this.List.Name = "List";
-            this.List.Size = new System.Drawing.Size(294, 136);
+            this.List.Size = new System.Drawing.Size(300, 142);
             this.List.TabIndex = 0;
             this.List.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.List_DrawItem);
             this.List.SelectedIndexChanged += new System.EventHandler(this.List_SelectedIndexChanged);
@@ -49,7 +49,7 @@
             this.SetColor.Enabled = false;
             this.SetColor.Image = ((System.Drawing.Image)(resources.GetObject("SetColor.Image")));
             this.SetColor.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.SetColor.Location = new System.Drawing.Point(3, 145);
+            this.SetColor.Location = new System.Drawing.Point(0, 148);
             this.SetColor.Name = "SetColor";
             this.SetColor.Size = new System.Drawing.Size(115, 27);
             this.SetColor.TabIndex = 2;
@@ -64,7 +64,7 @@
             this.ResetToDefault.Enabled = false;
             this.ResetToDefault.Image = ((System.Drawing.Image)(resources.GetObject("ResetToDefault.Image")));
             this.ResetToDefault.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.ResetToDefault.Location = new System.Drawing.Point(124, 145);
+            this.ResetToDefault.Location = new System.Drawing.Point(121, 148);
             this.ResetToDefault.Name = "ResetToDefault";
             this.ResetToDefault.Size = new System.Drawing.Size(150, 27);
             this.ResetToDefault.TabIndex = 3;
@@ -79,7 +79,7 @@
             this.Controls.Add(this.SetColor);
             this.Controls.Add(this.List);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
-            this.Margin = new System.Windows.Forms.Padding(4);
+            this.Margin = new System.Windows.Forms.Padding(0);
             this.MinimumSize = new System.Drawing.Size(300, 175);
             this.Name = "TargetColorsConfig";
             this.Size = new System.Drawing.Size(300, 175);

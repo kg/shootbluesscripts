@@ -60,9 +60,9 @@
             this.List.HideSelection = false;
             this.List.LabelWrap = false;
             this.List.LargeImageList = this.Icons;
-            this.List.Location = new System.Drawing.Point(3, 3);
+            this.List.Location = new System.Drawing.Point(0, 0);
             this.List.Name = "List";
-            this.List.Size = new System.Drawing.Size(454, 244);
+            this.List.Size = new System.Drawing.Size(460, 250);
             this.List.SmallImageList = this.Icons;
             this.List.StateImageList = this.Icons;
             this.List.TabIndex = 0;
@@ -98,9 +98,9 @@
             this.PriorityDown,
             this.Remove});
             this.Toolbar.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.VerticalStackWithOverflow;
-            this.Toolbar.Location = new System.Drawing.Point(460, 3);
+            this.Toolbar.Location = new System.Drawing.Point(463, 0);
             this.Toolbar.Name = "Toolbar";
-            this.Toolbar.Size = new System.Drawing.Size(37, 244);
+            this.Toolbar.Size = new System.Drawing.Size(37, 250);
             this.Toolbar.TabIndex = 1;
             // 
             // AddType
@@ -181,6 +181,7 @@
             this.Controls.Add(this.Toolbar);
             this.Controls.Add(this.List);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
+            this.Margin = new System.Windows.Forms.Padding(0);
             this.Name = "EnemyPrioritizerConfig";
             this.Size = new System.Drawing.Size(500, 250);
             this.Toolbar.ResumeLayout(false);

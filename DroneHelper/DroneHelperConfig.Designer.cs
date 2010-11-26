@@ -28,11 +28,15 @@
             this.WhenIdle = new System.Windows.Forms.CheckBox();
             this.WhenTargetLost = new System.Windows.Forms.CheckBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.RedeployShieldThreshold = new System.Windows.Forms.NumericUpDown();
+            this.RedeployWhenShieldsAbove = new System.Windows.Forms.CheckBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.RecallShieldThreshold = new System.Windows.Forms.NumericUpDown();
             this.RecallIfShieldsBelow = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.groupBox4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.RedeployShieldThreshold)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.RecallShieldThreshold)).BeginInit();
             this.SuspendLayout();
             // 
@@ -44,11 +48,11 @@
             this.groupBox1.Controls.Add(this.WhenIdle);
             this.groupBox1.Controls.Add(this.WhenTargetLost);
             this.groupBox1.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
-            this.groupBox1.Location = new System.Drawing.Point(4, 4);
+            this.groupBox1.Location = new System.Drawing.Point(0, 0);
             this.groupBox1.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox1.Size = new System.Drawing.Size(272, 76);
+            this.groupBox1.Size = new System.Drawing.Size(280, 76);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Auto Attack";
@@ -59,7 +63,7 @@
                         | System.Windows.Forms.AnchorStyles.Right)));
             this.ConfigurePriorities.Location = new System.Drawing.Point(7, 44);
             this.ConfigurePriorities.Name = "ConfigurePriorities";
-            this.ConfigurePriorities.Size = new System.Drawing.Size(257, 25);
+            this.ConfigurePriorities.Size = new System.Drawing.Size(265, 25);
             this.ConfigurePriorities.TabIndex = 4;
             this.ConfigurePriorities.Text = "Edit Target Priorities";
             this.ConfigurePriorities.UseVisualStyleBackColor = true;
@@ -99,17 +103,62 @@
             // 
             this.groupBox4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox4.Controls.Add(this.RedeployShieldThreshold);
+            this.groupBox4.Controls.Add(this.RedeployWhenShieldsAbove);
+            this.groupBox4.Controls.Add(this.label2);
             this.groupBox4.Controls.Add(this.RecallShieldThreshold);
             this.groupBox4.Controls.Add(this.RecallIfShieldsBelow);
             this.groupBox4.Controls.Add(this.label1);
-            this.groupBox4.Location = new System.Drawing.Point(4, 88);
+            this.groupBox4.Location = new System.Drawing.Point(0, 84);
             this.groupBox4.Margin = new System.Windows.Forms.Padding(4);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Padding = new System.Windows.Forms.Padding(4);
-            this.groupBox4.Size = new System.Drawing.Size(272, 51);
+            this.groupBox4.Size = new System.Drawing.Size(280, 81);
             this.groupBox4.TabIndex = 1;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Auto Recall";
+            // 
+            // RedeployShieldThreshold
+            // 
+            this.RedeployShieldThreshold.Enabled = false;
+            this.RedeployShieldThreshold.Location = new System.Drawing.Point(149, 53);
+            this.RedeployShieldThreshold.Margin = new System.Windows.Forms.Padding(4);
+            this.RedeployShieldThreshold.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.RedeployShieldThreshold.Name = "RedeployShieldThreshold";
+            this.RedeployShieldThreshold.Size = new System.Drawing.Size(45, 23);
+            this.RedeployShieldThreshold.TabIndex = 4;
+            this.RedeployShieldThreshold.Value = new decimal(new int[] {
+            85,
+            0,
+            0,
+            0});
+            this.RedeployShieldThreshold.ValueChanged += new System.EventHandler(this.ValuesChanged);
+            // 
+            // RedeployWhenShieldsAbove
+            // 
+            this.RedeployWhenShieldsAbove.AutoSize = true;
+            this.RedeployWhenShieldsAbove.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.RedeployWhenShieldsAbove.Location = new System.Drawing.Point(8, 54);
+            this.RedeployWhenShieldsAbove.Margin = new System.Windows.Forms.Padding(4);
+            this.RedeployWhenShieldsAbove.Name = "RedeployWhenShieldsAbove";
+            this.RedeployWhenShieldsAbove.Size = new System.Drawing.Size(140, 20);
+            this.RedeployWhenShieldsAbove.TabIndex = 3;
+            this.RedeployWhenShieldsAbove.Text = "Re-Deploy Above";
+            this.RedeployWhenShieldsAbove.UseVisualStyleBackColor = true;
+            this.RedeployWhenShieldsAbove.CheckedChanged += new System.EventHandler(this.RedeployWhenShieldsAbove_CheckedChanged);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(192, 55);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(21, 16);
+            this.label2.TabIndex = 5;
+            this.label2.Text = "%";
             // 
             // RecallShieldThreshold
             // 
@@ -158,14 +207,15 @@
             this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
-            this.Margin = new System.Windows.Forms.Padding(4);
-            this.MinimumSize = new System.Drawing.Size(280, 145);
+            this.Margin = new System.Windows.Forms.Padding(0);
+            this.MinimumSize = new System.Drawing.Size(280, 165);
             this.Name = "DroneHelperConfig";
-            this.Size = new System.Drawing.Size(280, 145);
+            this.Size = new System.Drawing.Size(280, 165);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.RedeployShieldThreshold)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.RecallShieldThreshold)).EndInit();
             this.ResumeLayout(false);
 
@@ -181,5 +231,8 @@
         private System.Windows.Forms.CheckBox WhenIdle;
         private System.Windows.Forms.CheckBox WhenTargetLost;
         private System.Windows.Forms.Button ConfigurePriorities;
+        private System.Windows.Forms.NumericUpDown RedeployShieldThreshold;
+        private System.Windows.Forms.CheckBox RedeployWhenShieldsAbove;
+        private System.Windows.Forms.Label label2;
     }
 }

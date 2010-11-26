@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("TargetColors")]
+[assembly: AssemblyTitle("BroadcastHelper")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TargetColors")]
+[assembly: AssemblyProduct("BroadcastHelper")]
 [assembly: AssemblyCopyright("")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("e104f44c-60b5-4742-bbb5-383cf92d5f28")]
+[assembly: Guid("f7e2c2f8-5488-46f3-91ae-32d27531f6a0")]
 
 // Version information for an assembly consists of the following four values:
 //
