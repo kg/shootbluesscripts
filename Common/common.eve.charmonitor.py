@@ -5,9 +5,9 @@ def installCharacterMonitor():
     
     import blue
     import service
-    from . import getCharacterName
-    from .. import remoteCall
-    from .service import forceStart
+    from shootblues.common.eve import getCharacterName
+    from shootblues.common import remoteCall
+    from shootblues.common.service import forceStart
 
     class CharacterMonitorSvc(service.Service):
         __guid__ = "svc.charmonitor"
@@ -33,5 +33,5 @@ def installCharacterMonitor():
 def __unload__():
     global serviceInstance
     if serviceInstance:
-        from .service import forceStop
+        from shootblues.common.service import forceStop
         forceStop("charmonitor")

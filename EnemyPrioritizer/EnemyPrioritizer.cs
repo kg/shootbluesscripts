@@ -117,9 +117,9 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
-            yield return Program.CallFunction(process, "enemyprioritizer", "initialize");
-
             EventBus.Broadcast(this, "PreferenceChanged", "*");
+
+            yield break;
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

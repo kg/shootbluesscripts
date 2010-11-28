@@ -1,4 +1,4 @@
-﻿from . import log
+﻿from . import log, onMainThread
 
 ActionThreshold = 20000000L
 
@@ -116,6 +116,7 @@ def getModuleAttributes(module):
 
 def activateModule(module, pulse=False, actionThreshold=ActionThreshold):
     import blue
+    import uix
     
     moduleInfo = module.sr.moduleInfo
     moduleName = cfg.invtypes.Get(moduleInfo.typeID).name

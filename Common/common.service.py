@@ -1,10 +1,6 @@
 ﻿from . import log
 
-__runningServices = []
-
 def forceStop(serviceName):
-    global __runningServices
-    
     import stackless
     old_block_trap = stackless.getcurrent().block_trap
     stackless.getcurrent().block_trap = 1
@@ -20,15 +16,10 @@ def forceStop(serviceName):
                 
                 if serviceInstance in notifies:
                     notifies.remove(serviceInstance)
-        
-        if serviceName in __runningServices:
-            __runningServices.remove(serviceName)
     finally:
         stackless.getcurrent().block_trap = old_block_trap
 
 def forceStart(serviceName, serviceType):
-    global __runningServices
-    
     import stackless
     import service
     old_block_trap = stackless.getcurrent().block_trap
@@ -40,7 +31,6 @@ def forceStart(serviceName, serviceType):
         
         result = serviceType()
         sm.services[serviceName] = result
-        __runningServices.append(serviceName)
         result.state = service.SERVICE_RUNNING
         
         for event in result.__notifyevents__:
@@ -53,8 +43,3 @@ def forceStart(serviceName, serviceType):
         return result
     finally:
         stackless.getcurrent().block_trap = old_block_trap
-
-def __unload__():
-    global __runningServices
-    if len(__runningServices):
-        log("Services left running: %r", __runningServices)
