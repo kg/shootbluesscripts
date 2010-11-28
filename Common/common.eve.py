@@ -1,19 +1,28 @@
 ﻿from . import log, onMainThread
 
-ActionThreshold = 20000000L
+ActionThreshold = (10000000L * 150) / 100
 
 def getNamesOfIDs(ids):
     import uix
 
+    godma = eve.LocalSvc("godma")
     ballpark = eve.LocalSvc("michelle").GetBallpark()
-    if not ballpark:
+    if (not ballpark) and (not godma):
         return [str(id) for id in ids]
     
     def getName(id):
-        slimItem = ballpark.GetInvItem(id)
-        if not slimItem:
-            return str(id)
-        return uix.GetSlimItemName(slimItem)
+        if ballpark:
+            slimItem = ballpark.GetInvItem(id)        
+            if slimItem:
+                return uix.GetSlimItemName(slimItem)
+            
+        if godma:
+            godmaItem = godma.GetItem(id)
+            if godmaItem:
+                invtype = cfg.invtypes.Get(godmaItem.typeID)                
+                return invtype.name
+
+        return repr(id)
     
     names = [getName(id) for id in ids]
     result = []
@@ -61,56 +70,79 @@ def getCharacterName(charID):
     if char:
         return char.name
 
-def findModule(groupName=None, groupID=None, typeName=None, typeID=None):   
+def findModule(groupNames=None, groupIDs=None, typeNames=None, typeIDs=None):
+    modules = findModules(
+        count=1, 
+        groupNames=groupNames, groupIDs=groupIDs, 
+        typeNames=typeNames, typeIDs=typeIDs
+    )
+    
+    if modules and len(modules):
+        return modules.values()[0]
+    else:
+        return None
+
+def findModules(count=9999, groupNames=None, groupIDs=None, typeNames=None, typeIDs=None):
     shipui = uicore.GetLayer("l_shipui")
     godma = eve.LocalSvc("godma")
     
     if not shipui:
-        return None
+        return {}
     if not getattr(shipui, "sr", None):
-        return
+        return {}
     if not getattr(shipui.sr, "modules", None):
-        return 
-                
-    for moduleId, module in shipui.sr.modules.items():
-        item = godma.GetItem(moduleId)
+        return {}
+    
+    results = {}
+    for moduleID, module in shipui.sr.modules.items():
+        item = godma.GetItem(moduleID)
         if not item:
             continue
         
-        if groupID and (item.groupID != groupID):
+        if groupIDs and (item.groupID not in groupIDs):
             continue
-        if typeID and (item.typeID != typeID):
+        if typeIDs and (item.typeID not in typeIDs):
             continue
-        if groupName and (cfg.invgroups.Get(item.groupID).name != groupName):
+        if groupNames and (cfg.invgroups.Get(item.groupID).name not in groupNames):
             continue
-        if typeName and (cfg.invtypes.Get(item.typeID).name != typeName):
+        if typeNames and (cfg.invtypes.Get(item.typeID).name not in typeNames):
             continue
         
         if not hasattr(module, "sr"):
             continue
         
-        return module
+        results[moduleID] = module
+        if len(results) >= count:
+            break
     
-    return None
+    return results
 
 def getModuleAttributes(module):
     moduleInfo = module.sr.moduleInfo
-    moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
+    moduleObj = eve.LocalSvc("godma").GetItem(moduleInfo.itemID)
+    return getTypeAttributes(moduleInfo.typeID, obj=moduleObj)
 
-    def_effect = getattr(module, "def_effect", None)
-    if not def_effect:
-        log("Module %r has no default effect", moduleName)
-        return None
+def getCharAttributes(charID):
+    char = eve.LocalSvc("godma").GetItem(charID)
+    return getTypeAttributes(char.typeID, obj=char)
+
+def getShipAttributes(shipID):
+    ship = eve.LocalSvc("godma").GetItem(shipID)
+    return getTypeAttributes(ship.typeID, obj=ship)
     
+def getTypeAttributes(typeID, obj=None):
     result = {}
     
-    attribs = cfg.dgmtypeattribs.get(moduleInfo.typeID, None)
+    attribs = cfg.dgmtypeattribs.get(typeID, None)
     if not attribs:
         return result
             
     for attrib in attribs:
         attribName = cfg.dgmattribs.get(attrib.attributeID, None).attributeName
-        result[attribName] = attrib.value
+        value = attrib.value
+        if obj:
+            value = getattr(obj, attribName, value)
+        result[attribName] = value
     
     return result
 
@@ -153,7 +185,7 @@ def activateModule(module, pulse=False, actionThreshold=ActionThreshold):
         if pulse:
             repeatCount = 0
         else:
-            repeatCount = 9999
+            repeatCount = 1000 # Not sure why it's this instead of 1 or true
         module.SetRepeat(repeatCount)
             
     try:

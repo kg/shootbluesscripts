@@ -6,6 +6,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
+using Squared.Task;
 
 namespace ShootBlues.Script {
     public class Common : ManagedScript {
@@ -123,6 +124,8 @@ namespace ShootBlues.Script {
             Console.WriteLine(logText);
             if (LogWindowInstance != null)
                 LogWindowInstance.AddLine(logText);
+
+            Application.DoEvents();
         }
 
         public void LogClear () {

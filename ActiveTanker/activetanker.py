@@ -46,7 +46,6 @@ class ActiveTankerSvc(service.Service):
         service.Service.__init__(self)
         self.disabled = False
         self.__updateTimer = SafeTimer(500, self.updateHealth)
-        self.__lastAction = 0
     
     def updateHealth(self):
         if self.disabled:
@@ -89,7 +88,7 @@ class ActiveTankerSvc(service.Service):
             log("Invalid repair module type: %r", repairType)
             return None
         
-        return findModule(groupName=groupName)
+        return findModule(groupNames=[groupName])
 
 def initialize():
     global serviceRunning, serviceInstance

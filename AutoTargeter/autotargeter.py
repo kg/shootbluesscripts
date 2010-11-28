@@ -251,14 +251,30 @@ class AutoTargeterSvc(service.Service):
             for id in self.__lockedTargets:
                 setItemColor(id, "Automatic Target")
         
+        ids = list(ballpark.balls.keys())
+        uthread.pool(
+            "PopulateTargets",
+            self._populateTargets,
+            ballpark, ids
+        )
+    
+    def _populateTargets(self, ballpark, ids):
         lst = []
-        for ballID in ballpark.balls.keys():
+        for ballID in ids:
             slimItem = ballpark.GetInvItem(ballID)
             if slimItem:
                lst.append((ballpark.GetBall(ballID), slimItem))
-        self.DoBallsAdded(lst)
-    
+        
+        self._DoBallsAdded(lst)
+                
     def DoBallsAdded(self, lst, **kwargs):
+        uthread.pool(
+            "DoBallsAdded",
+            self._DoBallsAdded,
+            lst
+        )
+    
+    def _DoBallsAdded(self, lst):
         for (ball, slimItem) in lst:
             isValidTarget = False
             flag = getFlagName(slimItem)

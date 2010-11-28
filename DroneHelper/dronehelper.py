@@ -10,6 +10,7 @@ import base
 import moniker
 import trinity
 import blue
+from util import Memoized
 
 ActionThreshold = ((10000000L) * 190) / 100
 
@@ -151,25 +152,30 @@ class DroneHelperSvc(service.Service):
         else:
             return None
     
-    def targetSorter(self, lhs, rhs):
-        # Highest priority first
-        priLhs = getPriority(targetID=lhs)
-        priRhs = getPriority(targetID=rhs)
-        result = cmp(priRhs, priLhs)
+    def getTargetSorter(self):
+        getDistance = Memoized(self.getDistance)
         
-        if result == 0:
-            # targets of equal priority that were already attacked by dronehelper come first
-            result = cmp(
-                rhs is self.__lastAttackOrder,
-                lhs is self.__lastAttackOrder
-            )
+        def targetSorter(self, lhs, rhs):
+            # Highest priority first
+            priLhs = getPriority(targetID=lhs)
+            priRhs = getPriority(targetID=rhs)
+            result = cmp(priRhs, priLhs)
             
-            if result == 0:        
-                distLhs = self.getDistance(lhs)
-                distRhs = self.getDistance(rhs)
-                result = cmp(distLhs, distRhs)
+            if result == 0:
+                # targets of equal priority that were already attacked by dronehelper come first
+                result = cmp(
+                    rhs is self.__lastAttackOrder,
+                    lhs is self.__lastAttackOrder
+                )
+                
+                if result == 0:        
+                    distLhs = getDistance(lhs)
+                    distRhs = getDistance(rhs)
+                    result = cmp(distLhs, distRhs)
+            
+            return result
         
-        return result
+        return targetSorter
     
     def filterTargets(self, ids):
         targetSvc = sm.services.get('target', None)
@@ -207,7 +213,7 @@ class DroneHelperSvc(service.Service):
     def selectTarget(self):
         targets = self.filterTargets(sm.services["target"].targets)
         if len(targets):
-            targets.sort(self.targetSorter)
+            targets.sort(self.getTargetSorter())
             
             return targets[0]
         else:
