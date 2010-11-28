@@ -1,4 +1,6 @@
-﻿from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker, getFlagName, getNamesOfIDs
+﻿from shootblues.common import log
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs
+from shootblues.common.service import forceStart, forceStop
 import service
 import json
 import blue
@@ -19,6 +21,9 @@ Alphas = {
 namedColors = {}
 itemColors = {}
 pendingFlashes = {}
+
+serviceInstance = None
+serviceRunning = False
 
 def notifyColorsChanged(newColorsJson):
     global namedColors
@@ -174,7 +179,7 @@ class TargetColorsSvc(service.Service):
 def initialize():
     global serviceRunning, serviceInstance
     serviceRunning = True
-    serviceInstance = forceStartService("targetcolors", TargetColorsSvc)
+    serviceInstance = forceStart("targetcolors", TargetColorsSvc)
 
 def __unload__():
     global serviceRunning, serviceInstance
@@ -182,5 +187,5 @@ def __unload__():
         serviceInstance.disabled = True
         serviceInstance = None
     if serviceRunning:
-        forceStopService("targetcolors")
+        forceStop("targetcolors")
         serviceRunning = False

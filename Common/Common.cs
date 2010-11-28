@@ -19,6 +19,10 @@ namespace ShootBlues.Script {
         public Common (ScriptName name)
             : base(name) {
             AddDependency("common.py");
+            AddDependency("common.service.py");
+            AddDependency("common.eve.py");
+            AddDependency("common.eve.logger.py");
+            AddDependency("common.eve.charmonitor.py");
             AddDependency("pythonexplorer.py");
 
             CustomMenu = new ToolStripMenuItem("Common");
@@ -202,10 +206,6 @@ namespace ShootBlues.Script {
             process.Status = characterName as string ?? "Not Logged In";
 
             EventBus.Broadcast(Profile, "RunningProcessChanged", process);
-        }
-
-        public void ShowMessageBox (ProcessInfo process, string text) {
-            MessageBox.Show(text, String.Format("Message from process {0}", process.Process.Id));
         }
 
         public override IEnumerator<object> Reload () {

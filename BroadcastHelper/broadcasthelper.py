@@ -1,11 +1,16 @@
 ﻿import shootblues
-from shootblues.common import forceStartService, forceStopService, log, getCharacterName
+from shootblues.common import log
+from shootblues.common.eve import getCharacterName
+from shootblues.common.service import forceStart, forceStop
 import service
 import uix
 import json
 
 prefs = {}
 serviceInstance = None
+serviceRunning = False
+
+MaxRepBoosts = 3
 
 try:
     from shootblues.enemyprioritizer import adjustPriority
@@ -38,6 +43,7 @@ class BroadcastHelperSvc(service.Service):
     def __init__(self):
         service.Service.__init__(self)
         self.disabled = False
+        self.__needReps = []
     
     def OnFleetBroadcast(self, broadcastType, arg1, charID, locationID, targetID):
         targetName = None
@@ -60,18 +66,30 @@ class BroadcastHelperSvc(service.Service):
         if broadcastType == "Target":
             flashItemColor(targetID, "Broadcast: Target")
             
-            adjustPriority(targetID, int(getPref("TargetPriorityBoost", 0)))
+            adjustPriority(targetID, int(getPref("TargetPriorityBoost", 1)))
         elif broadcastType == "HealArmor":
-            flashItemColor(targetID, "Broadcast: Need Armor")            
+            flashItemColor(targetID, "Broadcast: Need Armor")
+            self.needsReps(targetID)
         elif broadcastType == "HealShield":
             flashItemColor(targetID, "Broadcast: Need Shield")
+            self.needsReps(targetID)
         elif broadcastType == "HealCapacitor":
             flashItemColor(targetID, "Broadcast: Need Capacitor")
+    
+    def needsReps(self, id):
+        if id not in self.__needReps:
+            self.__needReps.append(id)
+            adjustPriority(id, int(getPref("RepPriorityBoost", 1)))
+        
+        while len(self.__needReps) > MaxRepBoosts:
+            item = self.__needReps[0]
+            self.__needReps.remove(item)
+            adjustPriority(item, 0)
 
 def initialize():
     global serviceRunning, serviceInstance
     serviceRunning = True
-    serviceInstance = forceStartService("broadcasthelper", BroadcastHelperSvc)
+    serviceInstance = forceStart("broadcasthelper", BroadcastHelperSvc)
 
 def __unload__():
     global serviceRunning, serviceInstance
@@ -79,5 +97,5 @@ def __unload__():
         serviceInstance.disabled = True
         serviceInstance = None
     if serviceRunning:
-        forceStopService("broadcasthelper")
+        forceStop("broadcasthelper")
         serviceRunning = False

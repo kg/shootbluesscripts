@@ -1,5 +1,7 @@
 ﻿import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer, MainThreadInvoker, getFlagName, getNamesOfIDs
+from shootblues.common import log
+from shootblues.common.eve import SafeTimer, MainThreadInvoker, getFlagName, getNamesOfIDs
+from shootblues.common.service import forceStart, forceStop
 import service
 import uix
 import json
@@ -11,6 +13,7 @@ import trinity
 
 prefs = {}
 serviceInstance = None
+serviceRunning = False
 
 try:
     from shootblues.enemyprioritizer import getPriority
@@ -151,10 +154,17 @@ class AutoTargeterSvc(service.Service):
             elif flag == "StandingNeutral":
                 if not getPref("TargetNeutralPlayers", False):
                     continue                
+            elif ((flag == "StandingGood") or
+                  (flag == "StandingHigh") or
+                  (flag == "SameGang") or
+                  (flag == "SameFleet") or
+                  (flag == "Alliance") or
+                  (flag == "SameCorp")):
+                if not getPref("TargetFriendlyPlayers", False):
+                    continue
                 
             distance = ballpark.DistanceBetween(eve.session.shipid, id)
             if distance > maxTargetRange:
-                log("distance %r > %r", distance, maxTargetRange)
                 continue
             
             result.append(id)
@@ -260,7 +270,14 @@ class AutoTargeterSvc(service.Service):
                   (flag == "AtWarCanFight")):
                 self.__potentialTargets.append(slimItem.itemID)
             elif flag == "StandingNeutral":
-                self.__potentialTargets.append(slimItem.itemID)                
+                self.__potentialTargets.append(slimItem.itemID)
+            elif ((flag == "StandingGood") or
+                  (flag == "StandingHigh") or
+                  (flag == "SameGang") or
+                  (flag == "SameFleet") or
+                  (flag == "Alliance") or
+                  (flag == "SameCorp")):
+                self.__potentialTargets.append(slimItem.itemID)
     
     def DoBallRemove(self, ball, slimItem, *args, **kwargs):
         if slimItem and (slimItem.itemID in self.__potentialTargets):
@@ -290,7 +307,7 @@ class AutoTargeterSvc(service.Service):
 def initialize():
     global serviceRunning, serviceInstance
     serviceRunning = True
-    serviceInstance = forceStartService("autotargeter", AutoTargeterSvc)
+    serviceInstance = forceStart("autotargeter", AutoTargeterSvc)
 
 def __unload__():
     global serviceRunning, serviceInstance
@@ -298,5 +315,5 @@ def __unload__():
         serviceInstance.disabled = True
         serviceInstance = None
     if serviceRunning:
-        forceStopService("autotargeter")
+        forceStop("autotargeter")
         serviceRunning = False

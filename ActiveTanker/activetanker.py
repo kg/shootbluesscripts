@@ -1,5 +1,7 @@
 ﻿import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer
+from shootblues.common import log
+from shootblues.common.eve import SafeTimer, findModule, getModuleAttributes, activateModule
+from shootblues.common.service import forceStart, forceStop
 import service
 import json
 import base
@@ -8,8 +10,7 @@ import blue
 
 prefs = {}
 serviceInstance = None
-
-ActionThreshold = 20000000L
+serviceRunning = False
 
 def getPref(key, default):
     global prefs
@@ -73,112 +74,27 @@ class ActiveTankerSvc(service.Service):
             self.repairIfNeeded("structure")
     
     def repairIfNeeded(self, repairType):
-        module = self.findModule(repairType)
+        module = self.findRepairModule(repairType)
         if module:
             attributeName = RepairTypes[repairType]["attributeName"]
-            repairAmount = self.getModuleAttributes(module)[attributeName]
+            repairAmount = getModuleAttributes(module)[attributeName]
             threshold = getattr(self, repairType + "Max") - repairAmount
             current = getattr(self, repairType)
             if current < threshold:
-                self.pulseModule(module)
+                activateModule(module, pulse=True)
     
-    def findModule(self, repairType):
+    def findRepairModule(self, repairType):
         groupName = RepairTypes.get(repairType, {}).get("groupName", None)
         if not groupName:
             log("Invalid repair module type: %r", repairType)
             return None
         
-        shipui = uicore.GetLayer("l_shipui")
-        godma = eve.LocalSvc("godma")
-        
-        if not shipui:
-            return None
-        if not getattr(shipui, "sr", None):
-            return
-        if not getattr(shipui.sr, "modules", None):
-            return 
-                    
-        for moduleId, module in shipui.sr.modules.items():
-            item = godma.GetItem(moduleId)
-            if not item:
-                continue
-            
-            if cfg.invgroups.Get(item.groupID).name != groupName:
-                continue
-            
-            if not hasattr(module, "sr"):
-                continue
-            
-            return module
-        
-        return None
-    
-    def getModuleAttributes(self, module):
-        moduleInfo = module.sr.moduleInfo
-        moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
-   
-        def_effect = getattr(module, "def_effect", None)
-        if not def_effect:
-            log("Module %r has no default effect", moduleName)
-            return None
-        
-        result = {}
-        
-        attribs = cfg.dgmtypeattribs.get(moduleInfo.typeID, None)
-        if not attribs:
-            return result
-                
-        for attrib in attribs:
-            attribName = cfg.dgmattribs.get(attrib.attributeID, None).attributeName
-            result[attribName] = attrib.value
-        
-        return result
-    
-    def pulseModule(self, module):
-        moduleInfo = module.sr.moduleInfo
-        moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
-   
-        def_effect = getattr(module, "def_effect", None)
-        if not def_effect:
-            log("Module %s cannot be activated", moduleName)
-            return
-        
-        if def_effect.isActive:
-            return
-        
-        if module.state == uix.UI_DISABLED:
-            log("Module %s is disabled", moduleName)
-            return
-        
-        onlineEffect = moduleInfo.effects.get("online", None)
-        if onlineEffect and not onlineEffect.isActive:
-            log("Module %s is not online", moduleName)
-            return
-        
-        timestamp = blue.os.GetTime()
-        if abs(self.__lastAction - timestamp) <= ActionThreshold:
-            return
-        
-        self.__lastAction = timestamp        
-        log("Activating %s", moduleName)
-        
-        oldautorepeat = getattr(module, "autorepeat", False)
-        if oldautorepeat:
-            # Temporarily disable auto-repeat for this module so that we can just pulse it once
-            module.SetRepeat(0)
-                
-        try:
-            module.Click()
-        except Exception, e:
-            log("Pulsing module %s failed: %r", moduleName, e)
-        finally:
-            if oldautorepeat:
-                module.SetRepeat(oldautorepeat)
+        return findModule(groupName=groupName)
 
 def initialize():
     global serviceRunning, serviceInstance
     serviceRunning = True
-    serviceInstance = forceStartService("activetanker", ActiveTankerSvc)
+    serviceInstance = forceStart("activetanker", ActiveTankerSvc)
 
 def __unload__():
     global serviceRunning, serviceInstance
@@ -186,5 +102,5 @@ def __unload__():
         serviceInstance.disabled = True
         serviceInstance = None
     if serviceRunning:
-        forceStopService("activetanker")
+        forceStop("activetanker")
         serviceRunning = False

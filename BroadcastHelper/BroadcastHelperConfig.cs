@@ -20,7 +20,8 @@ namespace ShootBlues.Script {
             Script = script;
 
             Prefs = new IBoundMember[] {
-                BoundMember.New(() => TargetPriorityBoost.Value)
+                BoundMember.New(() => TargetPriorityBoost.Value),
+                BoundMember.New(() => RepPriorityBoost.Value)
             };
         }
 

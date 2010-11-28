@@ -24,6 +24,7 @@
         /// </summary>
         private void InitializeComponent () {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.TargetFriendlyPlayers = new System.Windows.Forms.CheckBox();
             this.TargetNeutralPlayers = new System.Windows.Forms.CheckBox();
             this.TargetHostileNPCs = new System.Windows.Forms.CheckBox();
             this.TargetHostilePlayers = new System.Windows.Forms.CheckBox();
@@ -40,15 +41,30 @@
             // 
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox1.Controls.Add(this.TargetFriendlyPlayers);
             this.groupBox1.Controls.Add(this.TargetNeutralPlayers);
             this.groupBox1.Controls.Add(this.TargetHostileNPCs);
             this.groupBox1.Controls.Add(this.TargetHostilePlayers);
             this.groupBox1.Location = new System.Drawing.Point(0, 0);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(300, 88);
+            this.groupBox1.Size = new System.Drawing.Size(300, 110);
             this.groupBox1.TabIndex = 9;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "What";
+            // 
+            // TargetFriendlyPlayers
+            // 
+            this.TargetFriendlyPlayers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.TargetFriendlyPlayers.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.TargetFriendlyPlayers.Location = new System.Drawing.Point(5, 86);
+            this.TargetFriendlyPlayers.Margin = new System.Windows.Forms.Padding(2, 1, 2, 1);
+            this.TargetFriendlyPlayers.Name = "TargetFriendlyPlayers";
+            this.TargetFriendlyPlayers.Size = new System.Drawing.Size(290, 20);
+            this.TargetFriendlyPlayers.TabIndex = 12;
+            this.TargetFriendlyPlayers.Text = "Target Friendly Players";
+            this.TargetFriendlyPlayers.UseVisualStyleBackColor = true;
+            this.TargetFriendlyPlayers.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // TargetNeutralPlayers
             // 
@@ -101,7 +117,7 @@
             this.groupBox2.Controls.Add(this.label2);
             this.groupBox2.Controls.Add(this.ReservedTargetSlots);
             this.groupBox2.Controls.Add(this.label1);
-            this.groupBox2.Location = new System.Drawing.Point(0, 94);
+            this.groupBox2.Location = new System.Drawing.Point(0, 116);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Size = new System.Drawing.Size(300, 47);
             this.groupBox2.TabIndex = 10;
@@ -152,9 +168,9 @@
             this.Controls.Add(this.groupBox1);
             this.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F);
             this.Margin = new System.Windows.Forms.Padding(0);
-            this.MinimumSize = new System.Drawing.Size(300, 150);
+            this.MinimumSize = new System.Drawing.Size(300, 170);
             this.Name = "AutoTargeterConfig";
-            this.Size = new System.Drawing.Size(300, 150);
+            this.Size = new System.Drawing.Size(300, 170);
             this.groupBox1.ResumeLayout(false);
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
@@ -173,5 +189,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.NumericUpDown ReservedTargetSlots;
+        private System.Windows.Forms.CheckBox TargetFriendlyPlayers;
     }
 }

@@ -1,4 +1,5 @@
-from shootblues.common import forceStartService, forceStopService, log
+from shootblues.common import log
+from shootblues.common.service import forceStart, forceStop
 import blue
 import service
 
@@ -17,7 +18,7 @@ class SessionTimerSvc(service.Service):
         log("Session changed, timer suppressed.")
         session.nextSessionChange = blue.os.GetTime(1) + 1
 
-forceStartService("sessiontimer", SessionTimerSvc)
+forceStart("sessiontimer", SessionTimerSvc)
 
 def __unload__():
-    forceStopService("sessiontimer")
+    forceStop("sessiontimer")

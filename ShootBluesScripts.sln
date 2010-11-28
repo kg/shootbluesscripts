@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TargetColors", "TargetColor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BroadcastHelper", "BroadcastHelper\BroadcastHelper.csproj", "{700A164F-5A98-43E3-A6CB-7A2432672D02}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaponHelper", "WeaponHelper\WeaponHelper.csproj", "{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -79,6 +81,10 @@ Global
 		{700A164F-5A98-43E3-A6CB-7A2432672D02}.Debug|x86.Build.0 = Debug|x86
 		{700A164F-5A98-43E3-A6CB-7A2432672D02}.Release|x86.ActiveCfg = Release|x86
 		{700A164F-5A98-43E3-A6CB-7A2432672D02}.Release|x86.Build.0 = Release|x86
+		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Debug|x86.ActiveCfg = Debug|x86
+		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Debug|x86.Build.0 = Debug|x86
+		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Release|x86.ActiveCfg = Release|x86
+		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

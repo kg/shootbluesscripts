@@ -1,5 +1,7 @@
 import shootblues
-from shootblues.common import forceStartService, forceStopService, log, SafeTimer, getFlagName, getNamesOfIDs
+from shootblues.common import log
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs
+from shootblues.common.service import forceStart, forceStop
 import service
 import uix
 import json
@@ -13,6 +15,7 @@ ActionThreshold = ((10000000L) * 190) / 100
 
 prefs = {}
 serviceInstance = None
+serviceRunning = False
 
 try:
     from shootblues.enemyprioritizer import getPriority
@@ -437,7 +440,7 @@ class DroneHelperSvc(service.Service):
 def initialize():
     global serviceRunning, serviceInstance
     serviceRunning = True
-    serviceInstance = forceStartService("dronehelper", DroneHelperSvc)
+    serviceInstance = forceStart("dronehelper", DroneHelperSvc)
 
 def __unload__():
     global serviceRunning, serviceInstance
@@ -445,5 +448,5 @@ def __unload__():
         serviceInstance.disabled = True
         serviceInstance = None
     if serviceRunning:
-        forceStopService("dronehelper")
+        forceStop("dronehelper")
         serviceRunning = False

@@ -2,29 +2,24 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Data;
-using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using Squared.Task;
+using ShootBlues;
 using Squared.Util.Bind;
+using System.IO;
+using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class AutoTargeterConfig : TaskUserControl, IConfigurationPanel {
+    public partial class WeaponHelperConfig : TaskUserControl, IConfigurationPanel {
         IBoundMember[] Prefs;
-        AutoTargeter Script;
+        WeaponHelper Script;
 
-        public AutoTargeterConfig (AutoTargeter script)
+        public WeaponHelperConfig (WeaponHelper script)
             : base (Program.Scheduler) {
             InitializeComponent();
             Script = script;
 
             Prefs = new IBoundMember[] {
-                BoundMember.New(() => TargetNeutralPlayers.Checked),
-                BoundMember.New(() => TargetHostilePlayers.Checked),
-                BoundMember.New(() => TargetFriendlyPlayers.Checked),
-                BoundMember.New(() => TargetHostileNPCs.Checked),
-                BoundMember.New(() => ReservedTargetSlots.Value)
             };
         }
 

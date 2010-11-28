@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{390A5CD1-F8DE-491E-BECC-AD16FD237E50}</ProjectGuid>
+    <ProjectGuid>{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ShootBlues.Script</RootNamespace>
-    <AssemblyName>Common.Script</AssemblyName>
+    <AssemblyName>WeaponHelper.Script</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -36,33 +36,18 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Web.Extensions">
-      <RequiredTargetFramework>3.5</RequiredTargetFramework>
-    </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Common.cs" />
-    <Compile Include="LogWindow.cs">
-      <SubType>Form</SubType>
+    <Compile Include="WeaponHelperConfig.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="LogWindow.Designer.cs">
-      <DependentUpon>LogWindow.cs</DependentUpon>
+    <Compile Include="WeaponHelperConfig.Designer.cs">
+      <DependentUpon>WeaponHelperConfig.cs</DependentUpon>
     </Compile>
+    <Compile Include="WeaponHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PythonExplorer.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="PythonExplorer.Designer.cs">
-      <DependentUpon>PythonExplorer.cs</DependentUpon>
-    </Compile>
-    <Compile Include="SelectModuleDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="SelectModuleDialog.Designer.cs">
-      <DependentUpon>SelectModuleDialog.cs</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Fracture\Squared\TaskLib\Squared.Task.csproj">
@@ -82,37 +67,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="common.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="common.service.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="pythonexplorer.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="LogWindow.resx">
-      <DependentUpon>LogWindow.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PythonExplorer.resx">
-      <DependentUpon>PythonExplorer.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SelectModuleDialog.resx">
-      <DependentUpon>SelectModuleDialog.cs</DependentUpon>
+    <EmbeddedResource Include="WeaponHelperConfig.resx">
+      <DependentUpon>WeaponHelperConfig.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="common.eve.charmonitor.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="common.eve.logger.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="common.eve.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="weaponhelper.py" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
@@ -122,8 +82,4 @@
   <Target Name="AfterBuild">
   </Target>
   -->
-  <PropertyGroup>
-    <PostBuildEvent>copy $(SolutionDir)\Python\*.py $(TargetDir)
-copy $(SolutionDir)\Common\*.db $(TargetDir)</PostBuildEvent>
-  </PropertyGroup>
 </Project>
