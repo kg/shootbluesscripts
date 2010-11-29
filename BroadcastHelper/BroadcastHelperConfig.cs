@@ -10,7 +10,7 @@ using Squared.Task;
 using Squared.Util.Bind;
 
 namespace ShootBlues.Script {
-    public partial class BroadcastHelperConfig : SimpleConfigPanel<BroadcastHelper> {
+    public partial class BroadcastHelperConfig : BroadcastHelperConfigPanel {
         public BroadcastHelperConfig (BroadcastHelper script)
             : base (script) {
             InitializeComponent();
@@ -19,6 +19,16 @@ namespace ShootBlues.Script {
                 BoundMember.New(() => TargetPriorityBoost.Value),
                 BoundMember.New(() => RepPriorityBoost.Value)
             };
+        }
+    }
+
+    public class BroadcastHelperConfigPanel : SimpleConfigPanel<BroadcastHelper> {
+        public BroadcastHelperConfigPanel ()
+            : base(null) {
+        }
+
+        public BroadcastHelperConfigPanel (BroadcastHelper script)
+            : base(script) {
         }
     }
 }

@@ -64,7 +64,6 @@
             this.TargetFriendlyPlayers.TabIndex = 12;
             this.TargetFriendlyPlayers.Text = "Target Friendly Players";
             this.TargetFriendlyPlayers.UseVisualStyleBackColor = true;
-            this.TargetFriendlyPlayers.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // TargetNeutralPlayers
             // 
@@ -78,7 +77,6 @@
             this.TargetNeutralPlayers.TabIndex = 9;
             this.TargetNeutralPlayers.Text = "Target Neutral Players";
             this.TargetNeutralPlayers.UseVisualStyleBackColor = true;
-            this.TargetNeutralPlayers.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // TargetHostileNPCs
             // 
@@ -94,7 +92,6 @@
             this.TargetHostileNPCs.TabIndex = 11;
             this.TargetHostileNPCs.Text = "Target Hostile NPCs";
             this.TargetHostileNPCs.UseVisualStyleBackColor = true;
-            this.TargetHostileNPCs.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // TargetHostilePlayers
             // 
@@ -108,7 +105,6 @@
             this.TargetHostilePlayers.TabIndex = 10;
             this.TargetHostilePlayers.Text = "Target Hostile Players";
             this.TargetHostilePlayers.UseVisualStyleBackColor = true;
-            this.TargetHostilePlayers.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // groupBox2
             // 
@@ -150,7 +146,6 @@
             0,
             0,
             0});
-            this.ReservedTargetSlots.ValueChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // label1
             // 

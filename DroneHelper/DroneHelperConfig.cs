@@ -10,7 +10,7 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class DroneHelperConfig : SimpleConfigPanel<DroneHelper> {
+    public partial class DroneHelperConfig : DroneHelperConfigPanel {
         public DroneHelperConfig (DroneHelper script)
             : base (script) {
             InitializeComponent();
@@ -27,7 +27,6 @@ namespace ShootBlues.Script {
 
         private void RecallIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
             RecallShieldThreshold.Enabled = RecallIfShieldsBelow.Checked;
-            ValuesChanged(sender, e);
         }
 
         private void ConfigurePriorities_Click (object sender, EventArgs e) {
@@ -36,7 +35,16 @@ namespace ShootBlues.Script {
 
         private void RedeployWhenShieldsAbove_CheckedChanged (object sender, EventArgs e) {
             RedeployShieldThreshold.Enabled = RedeployWhenShieldsAbove.Checked;
-            ValuesChanged(sender, e);
+        }
+    }
+
+    public class DroneHelperConfigPanel : SimpleConfigPanel<DroneHelper> {
+        public DroneHelperConfigPanel ()
+            : base(null) {
+        }
+
+        public DroneHelperConfigPanel (DroneHelper script)
+            : base(script) {
         }
     }
 }

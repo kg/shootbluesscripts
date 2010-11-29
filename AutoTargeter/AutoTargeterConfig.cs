@@ -10,7 +10,7 @@ using Squared.Task;
 using Squared.Util.Bind;
 
 namespace ShootBlues.Script {
-    public partial class AutoTargeterConfig : SimpleConfigPanel<AutoTargeter> {
+    public partial class AutoTargeterConfig : AutoTargeterConfigPanel {
         public AutoTargeterConfig (AutoTargeter script)
             : base (script) {
             InitializeComponent();
@@ -22,6 +22,16 @@ namespace ShootBlues.Script {
                 BoundMember.New(() => TargetHostileNPCs.Checked),
                 BoundMember.New(() => ReservedTargetSlots.Value)
             };
+        }
+    }
+
+    public class AutoTargeterConfigPanel : SimpleConfigPanel<AutoTargeter> {
+        public AutoTargeterConfigPanel ()
+            : base(null) {
+        }
+
+        public AutoTargeterConfigPanel (AutoTargeter script)
+            : base(script) {
         }
     }
 }

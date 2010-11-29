@@ -237,7 +237,9 @@ class MainThreadInvoker(object):
         "OnStateChange",
         "ProcessShipEffect",
         "OnLSC",
-        "OnSessionChanged"
+        "OnSessionChanged",
+        "OnClientReady",
+        "OnJukeboxChange"
     ]
     
     def __init__(self, handler):
@@ -286,6 +288,12 @@ class MainThreadInvoker(object):
         self.doInvoke()
     
     def OnTarget(self, what, tid=None, reason=None):
+        self.doInvoke()
+    
+    def OnClientReady(self, *args, **kwargs):
+        self.doInvoke()
+    
+    def OnJukeboxChange(self, *args, **kwargs):
         self.doInvoke()
             
 class SafeTimer(object):

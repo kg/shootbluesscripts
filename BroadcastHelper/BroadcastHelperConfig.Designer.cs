@@ -70,7 +70,6 @@
             0,
             0,
             0});
-            this.TargetPriorityBoost.ValueChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // label1
             // 
@@ -116,7 +115,6 @@
             0,
             0,
             0});
-            this.RepPriorityBoost.ValueChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // label2
             // 

@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BroadcastHelper", "Broadcas
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaponHelper", "WeaponHelper\WeaponHelper.csproj", "{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FontSizer", "FontSizer\FontSizer.csproj", "{37940E7A-1DD8-479F-9729-AF9B8D173AFB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -85,6 +87,10 @@ Global
 		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Debug|x86.Build.0 = Debug|x86
 		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Release|x86.ActiveCfg = Release|x86
 		{B48EDA97-AF2F-4B61-B91F-A4DB314E8BE1}.Release|x86.Build.0 = Release|x86
+		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Debug|x86.ActiveCfg = Debug|x86
+		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Debug|x86.Build.0 = Debug|x86
+		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Release|x86.ActiveCfg = Release|x86
+		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

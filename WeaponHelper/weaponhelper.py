@@ -206,7 +206,7 @@ class WeaponHelperSvc(service.Service):
                 del self.__ammoChanges[module]
                 fn = ammoChange[0]
                 args = tuple(ammoChange[1:])
-                log("Dispatching queued ammo change: %r %r", fn, args)
+                log("Changing ammo")
                 fn(*args)
             else:        
                 targetID = self.selectTarget(module)

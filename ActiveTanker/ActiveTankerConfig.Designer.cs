@@ -40,7 +40,6 @@
             this.KeepShieldsFull.TabIndex = 3;
             this.KeepShieldsFull.Text = "Keep Shields Full";
             this.KeepShieldsFull.UseVisualStyleBackColor = true;
-            this.KeepShieldsFull.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // KeepArmorFull
             // 
@@ -54,7 +53,6 @@
             this.KeepArmorFull.TabIndex = 6;
             this.KeepArmorFull.Text = "Keep Armor Full";
             this.KeepArmorFull.UseVisualStyleBackColor = true;
-            this.KeepArmorFull.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // KeepStructureFull
             // 
@@ -68,7 +66,6 @@
             this.KeepStructureFull.TabIndex = 9;
             this.KeepStructureFull.Text = "Keep Structure Full";
             this.KeepStructureFull.UseVisualStyleBackColor = true;
-            this.KeepStructureFull.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // ActiveTankerConfig
             // 
@@ -89,6 +86,5 @@
         private System.Windows.Forms.CheckBox KeepShieldsFull;
         private System.Windows.Forms.CheckBox KeepArmorFull;
         private System.Windows.Forms.CheckBox KeepStructureFull;
-
     }
 }

@@ -48,9 +48,9 @@ namespace ShootBlues.Profile {
                 yield break;
             }
 
-            Console.WriteLine("EVE started. Giving it a few seconds to clean house...");
+            Console.WriteLine("EVE started.");
 
-            yield return new Sleep(5);
+            yield return new Sleep(0.1);
 
             yield return BaseOnNewProcess(process);
         }

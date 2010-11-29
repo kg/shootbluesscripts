@@ -10,7 +10,7 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class ActiveTankerConfig : SimpleConfigPanel<ActiveTanker> {
+    public partial class ActiveTankerConfig : ActiveTankerConfigPanel {
         public ActiveTankerConfig (ActiveTanker script)
             : base (script) {
             InitializeComponent();
@@ -20,6 +20,16 @@ namespace ShootBlues.Script {
                 BoundMember.New(() => KeepArmorFull.Checked),
                 BoundMember.New(() => KeepStructureFull.Checked),
             };
+        }
+    }
+
+    public class ActiveTankerConfigPanel : SimpleConfigPanel<ActiveTanker> {
+        public ActiveTankerConfigPanel ()
+            : base(null) {
+        }
+
+        public ActiveTankerConfigPanel (ActiveTanker script)
+            : base (script) {
         }
     }
 }

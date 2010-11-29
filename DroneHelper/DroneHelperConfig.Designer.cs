@@ -64,7 +64,7 @@
             this.ConfigurePriorities.Location = new System.Drawing.Point(7, 44);
             this.ConfigurePriorities.Name = "ConfigurePriorities";
             this.ConfigurePriorities.Size = new System.Drawing.Size(265, 25);
-            this.ConfigurePriorities.TabIndex = 4;
+            this.ConfigurePriorities.TabIndex = 2;
             this.ConfigurePriorities.Text = "Edit Target Priorities";
             this.ConfigurePriorities.UseVisualStyleBackColor = true;
             this.ConfigurePriorities.Click += new System.EventHandler(this.ConfigurePriorities_Click);
@@ -79,10 +79,9 @@
             this.WhenIdle.Margin = new System.Windows.Forms.Padding(2, 2, 6, 2);
             this.WhenIdle.Name = "WhenIdle";
             this.WhenIdle.Size = new System.Drawing.Size(93, 20);
-            this.WhenIdle.TabIndex = 2;
+            this.WhenIdle.TabIndex = 0;
             this.WhenIdle.Text = "When Idle";
             this.WhenIdle.UseVisualStyleBackColor = true;
-            this.WhenIdle.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // WhenTargetLost
             // 
@@ -94,10 +93,9 @@
             this.WhenTargetLost.Margin = new System.Windows.Forms.Padding(2, 2, 6, 2);
             this.WhenTargetLost.Name = "WhenTargetLost";
             this.WhenTargetLost.Size = new System.Drawing.Size(146, 20);
-            this.WhenTargetLost.TabIndex = 3;
+            this.WhenTargetLost.TabIndex = 1;
             this.WhenTargetLost.Text = "When Target Lost";
             this.WhenTargetLost.UseVisualStyleBackColor = true;
-            this.WhenTargetLost.CheckedChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // groupBox4
             // 
@@ -136,7 +134,6 @@
             0,
             0,
             0});
-            this.RedeployShieldThreshold.ValueChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // RedeployWhenShieldsAbove
             // 
@@ -178,7 +175,6 @@
             0,
             0,
             0});
-            this.RecallShieldThreshold.ValueChanged += new System.EventHandler(this.ValuesChanged);
             // 
             // RecallIfShieldsBelow
             // 

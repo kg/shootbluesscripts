@@ -10,13 +10,23 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class WeaponHelperConfig : SimpleConfigPanel<WeaponHelper> {
+    public partial class WeaponHelperConfig : WeaponHelperConfigPanel {
         public WeaponHelperConfig (WeaponHelper script)
             : base (script) {
             InitializeComponent();
 
             Prefs = new IBoundMember[] {
             };
+        }
+    }
+
+    public class WeaponHelperConfigPanel : SimpleConfigPanel<WeaponHelper> {
+        public WeaponHelperConfigPanel ()
+            : base(null) {
+        }
+
+        public WeaponHelperConfigPanel (WeaponHelper script)
+            : base(script) {
         }
     }
 }
