@@ -10,14 +10,10 @@ using System.IO;
 using Squared.Task;
 
 namespace ShootBlues.Script {
-    public partial class DroneHelperConfig : TaskUserControl, IConfigurationPanel {
-        IBoundMember[] Prefs;
-        DroneHelper Script;
-
+    public partial class DroneHelperConfig : SimpleConfigPanel<DroneHelper> {
         public DroneHelperConfig (DroneHelper script)
-            : base (Program.Scheduler) {
+            : base (script) {
             InitializeComponent();
-            Script = script;
 
             Prefs = new IBoundMember[] {
                 BoundMember.New(() => WhenIdle.Checked),
@@ -32,37 +28,6 @@ namespace ShootBlues.Script {
         private void RecallIfShieldsBelow_CheckedChanged (object sender, EventArgs e) {
             RecallShieldThreshold.Enabled = RecallIfShieldsBelow.Checked;
             ValuesChanged(sender, e);
-        }
-
-        public string GetMemberName (IBoundMember member) {
-            return ((Control)member.Target).Name;
-        }
-
-        public IEnumerator<object> LoadConfiguration () {
-            var rtc = new RunToCompletion<Dictionary<string, object>>(Script.GetPreferences());
-            yield return rtc;
-
-            var dict = rtc.Result;
-            object value;
-
-            foreach (var bm in Prefs)
-                if (dict.TryGetValue(GetMemberName(bm), out value))
-                    bm.Value = value;
-        }
-
-        public IEnumerator<object> SaveConfiguration () {
-            using (var xact = Program.Database.CreateTransaction()) {
-                yield return xact;
-
-                foreach (var bm in Prefs)
-                    yield return Script.SetPreference(GetMemberName(bm), bm.Value);
-
-                yield return xact.Commit();
-            }
-        }
-
-        private void ValuesChanged (object sender, EventArgs args) {
-            Start(SaveConfiguration());
         }
 
         private void ConfigurePriorities_Click (object sender, EventArgs e) {

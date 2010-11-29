@@ -155,7 +155,7 @@ class DroneHelperSvc(service.Service):
     def getTargetSorter(self):
         getDistance = Memoized(self.getDistance)
         
-        def targetSorter(self, lhs, rhs):
+        def targetSorter(lhs, rhs):
             # Highest priority first
             priLhs = getPriority(targetID=lhs)
             priRhs = getPriority(targetID=rhs)
@@ -213,7 +213,8 @@ class DroneHelperSvc(service.Service):
     def selectTarget(self):
         targets = self.filterTargets(sm.services["target"].targets)
         if len(targets):
-            targets.sort(self.getTargetSorter())
+            targetSorter = self.getTargetSorter()
+            targets.sort(targetSorter)
             
             return targets[0]
         else:

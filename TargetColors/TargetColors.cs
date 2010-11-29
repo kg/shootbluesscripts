@@ -68,17 +68,11 @@ namespace ShootBlues.Script {
             );
         }
 
-        protected IEnumerator<object> BaseInitialize () {
-            return base.Initialize();
-        }
-
         public override IEnumerator<object> Initialize () {
             yield return Program.CreateDBTable(
                 "targetColors",
                 "( key TEXT PRIMARY KEY NOT NULL, red FLOAT NOT NULL, green FLOAT NOT NULL, blue FLOAT NOT NULL )"
             );
-
-            yield return BaseInitialize();
         }
 
         public IEnumerator<object> DefineColor (string key, Color defaultValue) {
@@ -87,7 +81,7 @@ namespace ShootBlues.Script {
             yield break;
         }
 
-        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
+        protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {
             var colorDict = new Dictionary<string, object>();
 
             foreach (var kvp in DefinedColors)
@@ -103,16 +97,15 @@ namespace ShootBlues.Script {
             }
 
             var serializer = new JavaScriptSerializer();
-            var colorsJson = serializer.Serialize(colorDict); 
-            
-            foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "targetcolors", "notifyColorsChanged", colorsJson);
+            var colorsJson = serializer.Serialize(colorDict);
+
+            yield return CallFunction("targetcolors", "notifyColorsChanged", colorsJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "targetcolors", "initialize");
 
-            EventBus.Broadcast(this, "PreferenceChanged", "*");
+            Preferences.Flush();
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {

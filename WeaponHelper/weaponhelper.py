@@ -12,6 +12,7 @@ from util import Memoized
 
 prefs = {}
 serviceInstance = None
+serviceRunning = False
 
 WeaponGroupNames = [
     "Energy Weapon", "Hybrid Weapon", 

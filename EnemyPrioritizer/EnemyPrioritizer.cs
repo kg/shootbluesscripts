@@ -67,10 +67,6 @@ namespace ShootBlues.Script {
             );
         }
 
-        protected IEnumerator<object> BaseInitialize () {
-            return base.Initialize();
-        }
-
         public override IEnumerator<object> Initialize () {
             yield return Program.AttachDB(
                 "evedata"
@@ -80,8 +76,6 @@ namespace ShootBlues.Script {
                 "enemyPriorities",
                 "( groupID INTEGER NOT NULL, typeID INTEGER, priority INTEGER NOT NULL, PRIMARY KEY (groupID, typeID) )"
             );
-
-            yield return BaseInitialize();
         }
 
         public override IEnumerator<object> Reload () {
@@ -94,7 +88,7 @@ namespace ShootBlues.Script {
             );
         }
 
-        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
+        protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {
             var priorityDict = new Dictionary<string, object>();
 
             using (var q = Program.Database.BuildQuery("SELECT groupID, typeID, priority FROM enemyPriorities"))
@@ -112,12 +106,11 @@ namespace ShootBlues.Script {
             var serializer = new JavaScriptSerializer();
             var prioritiesJson = serializer.Serialize(priorityDict);
 
-            foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "enemyprioritizer", "notifyPrioritiesChanged", prioritiesJson);
+            yield return CallFunction("enemyprioritizer", "notifyPrioritiesChanged", prioritiesJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
-            EventBus.Broadcast(this, "PreferenceChanged", "*");
+            Preferences.Flush();
 
             yield break;
         }

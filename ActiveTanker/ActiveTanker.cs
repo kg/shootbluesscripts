@@ -36,32 +36,25 @@ namespace ShootBlues.Script {
             );
         }
 
-        protected IEnumerator<object> BaseInitialize () {
-            return base.Initialize();
-        }
-
         public override IEnumerator<object> Initialize () {
             // Hack to initialize prefs to defaults
             using (var configWindow = new ActiveTankerConfig(this)) {
                 yield return configWindow.LoadConfiguration();
                 yield return configWindow.SaveConfiguration();
             }
-
-            yield return BaseInitialize();
         }
 
-        protected override IEnumerator<object> OnPreferenceChanged (EventInfo evt, string prefName) {
+        protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {
             string prefsJson = null;
-            yield return GetPreferencesJson().Bind(() => prefsJson);
+            yield return Preferences.GetAllJson().Bind(() => prefsJson);
 
-            foreach (var process in Program.RunningProcesses)
-                yield return Program.CallFunction(process, "activetanker", "notifyPrefsChanged", prefsJson);
+            yield return CallFunction("activetanker", "notifyPrefsChanged", prefsJson);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return Program.CallFunction(process, "activetanker", "initialize");
 
-            EventBus.Broadcast(this, "PreferenceChanged", "*");
+            Preferences.Flush();
         }
 
         public override IEnumerator<object> OnStatusWindowShown (IStatusWindow statusWindow) {
