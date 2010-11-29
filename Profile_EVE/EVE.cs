@@ -11,19 +11,10 @@ namespace ShootBlues.Profile {
         public EVE ()
             : base("exefile.exe") {
 
-            var assemblyPath = Path.GetDirectoryName(
-                Assembly.GetExecutingAssembly().Location
-            );
-            var filename = Program.FindScript(
-                new ScriptName("Common.Script.dll", assemblyPath)
-            );
-            if (filename != null) {
-                Program.Scripts.Add(filename);
-                Program.EventBus.Broadcast(this, "ScriptsAdded", new Filename[] { filename });
-            }
+            AddDependency("Common.Script.dll");
         }
 
-        public override string Name {
+        public override string ProfileName {
             get {
                 return "EVE Online";
             }
