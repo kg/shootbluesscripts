@@ -146,38 +146,62 @@ def getTypeAttributes(typeID, obj=None):
     
     return result
 
-def activateModule(module, pulse=False, actionThreshold=ActionThreshold):
+def canActivateModule(module):
+    import uix
+    moduleInfo = module.sr.moduleInfo
+    
+    def_effect = getattr(module, "def_effect", None)
+    if not def_effect:
+        return (False, "passive module")
+    
+    if def_effect.isActive:
+        return (False, "already active")
+    
+    if bool(getattr(module, "goingOnline", False)):
+        return (False, "module going online")
+    
+    if bool(getattr(module, "effect_activating", False)):
+        return (False, "module activating")
+    
+    onlineEffect = moduleInfo.effects.get("online", None)
+    if onlineEffect and not onlineEffect.isActive:
+        return (False, "module offline")
+        
+    if bool(getattr(module, "changingAmmo", False)):
+        return (False, "module changing ammo")
+        
+    if bool(getattr(module, "reloadingAmmo", False)):
+        return (False, "module reloading ammo")
+        
+    if getattr(module, "blockClick", 0) != 0:
+        return (False, "module clicks blocked")
+    
+    if module.state == uix.UI_DISABLED:
+        return (False, "button disabled")
+    
+    return (True, "")
+
+def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThreshold):
     import blue
     import uix
     
     moduleInfo = module.sr.moduleInfo
     moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
-
+    
+    canActivate = canActivateModule(module)
+    if not canActivate[0]:
+        return canActivate
+    
     def_effect = getattr(module, "def_effect", None)
-    if not def_effect:
-        log("Module %s cannot be activated", moduleName)
-        return
-    
-    if def_effect.isActive:
-        return
-    
-    if module.state == uix.UI_DISABLED:
-        log("Module %s is disabled", moduleName)
-        return
-    
-    onlineEffect = moduleInfo.effects.get("online", None)
-    if onlineEffect and not onlineEffect.isActive:
-        log("Module %s is not online", moduleName)
-        return
     
     timestamp = blue.os.GetTime()
     lastAction = int(getattr(module, "__last_action__", 0))
     if (ActionThreshold is not None and 
         abs(lastAction - timestamp) <= ActionThreshold):
-        return
+        return (False, "too soon to activate again (lag protection)")
     
     setattr(module, "__last_action__", timestamp)
-    log("Activating %s", moduleName)    
+    log("Activating %s", moduleName) 
     
     oldautorepeat = getattr(module, "autorepeat", False)
     if oldautorepeat:
@@ -189,9 +213,14 @@ def activateModule(module, pulse=False, actionThreshold=ActionThreshold):
         module.SetRepeat(repeatCount)
             
     try:
-        module.Click()
+        module.ActivateEffect(
+            effect=def_effect, 
+            targetID=targetID
+        )
+        return (True, None)
     except Exception, e:
         log("Activating module %s failed: %r", moduleName, e)
+        return (False, "error")
     finally:
         if oldautorepeat:
             module.SetRepeat(oldautorepeat)

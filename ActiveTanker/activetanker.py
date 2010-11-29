@@ -80,7 +80,7 @@ class ActiveTankerSvc(service.Service):
             threshold = getattr(self, repairType + "Max") - repairAmount
             current = getattr(self, repairType)
             if current < threshold:
-                activateModule(module, pulse=True)
+                activated, reason = activateModule(module, pulse=True)
     
     def findRepairModule(self, repairType):
         groupName = RepairTypes.get(repairType, {}).get("groupName", None)

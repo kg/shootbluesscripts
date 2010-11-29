@@ -1,6 +1,6 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, activateModule
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, activateModule, canActivateModule
 from shootblues.common.service import forceStart, forceStop
 import service
 import json
@@ -13,6 +13,8 @@ from util import Memoized
 prefs = {}
 serviceInstance = None
 serviceRunning = False
+
+ChanceToHitBias = 0.5
 
 WeaponGroupNames = [
     "Energy Weapon", "Hybrid Weapon", 
@@ -48,7 +50,9 @@ class WeaponHelperSvc(service.Service):
     def __init__(self):
         service.Service.__init__(self)
         self.disabled = False
-        self.__updateTimer = SafeTimer(500, self.updateWeapons)
+        self.__updateTimer = SafeTimer(250, self.updateWeapons)
+        self.__ammoChanges = {}
+        self.__hookedMethods = []
         self.__lastAttackOrder = None
     
     def getTargetSorter(self, module):
@@ -111,17 +115,14 @@ class WeaponHelperSvc(service.Service):
             result = cmp(priRhs, priLhs)
             
             if result == 0:
-                # Highest chance to hit first
+                # Highest chance to hit first, but bias the chance to hit up for things we previously attacked
                 cthLhs = chanceToHitGetter(lhs)
+                if lhs is self.__lastAttackOrder:
+                    cthLhs += ChanceToHitBias
                 cthRhs = chanceToHitGetter(rhs)
+                if rhs is self.__lastAttackOrder:
+                    cthRhs += ChanceToHitBias
                 result = cmp(cthRhs, cthLhs)
-                
-                if result == 0:
-                    # If both targets have equal chance to hit, prefer the one we last attacked
-                    result = cmp(
-                        rhs is self.__lastAttackOrder,
-                        lhs is self.__lastAttackOrder
-                    )
         
             return result
         
@@ -146,6 +147,7 @@ class WeaponHelperSvc(service.Service):
         
         return result
     
+    
     def selectTarget(self, module):
         targets = self.filterTargets(sm.services["target"].targets)
         if len(targets):
@@ -156,6 +158,40 @@ class WeaponHelperSvc(service.Service):
         else:
             return None
     
+    def ensureModuleHooked(self, module):
+        if getattr(module.ChangeAmmo, "shootblues", 0) != 420:
+            _oldChangeAmmo = module.ChangeAmmo            
+            def myChangeAmmo(itemID, quantity):
+                if not canActivateModule(module)[0]:
+                    self.__ammoChanges[module] = (_oldChangeAmmo, itemID, quantity)
+                else:
+                    return _oldChangeAmmo(itemID, quantity)
+            
+            setattr(myChangeAmmo, "shootblues", 420)
+            module.ChangeAmmo = myChangeAmmo
+            
+            self.__hookedMethods.append((module, "ChangeAmmo", _oldChangeAmmo))
+        
+        if getattr(module.ChangeAmmoType, "shootblues", 0) != 420:
+            _oldChangeAmmoType = module.ChangeAmmoType
+            def myChangeAmmoType(typeID, singleton):
+                if not canActivateModule(module)[0]:
+                    self.__ammoChanges[module] = (_oldChangeAmmoType, typeID, singleton)
+                else:
+                    return _oldChangeAmmoType(typeID, singleton)
+            
+            setattr(myChangeAmmoType, "shootblues", 420)
+            module.ChangeAmmoType = myChangeAmmoType
+            
+            self.__hookedMethods.append((module, "ChangeAmmoType", _oldChangeAmmoType))
+    
+    def unhookModules(self):
+        m = self.__hookedMethods
+        self.__hookedMethods = []
+        
+        for (obj, name, old) in m:
+            setattr(obj, name, old)
+        
     def updateWeapons(self):
         if self.disabled:
             self.__updateTimer = None
@@ -163,13 +199,20 @@ class WeaponHelperSvc(service.Service):
         
         weaponModules = findModules(groupNames=WeaponGroupNames)
         for moduleID, module in weaponModules.items():
-            targetID = self.selectTarget(module)
-            if targetID:
-                moduleInfo = module.sr.moduleInfo
-                moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
-                targetItem = eve.LocalSvc("michelle").GetBallpark().GetInvItem(targetID)
-                targetName = uix.GetSlimItemName(targetItem)
-                log("Recommended target for %r is %r", moduleName, targetName)
+            self.ensureModuleHooked(module)
+            
+            ammoChange = self.__ammoChanges.get(module, None)
+            if ammoChange and canActivateModule(module)[0]:
+                del self.__ammoChanges[module]
+                fn = ammoChange[0]
+                args = tuple(ammoChange[1:])
+                log("Dispatching queued ammo change: %r %r", fn, args)
+                fn(*args)
+            else:        
+                targetID = self.selectTarget(module)
+                if targetID:
+                    self.__lastAttackOrder = targetID
+                    activated, reason = activateModule(module, pulse=True, targetID=targetID)
 
 def initialize():
     global serviceRunning, serviceInstance
@@ -179,6 +222,7 @@ def initialize():
 def __unload__():
     global serviceRunning, serviceInstance
     if serviceInstance:
+        serviceInstance.unhookModules()
         serviceInstance.disabled = True
         serviceInstance = None
     if serviceRunning:
