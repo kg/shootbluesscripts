@@ -1,6 +1,6 @@
 ﻿from . import log, onMainThread
 
-ActionThreshold = (10000000L * 150) / 100
+ActionThreshold = (10000000L * 200) / 100
 
 def getNamesOfIDs(ids):
     import uix
@@ -211,8 +211,12 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
         else:
             repeatCount = 1000 # Not sure why it's this instead of 1 or true
         module.SetRepeat(repeatCount)
+    
             
     try:
+        module.activationTimer = base.AutoTimer(500, module.ActivateEffectTimer)
+        module.effect_activating = 1
+        
         module.ActivateEffect(
             effect=def_effect, 
             targetID=targetID

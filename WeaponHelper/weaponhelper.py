@@ -1,6 +1,6 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, activateModule, canActivateModule
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, getTypeAttributes, activateModule, canActivateModule
 from shootblues.common.service import forceStart, forceStop
 import service
 import json
@@ -8,6 +8,7 @@ import base
 import uix
 import blue
 import foo
+import math
 from util import Memoized
 
 prefs = {}
@@ -61,53 +62,103 @@ class WeaponHelperSvc(service.Service):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         
         moduleAttrs = getModuleAttributes(module)
-        
-        optimal = float(moduleAttrs["maxRange"])
-        falloff = float(moduleAttrs["falloff"])
-        tracking = float(moduleAttrs["trackingSpeed"])
-        sigResolution = float(moduleAttrs["optimalSigRadius"])
-        
+        if getattr(module, "charge", None):
+            chargeObj = godma.GetItem(module.charge.itemID)
+            chargeAttrs = getTypeAttributes(module.charge.typeID, obj=chargeObj)
+        else:
+            chargeAttrs = {}
+                
         shipBall = ballpark.GetBall(eve.session.shipid)
         shipVelocity = shipBall.GetVectorDotAt(now)
         shipPos = foo.Vector3(shipBall.x, shipBall.y, shipBall.z)
         
-        def _chanceToHitGetter(targetID):
-            distance = ballpark.DistanceBetween(eve.session.shipid, targetID)
-            distanceFactor = max(0.0, distance - optimal) / falloff
+        if moduleAttrs.has_key("trackingSpeed"):
+            # Gun turret
             
-            targetBall = ballpark.GetBall(targetID)
-            targetItem = ballpark.GetInvItem(targetID)
-            targetVelocity = targetBall.GetVectorDotAt(now)
-            targetPos = foo.Vector3(targetBall.x, targetBall.y, targetBall.z)            
-            targetRadius = getattr(
-                targetItem, "signatureRadius", None
-            )
-            if (not targetRadius) or (targetRadius <= 0.0):
-                targetRadius = targetBall.radius
-            
-            combinedVelocity = foo.Vector3(
-                targetVelocity.x - shipVelocity.x,
-                targetVelocity.y - shipVelocity.y,
-                targetVelocity.z - shipVelocity.z
-            )
-            
-            radialVector = targetPos - shipPos
-            if ((radialVector.x, radialVector.y, radialVector.z) != (0.0, 0.0, 0.0)):
-                radialVector = radialVector.Normalize()
-            
-            radialVelocity = combinedVelocity * radialVector
-            transversalVelocity = (combinedVelocity - (radialVelocity * radialVector)).Length()
-            
-            trackingFactor = transversalVelocity / (distance * tracking)
-            
-            resolutionFactor = sigResolution / targetRadius
-            
-            result = 0.5 ** (((trackingFactor * resolutionFactor) ** 2) + (distanceFactor ** 2))
-            
-            return result
+            optimal = float(moduleAttrs["maxRange"])
+            falloff = float(moduleAttrs["falloff"])
+            tracking = float(moduleAttrs["trackingSpeed"])
+            sigResolution = float(moduleAttrs["optimalSigRadius"])
         
-        chanceToHitGetter = Memoized(_chanceToHitGetter)
+            def _chanceToHitGetter(targetID):
+                distance = ballpark.DistanceBetween(eve.session.shipid, targetID)
+                distanceFactor = max(0.0, distance - optimal) / falloff
+                
+                targetBall = ballpark.GetBall(targetID)
+                targetItem = ballpark.GetInvItem(targetID)
+                targetVelocity = targetBall.GetVectorDotAt(now)
+                targetPos = foo.Vector3(targetBall.x, targetBall.y, targetBall.z)            
+                targetRadius = getattr(
+                    targetItem, "signatureRadius", None
+                )
+                if (not targetRadius) or (targetRadius <= 0.0):
+                    targetRadius = targetBall.radius
+                
+                combinedVelocity = foo.Vector3(
+                    targetVelocity.x - shipVelocity.x,
+                    targetVelocity.y - shipVelocity.y,
+                    targetVelocity.z - shipVelocity.z
+                )
+                
+                radialVector = targetPos - shipPos
+                if ((radialVector.x, radialVector.y, radialVector.z) != (0.0, 0.0, 0.0)):
+                    radialVector = radialVector.Normalize()
+                
+                radialVelocity = combinedVelocity * radialVector
+                transversalVelocity = (combinedVelocity - (radialVelocity * radialVector)).Length()
+                
+                trackingFactor = transversalVelocity / (distance * tracking)
+                
+                resolutionFactor = sigResolution / targetRadius
+                
+                result = 0.5 ** (((trackingFactor * resolutionFactor) ** 2) + (distanceFactor ** 2))
+                
+                return result
         
+            chanceToHitGetter = Memoized(_chanceToHitGetter)
+            
+        elif chargeAttrs.has_key("maxVelocity"):
+            # Missile launcher
+            
+            maxVelocity = float(chargeAttrs["maxVelocity"])
+            flightTime = float(chargeAttrs["explosionDelay"]) / 1000.0                        
+            explosionRadius = float(chargeAttrs["aoeCloudSize"])
+            explosionVelocity = float(chargeAttrs["aoeVelocity"])
+            damageReductionFactor = float(chargeAttrs["aoeDamageReductionFactor"])
+            maxRange = flightTime * maxVelocity
+            baseDamage = float(
+                chargeAttrs["kineticDamage"] + chargeAttrs["emDamage"] +
+                chargeAttrs["explosiveDamage"] + chargeAttrs["thermalDamage"]
+            )
+        
+            def _chanceToHitGetter(targetID):
+                distance = ballpark.DistanceBetween(eve.session.shipid, targetID)                
+                
+                targetBall = ballpark.GetBall(targetID)
+                targetItem = ballpark.GetInvItem(targetID)
+                targetVelocity = targetBall.GetVectorDotAt(now).Length()
+                targetRadius = getattr(
+                    targetItem, "signatureRadius", None
+                )
+                if (not targetRadius) or (targetRadius <= 0.0):
+                    targetRadius = targetBall.radius
+                
+                estimatedDamage = baseDamage * min(
+                    min(
+                        targetRadius / explosionRadius, 1
+                    ), (
+                        (explosionVelocity / explosionRadius * targetRadius / targetVelocity) ** 
+                        (math.log(damageReductionFactor) / math.log(5.5))
+                    )
+                )
+                
+                if distance > maxRange:
+                    return 0
+                else:
+                    return estimatedDamage
+        
+            chanceToHitGetter = Memoized(_chanceToHitGetter)
+                
         def targetSorter(lhs, rhs):        
             # Highest priority first
             priLhs = getPriority(targetID=lhs)
@@ -159,7 +210,7 @@ class WeaponHelperSvc(service.Service):
             return None
     
     def ensureModuleHooked(self, module):
-        if getattr(module.ChangeAmmo, "shootblues", 0) != 420:
+        if hasattr(module, "ChangeAmmo") and getattr(module.ChangeAmmo, "shootblues", 0) != 420:
             _oldChangeAmmo = module.ChangeAmmo            
             def myChangeAmmo(itemID, quantity):
                 if not canActivateModule(module)[0]:
@@ -172,7 +223,7 @@ class WeaponHelperSvc(service.Service):
             
             self.__hookedMethods.append((module, "ChangeAmmo", _oldChangeAmmo))
         
-        if getattr(module.ChangeAmmoType, "shootblues", 0) != 420:
+        if hasattr(module, "ChangeAmmoType") and getattr(module.ChangeAmmoType, "shootblues", 0) != 420:
             _oldChangeAmmoType = module.ChangeAmmoType
             def myChangeAmmoType(typeID, singleton):
                 if not canActivateModule(module)[0]:
@@ -198,21 +249,27 @@ class WeaponHelperSvc(service.Service):
             return
         
         weaponModules = findModules(groupNames=WeaponGroupNames)
+        
         for moduleID, module in weaponModules.items():
-            self.ensureModuleHooked(module)
+            if hasattr(module, "ChangeAmmo"):
+                self.ensureModuleHooked(module)
             
-            ammoChange = self.__ammoChanges.get(module, None)
-            if ammoChange and canActivateModule(module)[0]:
-                del self.__ammoChanges[module]
-                fn = ammoChange[0]
-                args = tuple(ammoChange[1:])
-                log("Changing ammo")
-                fn(*args)
-            else:        
-                targetID = self.selectTarget(module)
-                if targetID:
-                    self.__lastAttackOrder = targetID
-                    activated, reason = activateModule(module, pulse=True, targetID=targetID)
+            if canActivateModule(module)[0]:
+                uthread.pool("DoUpdateModule", self.doUpdateModule, moduleID, module)
+    
+    def doUpdateModule(self, moduleID, module):
+        ammoChange = self.__ammoChanges.get(module, None)
+        if ammoChange:
+            del self.__ammoChanges[module]
+            fn = ammoChange[0]
+            args = tuple(ammoChange[1:])
+            log("Changing ammo")
+            fn(*args)
+        else:        
+            targetID = self.selectTarget(module)
+            if targetID:
+                self.__lastAttackOrder = targetID
+                activated, reason = activateModule(module, pulse=True, targetID=targetID)
 
 def initialize():
     global serviceRunning, serviceInstance

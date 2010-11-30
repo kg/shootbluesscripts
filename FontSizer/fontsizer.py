@@ -10,7 +10,10 @@ fontScale = 1.0
 invoker = None
 
 def doFontChange():
-    wnds = [ w for w in (eve.triapp.uilib.desktop.Find("triui.UISprite") + eve.triapp.uilib.desktop.Find("triui.UIContainer")) if hasattr(w, "DoFontChange") ]
+    wnds = [w for w in (
+        eve.triapp.uilib.desktop.Find("triui.UISprite") + 
+        eve.triapp.uilib.desktop.Find("triui.UIContainer")
+    ) if hasattr(w, "DoFontChange")]
     for s in wnds:
         s.DoFontChange()
 
@@ -21,14 +24,13 @@ def setFontScale(newScale):
 
 def initialize():
     global oldAppend, oldGetParams, CMGlyphString, LabelCore
-    log("Installing hook")
     
     def scaleParams(params):
         global fontScale
         newParams = params.Copy()
         size = max(
-            int(params.Get("fontSize", None) or 9),
-            int(params.Get("fontsize", None) or 9)
+            float(params.Get("fontSize", None) or 9),
+            float(params.Get("fontsize", None) or 9)
         ) * fontScale
         newParams.Set("fontSize", size)
         newParams.Set("fontsize", size)
