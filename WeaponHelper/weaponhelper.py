@@ -9,6 +9,7 @@ import uix
 import blue
 import foo
 import math
+import uthread
 from util import Memoized
 
 prefs = {}
@@ -107,7 +108,7 @@ class WeaponHelperSvc(service.Service):
                 radialVelocity = combinedVelocity * radialVector
                 transversalVelocity = (combinedVelocity - (radialVelocity * radialVector)).Length()
                 
-                trackingFactor = transversalVelocity / (distance * tracking)
+                trackingFactor = transversalVelocity / min(distance * tracking, 0.00001)
                 
                 resolutionFactor = sigResolution / targetRadius
                 
@@ -122,7 +123,7 @@ class WeaponHelperSvc(service.Service):
             
             maxVelocity = float(chargeAttrs["maxVelocity"])
             flightTime = float(chargeAttrs["explosionDelay"]) / 1000.0                        
-            explosionRadius = float(chargeAttrs["aoeCloudSize"])
+            explosionRadius = min(float(chargeAttrs["aoeCloudSize"]), 0.00001)
             explosionVelocity = float(chargeAttrs["aoeVelocity"])
             damageReductionFactor = float(chargeAttrs["aoeDamageReductionFactor"])
             maxRange = flightTime * maxVelocity
@@ -136,7 +137,7 @@ class WeaponHelperSvc(service.Service):
                 
                 targetBall = ballpark.GetBall(targetID)
                 targetItem = ballpark.GetInvItem(targetID)
-                targetVelocity = targetBall.GetVectorDotAt(now).Length()
+                targetVelocity = min(targetBall.GetVectorDotAt(now).Length(), 0.00001)
                 targetRadius = getattr(
                     targetItem, "signatureRadius", None
                 )
@@ -241,7 +242,10 @@ class WeaponHelperSvc(service.Service):
         self.__hookedMethods = []
         
         for (obj, name, old) in m:
-            setattr(obj, name, old)
+            try:
+                setattr(obj, name, old)
+            except:
+                pass
         
     def updateWeapons(self):
         if self.disabled:

@@ -1,6 +1,12 @@
 ﻿from . import log, onMainThread
 
 ActionThreshold = (10000000L * 200) / 100
+MainThreadQueue = []
+MainThreadQueueRunning = False
+MainThreadQueueInvoker = None
+MainThreadQueueItemDelay = 1
+MainThreadQueueInterval = 50
+TimerErrorDelay = 2000
 
 def getNamesOfIDs(ids):
     import uix
@@ -183,7 +189,12 @@ def canActivateModule(module):
 
 def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThreshold):
     import blue
+    import base
     import uix
+    
+    ballpark = eve.LocalSvc("michelle").GetBallpark()
+    if not ballpark:
+        return (False, "No ballpark")
     
     moduleInfo = module.sr.moduleInfo
     moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
@@ -299,6 +310,38 @@ class MainThreadInvoker(object):
     
     def OnJukeboxChange(self, *args, **kwargs):
         self.doInvoke()
+
+def _mainThreadQueueFunc():
+    import uthread
+    import blue
+    
+    global MainThreadQueueRunning, MainThreadQueue, MainThreadQueueInvoker, MainThreadQueueInterval, MainThreadQueueItemDelay
+    
+    MainThreadQueueInvoker = None
+    MainThreadQueueRunning = True
+    while MainThreadQueueRunning:
+        item = None
+        if len(MainThreadQueue):
+            item = MainThreadQueue.pop(0)
+        
+        if item:
+            try:
+                item[0](*item[1], **item[2])
+            except Exception, ex:
+                log("Error in %r: %r", item[0], ex)
+            blue.pyos.synchro.Sleep(MainThreadQueueItemDelay)
+        else:        
+            blue.pyos.synchro.Sleep(MainThreadQueueInterval)
+
+def runOnMainThread(fn, *args, **kwargs):
+    global MainThreadQueueRunning, MainThreadQueue, MainThreadQueueInvoker
+    item = (fn, args, kwargs)
+    
+    if item not in MainThreadQueue:
+        MainThreadQueue.append(item)
+    
+    if (not MainThreadQueueRunning) and (not MainThreadQueueInvoker):    
+        MainThreadQueueInvoker = MainThreadInvoker(_mainThreadQueueFunc)
             
 class SafeTimer(object):
     __notifyevents__ = [
@@ -310,7 +353,6 @@ class SafeTimer(object):
         self.__handler = handler
         self.__timer = None
         self.__started = True
-        self.__invoker = None
         
         self.syncState()
         sm.RegisterNotify(self)
@@ -325,7 +367,6 @@ class SafeTimer(object):
     def stop(self):
         self.__started = False
         self.__timer = None
-        self.__invoker = None
     
     def getName(self):
         func = self.__handler
@@ -335,8 +376,6 @@ class SafeTimer(object):
         return getattr(func, "func_name", "<unknown>")
         
     def syncState(self):
-        self.__invoker = None
-        
         if onMainThread():
             if self.__started and (not self.__timer):
                 import base
@@ -344,14 +383,26 @@ class SafeTimer(object):
             elif (not self.__started) and self.__timer:
                 self.__timer = None
         else:
-            self.__invoker = MainThreadInvoker(self.syncState)
+            runOnMainThread(self.syncState)
+    
+    def delayedSyncState(self):
+        import blue
+        global TimerErrorDelay
+        blue.pyos.synchro.Sleep(TimerErrorDelay)
+        self.syncState()
     
     def tick(self):
         try:
             self.__handler()
         except:
             log("SafeTimer %r temporarily disabled due to error", self.getName())
-            self.__timer = None                
-            self.__invoker = MainThreadInvoker(self.syncState)
+            self.__timer = None
+            runOnMainThread(self.delayedSyncState)
             
             raise
+
+def __unload__():
+    global MainThreadQueue, MainThreadQueueRunning, MainThreadQueueInvoker
+    MainThreadQueueRunning = False
+    MainThreadQueueInvoker = None
+    MainThreadQueue = []

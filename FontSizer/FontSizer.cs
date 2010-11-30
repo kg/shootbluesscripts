@@ -45,10 +45,11 @@ namespace ShootBlues.Script {
         }
 
         protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {
-            long fontScale = 100;
+            long fontScale = 100, fontWidth = 100;
             yield return Preferences.Get<long>("FontScale").Bind(() => fontScale);
+            yield return Preferences.Get<long>("FontWidth").Bind(() => fontWidth);
 
-            yield return CallFunction("fontsizer", "setFontScale", fontScale / 100.0f);
+            yield return CallFunction("fontsizer", "setFontSize", fontScale / 100.0f, fontWidth / 100.0f);
         }
 
         public override IEnumerator<object> LoadedInto (ProcessInfo process) {

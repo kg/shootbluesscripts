@@ -110,6 +110,8 @@ namespace ShootBlues.Script {
                 yield return fNext;
 
                 LogPrint(process, fNext.Result.DecodeAsciiZ());
+
+                yield return new Sleep(0.01);
             }
         }
 
@@ -124,8 +126,6 @@ namespace ShootBlues.Script {
             Console.WriteLine(logText);
             if (LogWindowInstance != null)
                 LogWindowInstance.AddLine(logText);
-
-            Application.DoEvents();
         }
 
         public void LogClear () {

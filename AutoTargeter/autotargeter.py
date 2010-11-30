@@ -1,6 +1,6 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, MainThreadInvoker, getFlagName, getNamesOfIDs
+from shootblues.common.eve import SafeTimer, runOnMainThread, getFlagName, getNamesOfIDs
 from shootblues.common.service import forceStart, forceStop
 import service
 import uix
@@ -52,9 +52,10 @@ class AutoTargeterSvc(service.Service):
         self.disabled = False
         self.__updateTimer = SafeTimer(500, self.updateTargets)
         self.__potentialTargets = []
-        self.__populateTargets = MainThreadInvoker(self.populateTargets)
         self.__lockedTargets = []
         self.warping = False
+        
+        runOnMainThread(self.populateTargets)
         
     def getDistance(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()

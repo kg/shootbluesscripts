@@ -17,11 +17,16 @@ namespace ShootBlues.Script {
 
             Prefs = new IBoundMember[] {
                 BoundMember.New(() => FontScale.Value),
+                BoundMember.New(() => FontWidth.Value),
             };
         }
 
         private void FontScale_ValueChanged (object sender, EventArgs e) {
             FontSizeValue.Text = String.Format("{0}%", FontScale.Value);
+        }
+
+        private void FontWidth_ValueChanged (object sender, EventArgs e) {
+            FontWidthValue.Text = String.Format("{0}%", FontWidth.Value);
         }
     }
 
