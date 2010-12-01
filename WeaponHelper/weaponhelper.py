@@ -82,7 +82,7 @@ class WeaponHelperSvc(service.Service):
             sigResolution = float(moduleAttrs["optimalSigRadius"])
         
             def _chanceToHitGetter(targetID):
-                distance = ballpark.DistanceBetween(eve.session.shipid, targetID)
+                distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
                 distanceFactor = max(0.0, distance - optimal) / falloff
                 
                 targetBall = ballpark.GetBall(targetID)
@@ -108,10 +108,10 @@ class WeaponHelperSvc(service.Service):
                 radialVelocity = combinedVelocity * radialVector
                 transversalVelocity = (combinedVelocity - (radialVelocity * radialVector)).Length()
                 
-                trackingFactor = transversalVelocity / min(distance * tracking, 0.00001)
+                trackingFactor = transversalVelocity / distance * tracking
                 
                 resolutionFactor = sigResolution / targetRadius
-                
+                                
                 result = 0.5 ** (((trackingFactor * resolutionFactor) ** 2) + (distanceFactor ** 2))
                 
                 return result
@@ -123,7 +123,7 @@ class WeaponHelperSvc(service.Service):
             
             maxVelocity = float(chargeAttrs["maxVelocity"])
             flightTime = float(chargeAttrs["explosionDelay"]) / 1000.0                        
-            explosionRadius = min(float(chargeAttrs["aoeCloudSize"]), 0.00001)
+            explosionRadius = max(float(chargeAttrs["aoeCloudSize"]), 0.00001)
             explosionVelocity = float(chargeAttrs["aoeVelocity"])
             damageReductionFactor = float(chargeAttrs["aoeDamageReductionFactor"])
             maxRange = flightTime * maxVelocity
@@ -133,11 +133,11 @@ class WeaponHelperSvc(service.Service):
             )
         
             def _chanceToHitGetter(targetID):
-                distance = ballpark.DistanceBetween(eve.session.shipid, targetID)                
+                distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
                 
                 targetBall = ballpark.GetBall(targetID)
                 targetItem = ballpark.GetInvItem(targetID)
-                targetVelocity = min(targetBall.GetVectorDotAt(now).Length(), 0.00001)
+                targetVelocity = max(targetBall.GetVectorDotAt(now).Length(), 0.00001)
                 targetRadius = getattr(
                     targetItem, "signatureRadius", None
                 )

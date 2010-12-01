@@ -293,10 +293,8 @@ class DroneHelperSvc(service.Service):
         dronesToRecall = list(dronesToRecall)
         timestamp = blue.os.GetTime()
         
-        
         for droneID in list(dronesToRecall):
             droneObj = self.getDroneObject(droneID)
-            log("Action timestamp delta: %r", abs(droneObj.actionTimestamp - timestamp))
             if ((droneObj.state == const.entityDeparting) or
                (droneObj.state == const.entityDeparting2) or
                (droneObj.state == const.entityPursuit) or

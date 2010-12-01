@@ -205,7 +205,7 @@ namespace ShootBlues.Script {
                     newType.GroupID, newType.TypeID, priority
                 );
 
-                Program.EventBus.Broadcast(Script, "PreferenceChanged", "*");
+                Script.Preferences.Flush();
 
                 yield return RefreshList(new PriorityEntry { GroupID = newType.GroupID, TypeID = newType.TypeID });
             }
@@ -252,7 +252,7 @@ namespace ShootBlues.Script {
                 yield return xact.Commit();
             }
 
-            Program.EventBus.Broadcast(Script, "PreferenceChanged", "*");
+            Script.Preferences.Flush();
 
             yield return LoadConfiguration();
         }
@@ -289,7 +289,7 @@ namespace ShootBlues.Script {
                 yield return xact.Commit();
             }
 
-            Program.EventBus.Broadcast(Script, "PreferenceChanged", "*");
+            Script.Preferences.Flush();
 
             yield return LoadConfiguration();
         }

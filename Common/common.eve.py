@@ -196,6 +196,11 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
     if not ballpark:
         return (False, "No ballpark")
     
+    if targetID:
+        ball = ballpark.GetBall(targetID)
+        if not ball:
+            return (False, "Ball not in ballpark")
+    
     moduleInfo = module.sr.moduleInfo
     moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
     
@@ -312,7 +317,6 @@ class MainThreadInvoker(object):
         self.doInvoke()
 
 def _mainThreadQueueFunc():
-    import uthread
     import blue
     
     global MainThreadQueueRunning, MainThreadQueue, MainThreadQueueInvoker, MainThreadQueueInterval, MainThreadQueueItemDelay
@@ -334,14 +338,19 @@ def _mainThreadQueueFunc():
             blue.pyos.synchro.Sleep(MainThreadQueueInterval)
 
 def runOnMainThread(fn, *args, **kwargs):
+    import uthread
+    
     global MainThreadQueueRunning, MainThreadQueue, MainThreadQueueInvoker
     item = (fn, args, kwargs)
     
     if item not in MainThreadQueue:
         MainThreadQueue.append(item)
     
-    if (not MainThreadQueueRunning) and (not MainThreadQueueInvoker):    
-        MainThreadQueueInvoker = MainThreadInvoker(_mainThreadQueueFunc)
+    if (not MainThreadQueueRunning) and (not MainThreadQueueInvoker):  
+        def startMainThreadQueue():
+            uthread.pool("MTQ", _mainThreadQueueFunc)
+        
+        MainThreadQueueInvoker = MainThreadInvoker(startMainThreadQueue)
             
 class SafeTimer(object):
     __notifyevents__ = [

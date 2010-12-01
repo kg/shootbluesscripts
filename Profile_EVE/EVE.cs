@@ -25,7 +25,7 @@ namespace ShootBlues.Profile {
         }
 
         protected override IEnumerator<object> OnNewProcess (Process process) {
-            Console.WriteLine("Waiting for EVE to start...");
+            Console.WriteLine("Waiting for EVE to start.");
 
             IntPtr hWnd = IntPtr.Zero;
             while ((hWnd == IntPtr.Zero) && (!process.HasExited)) {
@@ -39,11 +39,24 @@ namespace ShootBlues.Profile {
                 yield break;
             }
 
-            Console.WriteLine("EVE started.");
-
-            yield return new Sleep(0.1);
-
             yield return BaseOnNewProcess(process);
+        }
+
+        public override IEnumerator<object> WaitUntilProcessReady (ProcessInfo process) {
+            bool isReady = false;
+            do {
+                yield return Program.EvalPython<bool>(process, @"
+try:
+  m = __import__('uix')
+  g = getattr(__import__('__builtin__'), 'sm', None)
+  return (m is not None) and (g is not None)
+except:
+  return False").Bind(() => isReady);
+
+                yield return new Sleep(0.1);
+            } while (!isReady);
+
+            Console.WriteLine("EVE started.");
         }
     }
 }

@@ -8,7 +8,7 @@ import uthread
 import math
 
 PulseRate = 500.0
-DefaultDuration = 12000.0
+DefaultDuration = 20000.0
 Alphas = {
     "icon": 1.0,
     "framesprite": 0.5,
