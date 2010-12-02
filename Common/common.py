@@ -16,12 +16,15 @@ def getChannel(name):
 def log(format, *args):
     logger = getChannel("log")
     if logger:
-        if args:
-            logger.send(str(format) % args)
-        elif isinstance(format, types.StringType):
-            logger.send(format)
-        else:
-            logger.send(repr(format))
+        try:
+            if args:
+                logger.send(str(format) % args)
+            elif isinstance(format, types.StringType):
+                logger.send(format)
+            else:
+                logger.send(repr(format))
+        except:
+            pass
 
 def remoteCall(script, methodName, *args):
     channel = getChannel("remotecall")
