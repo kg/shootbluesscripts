@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaponHelper", "WeaponHelpe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FontSizer", "FontSizer\FontSizer.csproj", "{37940E7A-1DD8-479F-9729-AF9B8D173AFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteControl", "RemoteControl\RemoteControl.csproj", "{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -91,6 +93,10 @@ Global
 		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Debug|x86.Build.0 = Debug|x86
 		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Release|x86.ActiveCfg = Release|x86
 		{37940E7A-1DD8-479F-9729-AF9B8D173AFB}.Release|x86.Build.0 = Release|x86
+		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Debug|x86.ActiveCfg = Debug|x86
+		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Debug|x86.Build.0 = Debug|x86
+		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Release|x86.ActiveCfg = Release|x86
+		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

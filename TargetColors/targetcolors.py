@@ -58,17 +58,13 @@ def flashItemColor(itemID, name):
         "started": blue.os.GetTime()
     }
 
-class TargetColorsSvc(service.Service):
-    __guid__ = "svc.targetcolors"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
+class TargetColorsSvc:
     __notifyevents__ = [
         "OnTargets",
         "OnTarget"
     ]
 
     def __init__(self):
-        service.Service.__init__(self)
         self.disabled = False
         self.__updateTimer = SafeTimer(1000, self.updateTargets)
         self.__activeBlinks = {}

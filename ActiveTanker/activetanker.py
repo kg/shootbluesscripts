@@ -35,15 +35,8 @@ RepairTypes = {
     }
 }
 
-class ActiveTankerSvc(service.Service):
-    __guid__ = "svc.activetanker"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
-    __notifyevents__ = [
-    ]
-
+class ActiveTankerSvc:
     def __init__(self):
-        service.Service.__init__(self)
         self.disabled = False
         self.__updateTimer = SafeTimer(500, self.updateHealth)
     

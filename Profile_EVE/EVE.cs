@@ -8,6 +8,8 @@ using System.IO;
 
 namespace ShootBlues.Profile {
     public class EVE : SimpleExecutableProfile {
+        public Dictionary<int, IntPtr> ProcessWindows = new Dictionary<int, IntPtr>();
+
         public EVE ()
             : base("exefile.exe") {
 
@@ -39,6 +41,9 @@ namespace ShootBlues.Profile {
                 yield break;
             }
 
+            yield return new Sleep(0.5);
+
+            ProcessWindows[process.Id] = hWnd;
             yield return BaseOnNewProcess(process);
         }
 
@@ -53,7 +58,7 @@ try:
 except:
   return False").Bind(() => isReady);
 
-                yield return new Sleep(0.1);
+                yield return new Sleep(0.5);
             } while (!isReady);
 
             Console.WriteLine("EVE started.");

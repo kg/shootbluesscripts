@@ -1,0 +1,139 @@
+﻿<html>
+    <head>
+        <title>Internet Spaceships!</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js" type="text/javascript"></script>
+        <style type="text/css">
+            body, html, head, div, img {
+                margin: 0px;
+                padding: 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="viewport">
+            Sorry, EVE Remote Control requires a browser with support for HTML5 Canvas.
+        </canvas>
+        <canvas id="temppixels" style="display:none"></canvas>
+        <canvas id="tempmask" style="display:none"></canvas>
+        <script type="text/javascript">
+            var counter = 0;
+            var updateInProgress = false;
+            
+            function getImagePixels (elt, img) {
+                var width = img.width;
+                var height = img.height;
+                if (elt.width != width)
+                    elt.width = width;
+                if (elt.height != height)
+                    elt.height = height;
+                var ctx = elt.getContext("2d");
+                ctx.globalCompositeOperation = "copy";
+                ctx.drawImage(img, 0, 0, width, height);
+                return ctx.getImageData(0, 0, width, height);
+            }
+            
+            function updateViewport (canvas, ctx, pixels, mask) {
+                var width = pixels.width;
+                var height = pixels.height;
+                
+                if (canvas.width != width)
+                    canvas.width = width;
+                if (canvas.height != height)
+                    canvas.height = height;
+
+                var canvasData = ctx.getImageData(0, 0, width, height);
+                var pixelData = getImagePixels(document.getElementById("temppixels"), pixels);
+                var maskData = getImagePixels(document.getElementById("tempmask"), mask);
+                var cd = canvasData.data;
+                var pd = pixelData.data;
+                var md = maskData.data;
+                
+                var blockSize = 8;
+                
+                for (var y = 0; y < height; y++) {
+                    var maskRow = Math.floor(y / blockSize) * maskData.width;
+                    var pixRow = y * pixelData.width * 4;
+                    for (var x = 0; x < width; x++, pixRow+=4) {
+                        if (md[Math.floor(maskRow + (x / blockSize)) * 4] != 0) {
+                            cd[pixRow] = pd[pixRow];
+                            cd[pixRow + 1] = pd[pixRow + 1];
+                            cd[pixRow + 2] = pd[pixRow + 2];
+                            cd[pixRow + 3] = pd[pixRow + 3];
+                        }
+                    }
+                }
+                
+                try {
+                    ctx.putImageData(canvasData, 0, 0);
+                } catch (e) {
+                }
+                
+                updateInProgress = false;
+            }
+            
+            function refreshImage () {
+                var canvas = document.getElementById("viewport");
+                var ctx = canvas.getContext("2d");
+                var error = "error";
+                var loadedImages = {
+                    "pixels": null,
+                    "mask": null
+                };
+                var newPixels = document.createElement("img");
+                var newMask = document.createElement("img");
+                
+                var sync = function () {
+                    if ((loadedImages.pixels == null) || (loadedImages.mask == null))
+                        return;
+                
+                    var succeeded = (loadedImages.pixels != error) &&
+                        (loadedImages.mask != error);
+                    
+                    if (succeeded) {
+                        if (updateInProgress)
+                            window.setTimeout(sync, 1);
+                        else {
+                            updateInProgress = true;
+                            window.setTimeout(refreshImage, 66);
+                            updateViewport(canvas, ctx, newPixels, newMask);
+                        }
+                    } else {
+                        ctx.globalCompositeOperation = "copy";
+                        ctx.fillStyle = "rgb(0,0,0)";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        window.setTimeout(refreshImage, 1000);
+                    }                    
+                };
+                
+                counter += 1;
+                
+                w = Math.floor(window.innerWidth);
+                h = Math.floor(window.innerHeight);
+                uri = "/eve/viewport?w=" + w + "&h=" + h + "&i=" + counter;
+                
+                newPixels.addEventListener("load", function () {
+                    loadedImages.pixels = newPixels;
+                    sync();
+                }, true);
+                newPixels.addEventListener("error", function () {
+                    loadedImages.pixels = error;
+                    sync();
+                }, true);
+                
+                newMask.addEventListener("load", function () {
+                    loadedImages.mask = newMask;
+                    sync();
+                }, true);
+                newMask.addEventListener("error", function () {
+                    loadedImages.mask = error;
+                    sync();
+                }, true);
+                
+                newPixels.setAttribute("src", uri + "&t=pixels");
+                newMask.setAttribute("src", uri + "&t=mask");
+            }
+
+            $("#viewport").ready(refreshImage);
+        </script>
+    </body>
+</html>

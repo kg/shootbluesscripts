@@ -23,6 +23,7 @@ namespace ShootBlues.Script {
             AddDependency("common.service.py");
             AddDependency("common.eve.py");
             AddDependency("common.eve.logger.py");
+            AddDependency("common.eve.state.py");
             AddDependency("common.eve.charmonitor.py");
             AddDependency("pythonexplorer.py");
 

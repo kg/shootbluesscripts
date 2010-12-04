@@ -32,16 +32,12 @@ def notifyPrefsChanged(newPrefsJson):
     global prefs
     prefs = json.loads(newPrefsJson)
 
-class BroadcastHelperSvc(service.Service):
-    __guid__ = "svc.broadcasthelper"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
+class BroadcastHelperSvc:
     __notifyevents__ = [
         "OnFleetBroadcast",
     ]
 
     def __init__(self):
-        service.Service.__init__(self)
         self.disabled = False
         self.__needReps = []
     

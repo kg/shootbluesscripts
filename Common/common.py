@@ -52,6 +52,12 @@ def initialize():
         except Exception, e:
             log("Failed to initialize character monitor: %r", e)
         
+        try:
+            from common.eve.state import installStateMonitor
+            installStateMonitor()
+        except Exception, e:
+            log("Failed to initialize state monitor: %r", e)
+        
         isInitialized = True
 
 def __unload__():

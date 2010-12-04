@@ -1,8 +1,7 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, runOnMainThread, getFlagName, getNamesOfIDs
+from shootblues.common.eve import SafeTimer, runOnMainThread, getFlagName, getNamesOfIDs, isBallTargetable, isBallWarping, isPlayerJumping
 from shootblues.common.service import forceStart, forceStop
-import service
 import uix
 import json
 import state
@@ -35,10 +34,7 @@ def notifyPrefsChanged(newPrefsJson):
     global prefs
     prefs = json.loads(newPrefsJson)
 
-class AutoTargeterSvc(service.Service):
-    __guid__ = "svc.autotargeter"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
+class AutoTargeterSvc:
     __notifyevents__ = [
         "DoBallsAdded",
         "DoBallRemove",
@@ -48,7 +44,6 @@ class AutoTargeterSvc(service.Service):
     ]
 
     def __init__(self):
-        service.Service.__init__(self)
         self.disabled = False
         self.__updateTimer = SafeTimer(500, self.updateTargets)
         self.__potentialTargets = []
@@ -95,21 +90,7 @@ class AutoTargeterSvc(service.Service):
             godma.GetItem(eve.session.shipid).maxLockedTargets
         ))
         return max(maxTargets - reservedSlots, 0)
-    
-    def isPlayerJumping(self):
-        return ("jumping" in eve.session.sessionChangeReason) and (eve.session.changing)
-    
-    def isBallWarping(self, ball):
-        return ball.mode == destiny.DSTBALL_WARP
-    
-    def isBallTargetable(self, ball):        
-        if ball is None:
-            return False
-        elif self.isBallWarping(ball):
-            return False
-        else:
-            return True
-    
+       
     def filterTargets(self, ids):
         targetSvc = sm.services['target']
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -120,9 +101,9 @@ class AutoTargeterSvc(service.Service):
         
         if not myBall:
             return []
-        elif self.isBallWarping(myBall):
+        elif isBallWarping(myBall):
             return []
-        elif self.isPlayerJumping():
+        elif isPlayerJumping():
             return []
         
         result = []
@@ -133,7 +114,7 @@ class AutoTargeterSvc(service.Service):
             ball = ballpark.GetBall(id)
             if not ball:
                 continue
-            if not self.isBallTargetable(ball):
+            if not isBallTargetable(ball):
                 continue
                 
             slimItem = ballpark.GetInvItem(id)
@@ -241,7 +222,6 @@ class AutoTargeterSvc(service.Service):
                     )
     
     def populateTargets(self):
-        self.__populateTargets = None
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         if not ballpark:
             return
@@ -253,13 +233,7 @@ class AutoTargeterSvc(service.Service):
                 setItemColor(id, "Automatic Target")
         
         ids = list(ballpark.balls.keys())
-        uthread.pool(
-            "PopulateTargets",
-            self._populateTargets,
-            ballpark, ids
-        )
-    
-    def _populateTargets(self, ballpark, ids):
+        
         lst = []
         for ballID in ids:
             slimItem = ballpark.GetInvItem(ballID)

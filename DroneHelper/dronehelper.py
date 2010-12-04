@@ -63,17 +63,13 @@ class DroneInfo(object):
                 (self.shield, self.armor, self.structure) = ds
             self.timestamp = timestamp
 
-class DroneHelperSvc(service.Service):
-    __guid__ = "svc.dronehelper"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
+class DroneHelperSvc:
     __notifyevents__ = [
         "OnDroneStateChange2",
         "OnDroneControlLost"
     ]
 
     def __init__(self):
-        service.Service.__init__(self)
         self.__drones = {}
         self.__pendingStateChanges = {}
         self.__updateTimer = None

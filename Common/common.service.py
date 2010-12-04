@@ -1,44 +1,53 @@
 ﻿from . import log
 
+runningServices = {}
+
+def get(serviceName):
+    global runningServices
+    
+    result = runningServices.get(serviceName, None)
+    if not result:
+        result = sm.services.get(serviceName, None)
+    
+    return result
+
 def forceStop(serviceName):
+    global runningServices
+    
     import stackless
     old_block_trap = stackless.getcurrent().block_trap
     stackless.getcurrent().block_trap = 1
     try:
-        serviceInstance = sm.services.get(serviceName, None)
+        serviceInstance = runningServices.get(serviceName, None)
         if serviceInstance:
-            del sm.services[serviceName]
-            
-            for event in serviceInstance.__notifyevents__:
-                notifies = sm.notify.get(event, None)
-                if notifies is None:
-                    continue
-                
-                if serviceInstance in notifies:
-                    notifies.remove(serviceInstance)
+            del runningServices[serviceName]
+            ne = getattr(serviceInstance, "__notifyevents__", [])
+            if len(ne):
+                sm.UnregisterNotify(serviceInstance)
     finally:
         stackless.getcurrent().block_trap = old_block_trap
 
 def forceStart(serviceName, serviceType):
+    global runningServices
+    
     import stackless
-    import service
     old_block_trap = stackless.getcurrent().block_trap
     stackless.getcurrent().block_trap = 1
     try:
-        oldInstance = sm.services.get(serviceName, None)
+        oldInstance = runningServices.get(serviceName, None)
         if oldInstance:
             forceStop(serviceName)
         
         result = serviceType()
-        sm.services[serviceName] = result
-        result.state = service.SERVICE_RUNNING
+        runningServices[serviceName] = result
         
-        for event in result.__notifyevents__:
-            empty_list = []
-            notifies = sm.notify.setdefault(event, empty_list)
-            notifies.append(result)
-            if (not hasattr(result, event)):
-                log("Missing event handler for %r on %r", event, result)
+        ne = getattr(result, "__notifyevents__", [])
+        if len(ne):
+            for event in ne:
+                if (not hasattr(result, event)):
+                    log("Missing event handler for %r on %r", event, result)
+            
+            sm.RegisterNotify(result)
         
         return result
     finally:

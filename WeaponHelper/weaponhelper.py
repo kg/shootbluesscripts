@@ -42,15 +42,8 @@ except:
     def getPriority(*args, **kwargs):
         return 0
 
-class WeaponHelperSvc(service.Service):
-    __guid__ = "svc.weaponhelper"
-    __update_on_reload__ = 0
-    __exportedcalls__ = {}
-    __notifyevents__ = [
-    ]
-
+class WeaponHelperSvc:
     def __init__(self):
-        service.Service.__init__(self)
         self.disabled = False
         self.__updateTimer = SafeTimer(250, self.updateWeapons)
         self.__ammoChanges = {}
@@ -153,10 +146,10 @@ class WeaponHelperSvc(service.Service):
                     )
                 )
                 
-                if distance > maxRange:
+                if distance > maxRange:                
                     return 0
-                else:
-                    return estimatedDamage
+                else:                    
+                    return estimatedDamage / baseDamage
         
             chanceToHitGetter = Memoized(_chanceToHitGetter)
                 
@@ -198,7 +191,6 @@ class WeaponHelperSvc(service.Service):
             result.append(id)
         
         return result
-    
     
     def selectTarget(self, module):
         targets = self.filterTargets(sm.services["target"].targets)

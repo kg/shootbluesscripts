@@ -76,6 +76,27 @@ def getCharacterName(charID):
     if char:
         return char.name
 
+def isPlayerJumping():
+    return ("jumping" in eve.session.sessionChangeReason) and (eve.session.changing)
+
+def isBallWarping(ball):
+    import destiny
+    return ball.mode == destiny.DSTBALL_WARP
+
+def isBallCloaked(ball):
+    return bool(getattr(ball, "isCloaked", 0))
+
+def isBallTargetable(ball):        
+    from common.eve.state import isItemInsideForceField
+    if ball is None:
+        return False
+    elif isBallWarping(ball):
+        return False
+    elif isItemInsideForceField(ball.id):
+        return False
+    else:
+        return True
+
 def findModule(groupNames=None, groupIDs=None, typeNames=None, typeIDs=None):
     modules = findModules(
         count=1, 
@@ -152,9 +173,37 @@ def getTypeAttributes(typeID, obj=None):
     
     return result
 
-def canActivateModule(module):
+def canActivateModule(module, targetID=None):
     import uix
+    from common.eve.state import isItemInsideForceField
+    
     moduleInfo = module.sr.moduleInfo
+    
+    ballpark = eve.LocalSvc("michelle").GetBallpark()
+    if not ballpark:
+        return (False, "No ballpark")
+        
+    playerBall = ballpark.GetBall(eve.session.shipid)
+    
+    if not playerBall:
+        return (False, "Player ball nonpresent")
+    elif isBallCloaked(playerBall):
+        return (False, "Player is cloaked")
+    elif isPlayerJumping():
+        return (False, "Player is jumping")
+    elif isItemInsideForceField(eve.session.shipid):
+        return (False, "Player is inside a force field")
+    
+    if targetID:
+        targetBall = ballpark.GetBall(targetID)
+        if not targetBall:
+            return (False, "Target ball not in ballpark")            
+        elif isBallWarping(targetBall):
+            return (False, "Target is warping")            
+        elif isItemInsideForceField(targetBall.id):
+            return (False, "Target is inside a force field")
+    else:
+        targetBall = None
     
     def_effect = getattr(module, "def_effect", None)
     if not def_effect:
@@ -191,20 +240,11 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
     import blue
     import base
     import uix
-    
-    ballpark = eve.LocalSvc("michelle").GetBallpark()
-    if not ballpark:
-        return (False, "No ballpark")
-    
-    if targetID:
-        ball = ballpark.GetBall(targetID)
-        if not ball:
-            return (False, "Ball not in ballpark")
-    
+        
     moduleInfo = module.sr.moduleInfo
     moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
     
-    canActivate = canActivateModule(module)
+    canActivate = canActivateModule(module, targetID=targetID)
     if not canActivate[0]:
         return canActivate
     
@@ -226,8 +266,7 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
             repeatCount = 0
         else:
             repeatCount = 1000 # Not sure why it's this instead of 1 or true
-        module.SetRepeat(repeatCount)
-    
+        module.SetRepeat(repeatCount)    
             
     try:
         module.activationTimer = base.AutoTimer(500, module.ActivateEffectTimer)
@@ -318,6 +357,7 @@ class MainThreadInvoker(object):
 
 def _mainThreadQueueFunc():
     import blue
+    import uthread
     
     global MainThreadQueueRunning, MainThreadQueue, MainThreadQueueInvoker, MainThreadQueueInterval, MainThreadQueueItemDelay
     
@@ -329,10 +369,9 @@ def _mainThreadQueueFunc():
             item = MainThreadQueue.pop(0)
         
         if item:
-            try:
-                item[0](*item[1], **item[2])
-            except Exception, ex:
-                log("Error in %r: %r", item[0], ex)
+            fn, args, kwargs = item
+            
+            uthread.pool("MTQ", fn, *args, **kwargs)
             blue.pyos.synchro.Sleep(MainThreadQueueItemDelay)
         else:        
             blue.pyos.synchro.Sleep(MainThreadQueueInterval)
