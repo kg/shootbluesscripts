@@ -7,130 +7,121 @@
                 margin: 0px;
                 padding: 0px;
             }
+            body {
+                overflow: hidden;
+            }
         </style>
     </head>
     <body>
         <canvas id="viewport">
             Sorry, EVE Remote Control requires a browser with support for HTML5 Canvas.
         </canvas>
-        <canvas id="temppixels" style="display:none"></canvas>
-        <canvas id="tempmask" style="display:none"></canvas>
+        <canvas id="backbuffer" style="display: none">
+        </canvas>
         <script type="text/javascript">
             var counter = 0;
             var updateInProgress = false;
             
-            function getImagePixels (elt, img) {
-                var width = img.width;
-                var height = img.height;
-                if (elt.width != width)
-                    elt.width = width;
-                if (elt.height != height)
-                    elt.height = height;
-                var ctx = elt.getContext("2d");
-                ctx.globalCompositeOperation = "copy";
-                ctx.drawImage(img, 0, 0, width, height);
-                return ctx.getImageData(0, 0, width, height);
-            }
+            function updateViewport (pixels, indices) {
+                var vp = document.getElementById("viewport");
+                var vpc = vp.getContext("2d");
+                var bb = document.getElementById("backbuffer");
+                var bbc = bb.getContext("2d");
             
-            function updateViewport (canvas, ctx, pixels, mask) {
-                var width = pixels.width;
-                var height = pixels.height;
+                var blockSize = 16;
+                var srcWidth = indices[0]["x"];
+                var srcHeight = indices[0]["y"];
+                var dstWidth = window.innerWidth;
+                var dstHeight = window.innerHeight;
+                var ratio = Math.min(
+                    dstWidth / srcWidth, dstHeight / srcHeight
+                );
+                var floor = Math.floor;
                 
-                if (canvas.width != width)
-                    canvas.width = width;
-                if (canvas.height != height)
-                    canvas.height = height;
-
-                var canvasData = ctx.getImageData(0, 0, width, height);
-                var pixelData = getImagePixels(document.getElementById("temppixels"), pixels);
-                var maskData = getImagePixels(document.getElementById("tempmask"), mask);
-                var cd = canvasData.data;
-                var pd = pixelData.data;
-                var md = maskData.data;
+                dstWidth = floor(srcWidth * ratio);
+                dstHeight = floor(srcHeight * ratio);
                 
-                var blockSize = 8;
-                
-                for (var y = 0; y < height; y++) {
-                    var maskRow = Math.floor(y / blockSize) * maskData.width;
-                    var pixRow = y * pixelData.width * 4;
-                    for (var x = 0; x < width; x++, pixRow+=4) {
-                        if (md[Math.floor(maskRow + (x / blockSize)) * 4] != 0) {
-                            cd[pixRow] = pd[pixRow];
-                            cd[pixRow + 1] = pd[pixRow + 1];
-                            cd[pixRow + 2] = pd[pixRow + 2];
-                            cd[pixRow + 3] = pd[pixRow + 3];
-                        }
+                if (indices.length == 1) {
+                    // Keyframe
+                    if ((bb.width != srcWidth) || (bb.height != srcHeight)) {
+                        bb.width = srcWidth;
+                        bb.height = srcHeight;
+                    }
+                    bbc.drawImage(pixels, 0, 0, srcWidth, srcHeight);
+                } else if (indices.length > 1) {
+                    // Deltas
+                    var l = indices.length;
+                    for (var i = 1; i < l; i++) {
+                        var idx = indices[i];
+                        bbc.drawImage(
+                            pixels, (i - 1) * blockSize, 0, blockSize, blockSize, 
+                            idx["x"], idx["y"], blockSize, blockSize
+                        );
                     }
                 }
                 
-                try {
-                    ctx.putImageData(canvasData, 0, 0);
-                } catch (e) {
+                if ((vp.width != dstWidth) || (vp.height != dstHeight)) {
+                    vp.width = dstWidth;
+                    vp.height = dstHeight;
                 }
+                vpc.drawImage(
+                    bb, 0, 0, srcWidth, srcHeight,
+                    0, 0, dstWidth, dstHeight
+                );
                 
                 updateInProgress = false;
             }
             
             function refreshImage () {
-                var canvas = document.getElementById("viewport");
-                var ctx = canvas.getContext("2d");
+                if (updateInProgress)
+                    return;
+            
                 var error = "error";
-                var loadedImages = {
-                    "pixels": null,
-                    "mask": null
+                var data = {
+                    "deltas": null,
+                    "indices": null
                 };
-                var newPixels = document.createElement("img");
-                var newMask = document.createElement("img");
+                var newDeltas = document.createElement("img");
                 
                 var sync = function () {
-                    if ((loadedImages.pixels == null) || (loadedImages.mask == null))
+                    if ((data.deltas == null) || (data.indices == null))
                         return;
                 
-                    var succeeded = (loadedImages.pixels != error) &&
-                        (loadedImages.mask != error);
+                    var succeeded = (data.deltas != error) &&
+                        (data.indices != error);
                     
                     if (succeeded) {
                         if (updateInProgress)
                             window.setTimeout(sync, 1);
                         else {
                             updateInProgress = true;
-                            window.setTimeout(refreshImage, 66);
-                            updateViewport(canvas, ctx, newPixels, newMask);
+                            window.setTimeout(refreshImage, 33);
+                            updateViewport(data.deltas, data.indices);
                         }
-                    } else {
-                        ctx.globalCompositeOperation = "copy";
-                        ctx.fillStyle = "rgb(0,0,0)";
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    } else
                         window.setTimeout(refreshImage, 1000);
-                    }                    
                 };
                 
                 counter += 1;
                 
-                w = Math.floor(window.innerWidth);
-                h = Math.floor(window.innerHeight);
-                uri = "/eve/viewport?w=" + w + "&h=" + h + "&i=" + counter;
-                
-                newPixels.addEventListener("load", function () {
-                    loadedImages.pixels = newPixels;
+                newDeltas.addEventListener("load", function () {
+                    data.deltas = newDeltas;
                     sync();
                 }, true);
-                newPixels.addEventListener("error", function () {
-                    loadedImages.pixels = error;
+                newDeltas.addEventListener("error", function () {
+                    data.deltas = error;
                     sync();
                 }, true);
                 
-                newMask.addEventListener("load", function () {
-                    loadedImages.mask = newMask;
-                    sync();
-                }, true);
-                newMask.addEventListener("error", function () {
-                    loadedImages.mask = error;
-                    sync();
-                }, true);
-                
-                newPixels.setAttribute("src", uri + "&t=pixels");
-                newMask.setAttribute("src", uri + "&t=mask");
+                newDeltas.setAttribute("src", "/eve/viewport/deltas?i=" + counter);
+                $.getJSON(
+                    "/eve/viewport/indices",
+                    {"i": counter},
+                    function (result, status, xhr) {
+                        data.indices = result;
+                        sync();
+                    }
+                );
             }
 
             $("#viewport").ready(refreshImage);

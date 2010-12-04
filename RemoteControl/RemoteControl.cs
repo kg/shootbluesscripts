@@ -17,11 +17,32 @@ using System.Reflection;
 using Squared.Util;
 using System.Threading;
 using System.Drawing.Drawing2D;
+using System.Web.Script.Serialization;
 
 namespace ShootBlues.Script {
     static class BitmapDataExtensions {
         public static unsafe UInt32* Ptr (this BitmapData bd, int x, int y) {
             return (UInt32*)((byte*)bd.Scan0 + (y * bd.Stride) + (x * 4));
+        }
+    }
+
+    class PairConverter : JavaScriptConverter {
+        public override object Deserialize (IDictionary<string, object> dictionary, Type type, JavaScriptSerializer serializer) {
+            throw new NotImplementedException();
+        }
+
+        public override IDictionary<string, object> Serialize (object obj, JavaScriptSerializer serializer) {
+            var p = (Pair<int>)obj;
+            return new Dictionary<string, object> {
+                {"x", p.First},
+                {"y", p.Second}
+            };
+        }
+
+        public override IEnumerable<Type> SupportedTypes {
+            get {
+                yield return typeof(Pair<int>);
+            }
         }
     }
 
@@ -37,21 +58,21 @@ namespace ShootBlues.Script {
         [return: MarshalAs(UnmanagedType.Bool)]
         static extern bool PrintWindow (IntPtr hwnd, IntPtr hDC, uint nFlags);
 
-        const float FrameCaptureInterval = 1.0f / 15f;
-        const long KeyframeQuality = 50;
-        const int KeyframeInterval = 128;
-        const long DeltaQuality = 40;
-        const int ChangeThreshold = 20;
-        const int BlockSize = 8;
+        const float FrameCaptureInterval = 1.0f / 30f;
+        const long KeyframeQuality = 60;
+        const int KeyframeInterval = 512;
+        const long DeltaQuality = 35;
+        const int ChangeThreshold = 24;
+        const int BlockSize = 16;
+        const int MaxDeltaBlocks = 1536;
 
-        Bitmap FrameBuffer = null;
+        MemoryStream DeltaStream = new MemoryStream();
+        Bitmap FrameBuffer = null, DeltaFrame = null, DeltaBlocks = null;
+        Pair<int>[] DeltaIndices = null;
         long LastFrameTimestamp = 0;
+        long FrameIndex = -12344;
 
-        MemoryStream OutputFrameStream = new MemoryStream();
-        Bitmap LastOutputFrame, OutputFrame, Mask;
-        long FrameIndex = -12344, MaskIndex = -12344;
-
-        object FrameLock = new object(), MaskLock = new object();
+        object FrameLock = new object();
 
         ToolStripMenuItem CustomMenu;
         HttpListener HttpListener;
@@ -76,6 +97,9 @@ namespace ShootBlues.Script {
 
             if (FrameBuffer != null)
                 FrameBuffer.Dispose();
+            if (DeltaFrame != null)
+                DeltaFrame.Dispose();
+
             HttpTaskFuture.Dispose();
             HttpListener.Stop();
             /*
@@ -89,7 +113,10 @@ namespace ShootBlues.Script {
                 var fContext = HttpListener.GetContextAsync();
                 yield return fContext;
 
-                yield return new RunAsBackground(RequestTask(fContext.Result));
+                yield return new Start(
+                    RequestTask(fContext.Result), 
+                    TaskExecutionPolicy.RunAsBackgroundTask
+                );
             }
         }
 
@@ -103,8 +130,11 @@ namespace ShootBlues.Script {
                     case "/eve/":
                         task = ServeStaticFile(context, "index.html", "text/html");
                         break;
-                    case "/eve/viewport":
-                        task = ServeWindowScreenshot(context);
+                    case "/eve/viewport/deltas":
+                        task = ServeViewportDeltas(context);
+                        break;
+                    case "/eve/viewport/indices":
+                        task = ServeViewportIndices(context);
                         break;
                     case "/eve/decode.js":
                         task = ServeStaticFile(context, "decode.js", "text/javascript");
@@ -151,11 +181,11 @@ namespace ShootBlues.Script {
             g.CompositingMode = CompositingMode.SourceCopy;
             g.SmoothingMode = SmoothingMode.HighSpeed;
             g.CompositingQuality = CompositingQuality.HighSpeed;
-            g.InterpolationMode = InterpolationMode.Bilinear;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
             return g;
         }
 
-        protected unsafe void GenerateImages (IntPtr hWnd, int width, int height, long frameIndex, Action<Stream, Bitmap, long> encoder) {
+        protected unsafe void GenerateDeltas (IntPtr hWnd, long frameIndex) {
             RECT windowRect;
             IntPtr hDC = IntPtr.Zero;
             GetClientRect(hWnd, out windowRect);
@@ -163,15 +193,20 @@ namespace ShootBlues.Script {
             int windowWidth = windowRect.Right - windowRect.Left;
             int windowHeight = windowRect.Bottom - windowRect.Top;
 
-            float scale = Math.Min(
-                Math.Min(
-                    width / (float)windowWidth, 
-                    height / (float)windowHeight
-                ), 1.0f
-            );
+            if ((windowWidth == 0) || (windowHeight == 0)) {
+                if ((DeltaIndices == null) || (DeltaIndices.Length != 0))
+                    DeltaIndices = new Pair<int>[0];
+
+                DeltaStream.Seek(0, SeekOrigin.Begin);
+                DeltaStream.SetLength(0);
+
+                FrameIndex = frameIndex;
+                return;
+            }
 
             long oldFrameIndex = FrameIndex;
-            Bitmap oldFrame, newFrame, frameBuffer, mask;
+            bool[] mask;
+            Bitmap deltaFrame, blocks, frameBuffer;
             frameBuffer = GetSizedBitmap(windowWidth, windowHeight, ref FrameBuffer, PixelFormat.Format32bppRgb);
             long now = Time.Ticks;
             long timeDelta = now - LastFrameTimestamp;
@@ -187,125 +222,126 @@ namespace ShootBlues.Script {
                 LastFrameTimestamp = now;
             }           
 
-            int outputWidth = (int)Math.Max(Math.Floor(frameBuffer.Width * scale), 1);
-            int outputHeight = (int)Math.Max(Math.Floor(frameBuffer.Height * scale), 1);
-
-            int maskWidth = (int)Math.Ceiling(outputWidth / (float)BlockSize);
-            int maskHeight = (int)Math.Ceiling(outputHeight / (float)BlockSize);
+            int maskWidth = (int)Math.Ceiling(windowWidth / (float)BlockSize);
+            int maskHeight = (int)Math.Ceiling(windowHeight / (float)BlockSize);
 
             bool isKeyframe = ((frameIndex % KeyframeInterval) == 0) || 
                 (oldFrameIndex != (frameIndex - 1)) ||
-                (LastOutputFrame == null) || (LastOutputFrame.Width != outputWidth) ||
-                (LastOutputFrame.Height != outputHeight);
+                (DeltaFrame == null) || (DeltaFrame.Width != windowWidth) ||
+                (DeltaFrame.Height != windowHeight);
 
-            oldFrame = GetSizedBitmap(outputWidth, outputHeight, ref LastOutputFrame, PixelFormat.Format32bppRgb);
-            newFrame = GetSizedBitmap(outputWidth, outputHeight, ref OutputFrame, PixelFormat.Format32bppRgb);
-            mask = GetSizedBitmap(maskWidth, maskHeight, ref Mask, PixelFormat.Format32bppRgb);
+            var codec = GetEncoder(ImageFormat.Jpeg);
+            var codecParams = new EncoderParameters(1);
+            codecParams.Param[0] = new EncoderParameter(
+                System.Drawing.Imaging.Encoder.Quality, isKeyframe ? KeyframeQuality : DeltaQuality
+            );
 
-            var outputRect = new Rectangle(0, 0, outputWidth, outputHeight);
-            if (isKeyframe) {
-                // Prior frame is gone, so send raw image
-                lock (MaskLock)
-                    using (var g = GetGraphics(mask))
-                        g.Clear(Color.White);
-                using (var g = GetGraphics(oldFrame)) {
-                    if (scale == 1.0f)
-                        g.DrawImageUnscaledAndClipped(frameBuffer, outputRect);
-                    else
-                        g.DrawImage(frameBuffer, outputRect, new Rectangle(0, 0, frameBuffer.Width, frameBuffer.Height), GraphicsUnit.Pixel);
-                }
-                using (var g = GetGraphics(newFrame))
-                    g.DrawImageUnscaledAndClipped(oldFrame, outputRect);
+            deltaFrame = GetSizedBitmap(windowWidth, windowHeight, ref DeltaFrame, PixelFormat.Format32bppRgb);
+            mask = new bool[maskWidth * maskHeight];
 
-                OutputFrameStream.Seek(0, SeekOrigin.Begin);
-                OutputFrameStream.SetLength(0);
+            var deltaRect = new Rectangle(0, 0, windowWidth, windowHeight);
+            while (!isKeyframe) {
+                BitmapData bdOld, bdNew;
 
-                encoder(OutputFrameStream, newFrame, KeyframeQuality);
-            } else {
-                Rectangle lockRect, maskLockRect;
-                BitmapData bdOld, bdNew, bdMask;
-                lock (MaskLock) {
-                    // Send delta image
-                    using (var g = GetGraphics(mask))
-                        g.Clear(Color.FromArgb(0, 0, 0, 0));
-                    using (var g = GetGraphics(newFrame)) {
-                        if (scale == 1.0f)
-                            g.DrawImageUnscaledAndClipped(frameBuffer, outputRect);
-                        else
-                            g.DrawImage(frameBuffer, outputRect, new Rectangle(0, 0, frameBuffer.Width, frameBuffer.Height), GraphicsUnit.Pixel);
-                    }
+                bdOld = deltaFrame.LockBits(deltaRect, ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
+                bdNew = frameBuffer.LockBits(deltaRect, ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
+                int deltaBlockCount = 0;
 
-                    lockRect = new Rectangle(0, 0, outputWidth, outputHeight);
-                    maskLockRect = new Rectangle(0, 0, maskWidth, maskHeight);
+                fixed (bool* pMask = mask)
+                for (int y = 0; y < windowHeight; y++) {
+                    for (int x = 0; x < windowWidth; x++) {
+                        int maskIndex = (y / BlockSize) * maskWidth + (x / BlockSize);
+                        if (pMask[maskIndex]) {
+                            x += BlockSize - (x % BlockSize) - 1;
+                            continue;
+                        }
 
-                    bdOld = oldFrame.LockBits(lockRect, ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
-                    bdNew = newFrame.LockBits(lockRect, ImageLockMode.ReadWrite, PixelFormat.Format32bppRgb);
-                    bdMask = mask.LockBits(maskLockRect, ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+                        var pOld = (byte*)bdOld.Ptr(x, y);
+                        var pNew = (byte*)bdNew.Ptr(x, y);
 
-                    for (int y = 0; y < outputHeight; y++) {
-                        for (int x = 0; x < outputWidth; x++) {
-                            var pOld = (byte*)bdOld.Ptr(x, y);
-                            var pNew = (byte*)bdNew.Ptr(x, y);
-                            var pMask = bdMask.Ptr(x / BlockSize, y / BlockSize);
+                        var rDelta = Math.Abs(pNew[0] - pOld[0]) +
+                            Math.Abs(pNew[1] - pOld[1]) +
+                            Math.Abs(pNew[2] - pOld[2]);
 
-                            var rDelta = Math.Abs(pNew[0] - pOld[0]) +
-                                Math.Abs(pNew[1] - pOld[1]) +
-                                Math.Abs(pNew[2] - pOld[2]);
-
-                            if (rDelta > ChangeThreshold) {
-                                *pMask = 0xFFFFFFFF;
-                                x += BlockSize - (x % BlockSize) - 1;
-                            }
+                        if (rDelta > ChangeThreshold) {
+                            pMask[maskIndex] = true;
+                            deltaBlockCount += 1;
+                            x += BlockSize - (x % BlockSize) - 1;
                         }
                     }
-
-                    mask.UnlockBits(bdMask);
-
-                    MaskIndex = frameIndex;
                 }
 
-                bdMask = mask.LockBits(maskLockRect, ImageLockMode.ReadOnly, PixelFormat.Format32bppRgb);
+                deltaFrame.UnlockBits(bdOld);
+                frameBuffer.UnlockBits(bdNew);
+
+                // Hack :(
+                if (deltaBlockCount == 0) {
+                    break;
+                } else if (deltaBlockCount >= MaxDeltaBlocks) {
+                    isKeyframe = true;
+                    break;
+                }
+
+                blocks = GetSizedBitmap(BlockSize * deltaBlockCount, BlockSize, ref DeltaBlocks, PixelFormat.Format32bppRgb);
+                if ((DeltaIndices == null) || (DeltaIndices.Length != deltaBlockCount + 1))
+                    DeltaIndices = new Pair<int>[deltaBlockCount + 1];
 
                 Rectangle rect = new Rectangle();
-                for (int y = 0; y < maskHeight; y++, rect.Y += BlockSize) {
-                    rect.X = 0;
-                    rect.Height = Math.Min(BlockSize, bdNew.Height - rect.Y);
+                fixed (bool* pMask = mask)
+                using (var gblocks = GetGraphics(blocks))
+                using (var gdelta = GetGraphics(deltaFrame)) {
+                    var idx = new Pair<int>(windowWidth, windowHeight);
+                    DeltaIndices[0] = idx;
 
-                    for (int x = 0; x < maskWidth; x++, rect.X += BlockSize) {
-                        rect.Width = Math.Min(BlockSize, bdNew.Width - rect.X);
+                    gblocks.Clear(Color.Black);
 
-                        var pMask = bdMask.Ptr(x, y);
-                        if (*pMask != 0) {
-                            for (int cy = 0; cy < rect.Height; cy++) {
-                                var pOld = bdOld.Ptr(rect.X, rect.Y + cy);
-                                var pNew = bdNew.Ptr(rect.X, rect.Y + cy);
-                                for (int cx = 0; cx < rect.Width; cx++, pOld++, pNew++)
-                                    *pOld = *pNew;
-                            }
-                        } else {
-                            for (int cy = 0; cy < rect.Height; cy++) {
-                                var pNew = bdNew.Ptr(rect.X, rect.Y + cy);
-                                for (int cx = 0; cx < rect.Width; cx++, pNew++)
-                                    *pNew = 0;
-                            }
-                        }
+                    for (int i = 0, j = 0; i < mask.Length; i++) {
+                        if (!pMask[i])
+                            continue;
+
+                        idx.First = rect.X = (i % maskWidth) * BlockSize;
+                        idx.Second = rect.Y = (i / maskWidth) * BlockSize;
+                        DeltaIndices[j + 1] = idx;
+                        rect.Width = BlockSize;
+                        rect.Height = BlockSize;
+                        gblocks.DrawImage(frameBuffer, j * BlockSize, 0, rect, GraphicsUnit.Pixel);
+                        gdelta.DrawImage(frameBuffer, rect, rect, GraphicsUnit.Pixel);
+
+                        j += 1;
                     }
                 }
 
-                OutputFrameStream.Seek(0, SeekOrigin.Begin);
-                OutputFrameStream.SetLength(0);
+                DeltaStream.Seek(0, SeekOrigin.Begin);
+                DeltaStream.SetLength(0);
+                blocks.Save(DeltaStream, codec, codecParams);
+                Console.WriteLine("Deltas {0:0000000} byte(s)", DeltaStream.Length);
 
-                encoder(OutputFrameStream, newFrame, DeltaQuality);
+                FrameIndex = frameIndex;
 
-                newFrame.UnlockBits(bdNew);
-                oldFrame.UnlockBits(bdOld);
-                mask.UnlockBits(bdMask);
+                return;
             }
 
-            if (isKeyframe)
-                Console.WriteLine("Keyframe {0} bytes", OutputFrameStream.Length);
-            else
-                Console.WriteLine("Deltas {0} bytes", OutputFrameStream.Length);
+            if (isKeyframe) {
+                using (var g = GetGraphics(deltaFrame))
+                    g.DrawImageUnscaledAndClipped(frameBuffer, deltaRect);
+
+                if ((DeltaIndices == null) || (DeltaIndices.Length != 1)) {
+                    DeltaIndices = new Pair<int>[1];
+                    DeltaIndices[0] = new Pair<int>(windowWidth, windowHeight);
+                }
+
+                DeltaStream.Seek(0, SeekOrigin.Begin);
+                DeltaStream.SetLength(0);
+                deltaFrame.Save(DeltaStream, codec, codecParams);
+
+                Console.WriteLine("Keyframe {0:0000000} byte(s)", DeltaStream.Length);
+            } else {
+                if ((DeltaIndices == null) || (DeltaIndices.Length != 0))
+                    DeltaIndices = new Pair<int>[0];
+
+                DeltaStream.Seek(0, SeekOrigin.Begin);
+                DeltaStream.SetLength(0);
+            }
 
             FrameIndex = frameIndex;
         }
@@ -318,86 +354,63 @@ namespace ShootBlues.Script {
             return null;
         }
 
-        public IEnumerator<object> ServeWindowScreenshot (HttpListenerContext context) {
+        public IEnumerator<object> ServeViewportDeltas (HttpListenerContext context) {
             if (Program.RunningProcesses.Count == 0) {
                 yield return ServeError(context, 500, "No running EVE processes");
                 yield break;
             }
 
-            string type = context.Request.QueryString["t"];
-            int width = int.Parse(context.Request.QueryString["w"]);
-            int height = int.Parse(context.Request.QueryString["h"]);
+            var windowPtr = GetProcessWindow(Program.RunningProcesses.First());
             long frameIndex = long.Parse(context.Request.QueryString["i"]);
 
+            context.Response.AppendHeader("Cache-Control", "no-store, no-cache, private");
+            context.Response.ContentType = "image/jpeg";
+
+            yield return Future.RunInThread(() => {
+                lock (FrameLock) {
+                    if (frameIndex != FrameIndex)
+                        GenerateDeltas(windowPtr, frameIndex);
+
+                    DeltaStream.Seek(0, SeekOrigin.Begin);
+                    try {
+                        context.Response.ContentLength64 = DeltaStream.Length;
+                        CopyStream(DeltaStream, context.Response.OutputStream);
+                    } catch (HttpListenerException) {
+                    }
+                }
+            });
+        }
+
+        public IEnumerator<object> ServeViewportIndices (HttpListenerContext context) {
+            if (Program.RunningProcesses.Count == 0) {
+                yield return ServeError(context, 500, "No running EVE processes");
+                yield break;
+            }
+
             var windowPtr = GetProcessWindow(Program.RunningProcesses.First());
+            long frameIndex = long.Parse(context.Request.QueryString["i"]);
 
             context.Response.AppendHeader("Cache-Control", "no-store, no-cache, private");
+            context.Response.ContentType = "application/json";
 
-            var codec = GetEncoder(ImageFormat.Jpeg);
-            var codecParams = new EncoderParameters(1);
+            var ser = new JavaScriptSerializer();
+            var converter = new PairConverter();
+            ser.RegisterConverters(new[] { converter });
 
-            var fFrameStream = new Future<MemoryStream>();
-            var fMask = new Future<Bitmap>();
-            var jpegEncoder = (Action<Stream, Bitmap, long>)((s, b, q) => {
-                codecParams.Param[0] = new EncoderParameter(
-                    System.Drawing.Imaging.Encoder.Quality, q
-                );
-                b.Save(s, codec, codecParams);
-            });
-
-            Action generateImages = () => {
+            var fStr = Future.RunInThread(() => {
                 lock (FrameLock) {
-                    if (frameIndex != FrameIndex)                        
-                        GenerateImages(windowPtr, width, height, frameIndex, jpegEncoder);
+                    if (FrameIndex != frameIndex)
+                        GenerateDeltas(windowPtr, frameIndex);
 
-                    fFrameStream.Complete(this.OutputFrameStream);
-                    fMask.Complete(this.Mask);
+                    return ser.Serialize(DeltaIndices);
                 }
-            };
+            });
+            yield return fStr;
 
-            if (type == "mask") {
-                long currentIndex;
-                lock (MaskLock) {
-                    currentIndex = MaskIndex;
-                    if (MaskIndex == frameIndex)
-                        fMask.Complete(this.Mask);
-                }
-
-                if (currentIndex != frameIndex)
-                    yield return Future.RunInThread(generateImages);
-            } else {
-                long currentIndex;
-                lock (MaskLock) {
-                    currentIndex = FrameIndex;
-                    if (FrameIndex == frameIndex)
-                        fFrameStream.Complete(this.OutputFrameStream);
-                }
-
-                if (currentIndex != frameIndex)
-                    yield return Future.RunInThread(generateImages);
-            }
-
-            var memStream = new MemoryStream();
-
-            if (type == "mask") {
-                context.Response.ContentType = "image/png";
-
-                memStream.Seek(0, SeekOrigin.Begin);
-                yield return Future.RunInThread(() => {
-                    fMask.Result.Save(memStream, ImageFormat.Png);
-                });
-            } else {
-                context.Response.ContentType = "image/jpeg";
-
-                memStream = OutputFrameStream;
-            }
-
-            context.Response.ContentLength64 = memStream.Length;
-            memStream.Seek(0, SeekOrigin.Begin);
-            try {
-                CopyStream(memStream, context.Response.OutputStream);
-            } catch (HttpListenerException) {
-            }
+            var enc = Encoding.UTF8;
+            context.Response.ContentLength64 = enc.GetByteCount(fStr.Result);
+            using (var writer = context.GetResponseWriter(enc))
+                yield return writer.Write(fStr.Result);
         }
 
         public static Stream GetResourceStream (string filename) {
