@@ -22,8 +22,10 @@ def forceStop(serviceName):
         if serviceInstance:
             del runningServices[serviceName]
             ne = getattr(serviceInstance, "__notifyevents__", [])
-            if len(ne):
-                sm.UnregisterNotify(serviceInstance)
+            for evt in ne:
+                nl = sm.notify.get(evt, [])
+                if serviceInstance in nl:
+                    nl.remove(serviceInstance)                
     finally:
         stackless.getcurrent().block_trap = old_block_trap
 
@@ -31,6 +33,7 @@ def forceStart(serviceName, serviceType):
     global runningServices
     
     import stackless
+    import service
     old_block_trap = stackless.getcurrent().block_trap
     stackless.getcurrent().block_trap = 1
     try:
@@ -39,15 +42,17 @@ def forceStart(serviceName, serviceType):
             forceStop(serviceName)
         
         result = serviceType()
+        setattr(result, "state", service.SERVICE_RUNNING)
         runningServices[serviceName] = result
         
         ne = getattr(result, "__notifyevents__", [])
         if len(ne):
-            for event in ne:
-                if (not hasattr(result, event)):
-                    log("Missing event handler for %r on %r", event, result)
-            
-            sm.RegisterNotify(result)
+            for evt in ne:
+                if (not hasattr(result, evt)):
+                    log("Missing event handler for %r on %r", evt, result)
+                else:
+                    nl = sm.notify.get(evt, [])
+                    nl.append(result)
         
         return result
     finally:

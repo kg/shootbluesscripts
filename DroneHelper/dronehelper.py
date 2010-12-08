@@ -75,6 +75,7 @@ class DroneHelperSvc:
         self.__updateTimer = None
         self.__lastAttackOrder = None
         self.__recalledDrones = {}
+        self.__numFighters = 0
         self.disabled = False
         self.checkUpdateTimer()
     
@@ -119,10 +120,17 @@ class DroneHelperSvc:
     
     def getDroneControlRange(self):
         godma = eve.LocalSvc("godma")
-        return int(max(
-            godma.GetItem(eve.session.shipid).droneControlDistance,
-            godma.GetItem(eve.session.charid).droneControlDistance
-        ))
+        ship = godma.GetItem(eve.session.shipid)
+        char = godma.GetItem(eve.session.charid)
+        if self.__numFighters > 0:
+            fighterRangeMultiplier = float(getattr(ship, "droneRangeBonus", 1.0))
+        else:
+            fighterRangeMultiplier = 1.0
+        result = int(max(
+            ship.droneControlDistance,
+            char.droneControlDistance
+        ) * fighterRangeMultiplier)
+        return result
     
     def getCommonTarget(self, threshold, filtered=True):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -181,7 +189,7 @@ class DroneHelperSvc:
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         if not ballpark:
             return []
-            
+        
         controlRange = self.getDroneControlRange()
         result = []
         
@@ -329,6 +337,13 @@ class DroneHelperSvc:
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
         dronesToAttack = []
+        
+        self.__numFighters = 0
+        for droneID in droneIDs:
+            slimItem = ballpark.GetInvItem(droneID)
+            if ((slimItem.groupID == const.groupFighterDrone) or
+                (slimItem.groupID == const.groupFighterBomber)):
+                self.__numFighters += 1
         
         for (pendingID, psc) in list(self.__pendingStateChanges.items()):
             if self.__pendingStateChanges.has_key(pendingID):

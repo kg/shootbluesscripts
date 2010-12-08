@@ -1,6 +1,6 @@
 ﻿<html>
     <head>
-        <title>Internet Spaceships!</title>
+        <title>EVE Remote Control</title>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js" type="text/javascript"></script>
         <style type="text/css">
             body, html, head, div, img {
@@ -11,6 +11,7 @@
                 overflow: hidden;
             }
         </style>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     </head>
     <body>
         <canvas id="viewport">
@@ -21,6 +22,9 @@
         <script type="text/javascript">
             var counter = 0;
             var updateInProgress = false;
+            var eventQueue = [];
+            var eventInProgress = false;
+            var scaleRatio = 1.0;
             
             function updateViewport (pixels, indices) {
                 var vp = document.getElementById("viewport");
@@ -33,13 +37,13 @@
                 var srcHeight = indices[0]["y"];
                 var dstWidth = window.innerWidth;
                 var dstHeight = window.innerHeight;
-                var ratio = Math.min(
+                scaleRatio = Math.min(
                     dstWidth / srcWidth, dstHeight / srcHeight
                 );
                 var floor = Math.floor;
                 
-                dstWidth = floor(srcWidth * ratio);
-                dstHeight = floor(srcHeight * ratio);
+                dstWidth = floor(srcWidth * scaleRatio);
+                dstHeight = floor(srcHeight * scaleRatio);
                 
                 if (indices.length == 1) {
                     // Keyframe
@@ -113,9 +117,9 @@
                     sync();
                 }, true);
                 
-                newDeltas.setAttribute("src", "/eve/viewport/deltas?i=" + counter);
+                newDeltas.setAttribute("src", "viewport/deltas?i=" + counter);
                 $.getJSON(
-                    "/eve/viewport/indices",
+                    "viewport/indices",
                     {"i": counter},
                     function (result, status, xhr) {
                         data.indices = result;
@@ -123,8 +127,103 @@
                     }
                 );
             }
+            
+            function sendEvent (eventType, payload) {
+                if (eventInProgress) {
+                    eventQueue.push({
+                        "type": eventType,
+                        "payload": eventPayload
+                    });
+                    return;
+                }
+                eventInProgress = true;
+                
+                var callback = function (data) {
+                    eventInProgress = false;
+                    if (eventQueue.length > 0) {
+                        var evt = eventQueue.pop();
+                        sendEvent(evt.type, evt.payload);
+                    }
+                };
+                
+                $.ajax({
+                    type: "POST",
+                    url: "event/" + eventType, 
+                    data: payload,
+                    dataType: "json",
+                    success: callback,
+                    error: callback
+                });
+            }
+            
+            function getMouseArgs (evt) {
+                var result = {
+                    "x": Math.floor(evt.pageX / scaleRatio),
+                    "y": Math.floor(evt.pageY / scaleRatio)
+                };
+                if ((evt.which >= 1) && (evt.which <= 3)) {
+                    var buttonNames = ["Left", "Middle", "Right"];
+                    result.button = buttonNames[evt.which - 1];
+                }
+                return result;
+            }
+            
+            function onMouseDown (evt) {
+                evt.preventDefault();
+                var args = getMouseArgs(evt);
+                sendEvent("mousedown", args);
+            }
+            
+            function onMouseMove (evt) {
+                evt.preventDefault();
+                var args = getMouseArgs(evt);
+                sendEvent("mousemove", args);
+            }
+            
+            function onMouseUp (evt) {
+                evt.preventDefault();
+                var args = getMouseArgs(evt);
+                sendEvent("mouseup", args);
+            }
+            
+            function onContextMenu (evt) {
+                evt.preventDefault();
+                return false;
+            }
+            
+            function onKeyDown (evt) {
+                if ((evt.which == 13) || (evt.which == 10) || (evt.which == 8) || (evt.which == 9) || (evt.which == 27)) {
+                    evt.preventDefault();
+                    onKeyPress(evt);
+                }
+            }
+            
+            function onKeyUp (evt) {
+                if ((evt.which == 13) || (evt.which == 10) || (evt.which == 8) || (evt.which == 9) || (evt.which == 27))
+                    evt.preventDefault();
+            }
+            
+            function onKeyPress (evt) {
+                var args = {
+                    "char": evt.which
+                };
+                sendEvent("keypress", args);
+                evt.preventDefault();
+            }
+            
+            function initialize () {
+                var vp = $("#viewport");
+                vp.bind("mousedown", onMouseDown);
+                vp.bind("mousemove", onMouseMove);
+                vp.bind("mouseup", onMouseUp);
+                vp.bind("contextmenu", onContextMenu);
+                $(document).bind("keydown", onKeyDown);
+                $(document).bind("keyup", onKeyUp);
+                $(document).bind("keypress", onKeyPress);
+                refreshImage();
+            }
 
-            $("#viewport").ready(refreshImage);
+            $("#viewport").ready(initialize);
         </script>
     </body>
 </html>

@@ -33,7 +33,7 @@ namespace ShootBlues.Profile {
             while ((hWnd == IntPtr.Zero) && (!process.HasExited)) {
                 yield return new Sleep(1);
 
-                hWnd = Win32.FindWindow("triuiScreen", "EVE");
+                hWnd = Win32.FindProcessWindow(process.Id, "triuiScreen", "EVE");
             }
 
             if (hWnd == IntPtr.Zero) {
