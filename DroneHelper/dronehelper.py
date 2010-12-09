@@ -341,8 +341,10 @@ class DroneHelperSvc:
         self.__numFighters = 0
         for droneID in droneIDs:
             slimItem = ballpark.GetInvItem(droneID)
-            if ((slimItem.groupID == const.groupFighterDrone) or
-                (slimItem.groupID == const.groupFighterBomber)):
+            if (slimItem and (
+                (slimItem.groupID == const.groupFighterDrone) or
+                (slimItem.groupID == const.groupFighterBomber)
+               )):
                 self.__numFighters += 1
         
         for (pendingID, psc) in list(self.__pendingStateChanges.items()):

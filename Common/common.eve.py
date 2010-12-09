@@ -392,10 +392,6 @@ def runOnMainThread(fn, *args, **kwargs):
         MainThreadQueueInvoker = MainThreadInvoker(startMainThreadQueue)
             
 class SafeTimer(object):
-    __notifyevents__ = [
-        "OnSessionChanged"
-    ]
-        
     def __init__(self, interval, handler):
         self.__interval = interval
         self.__handler = handler
@@ -403,7 +399,6 @@ class SafeTimer(object):
         self.__started = True
         
         self.syncState()
-        sm.RegisterNotify(self)
     
     def start(self):
         if self.__started:
