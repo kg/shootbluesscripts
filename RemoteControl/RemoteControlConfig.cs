@@ -121,12 +121,12 @@ namespace ShootBlues.Script {
             this.ServerPort.Location = new System.Drawing.Point(161, 17);
             this.ServerPort.Margin = new System.Windows.Forms.Padding(1);
             this.ServerPort.Maximum = new decimal(new int[] {
-            9999,
+            32766,
             0,
             0,
             0});
             this.ServerPort.Minimum = new decimal(new int[] {
-            16,
+            1,
             0,
             0,
             0});
@@ -245,7 +245,7 @@ namespace ShootBlues.Script {
             0,
             0});
             this.KeyframeThreshold.Minimum = new decimal(new int[] {
-            100,
+            1,
             0,
             0,
             0});

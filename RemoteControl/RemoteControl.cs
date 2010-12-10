@@ -124,7 +124,7 @@ namespace ShootBlues.Script {
         );
 
         Random SauceGen = new Random();
-        Dictionary<string, string> UserSauce = new Dictionary<string, string>();
+        Dictionary<string, Pair<string>> UserTokens = new Dictionary<string, Pair<string>>();
         Dictionary<string, object> CurrentPrefs = null;
         Dictionary<int, ProcessState> States = new Dictionary<int, ProcessState>();
 
@@ -783,14 +783,17 @@ namespace ShootBlues.Script {
         private string GetSauceForUser (HttpListenerContext context, bool forceNew) {
             var key = context.Request.RemoteEndPoint.Address.ToString();
 
-            string result;
-            if (forceNew || !UserSauce.TryGetValue(key, out result)) {
+            Pair<string> token;
+            if (forceNew || !UserTokens.TryGetValue(key, out token)) {
                 byte[] buffer = new byte[16];
                 SauceGen.NextBytes(buffer);
-                result = UserSauce[key] = ToHexDigest(buffer);
+                token.First = ToHexDigest(buffer);
+                SauceGen.NextBytes(buffer);
+                token.Second = ToHexDigest(buffer);
+                UserTokens[key] = token;
             }
 
-            return result;
+            return token.First;
         }
 
         private bool CheckHMACsEqual (string expected, string actual) {
@@ -816,8 +819,10 @@ namespace ShootBlues.Script {
         }
 
         private string GenAuthSignature (HttpListenerContext context, string hmac) {
-            var userAddress = context.Request.RemoteEndPoint.Address.ToString();
-            return ComputeHMAC(userAddress, hmac);
+            var key = context.Request.RemoteEndPoint.Address.ToString();
+
+            var token = UserTokens[key];
+            return ComputeHMAC(token.Second, hmac);
         }
 
         private AuthLevel GetAuthLevel (HttpListenerContext context) {
