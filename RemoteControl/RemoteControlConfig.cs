@@ -96,12 +96,10 @@ namespace ShootBlues.Script {
             // 
             this.FullAccessPassword.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.FullAccessPassword.Enabled = false;
             this.FullAccessPassword.Location = new System.Drawing.Point(161, 75);
             this.FullAccessPassword.Margin = new System.Windows.Forms.Padding(1);
             this.FullAccessPassword.Name = "FullAccessPassword";
             this.FullAccessPassword.PasswordChar = '●';
-            this.FullAccessPassword.ReadOnly = true;
             this.FullAccessPassword.Size = new System.Drawing.Size(95, 23);
             this.FullAccessPassword.TabIndex = 4;
             // 
@@ -109,12 +107,10 @@ namespace ShootBlues.Script {
             // 
             this.ViewOnlyPassword.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.ViewOnlyPassword.Enabled = false;
             this.ViewOnlyPassword.Location = new System.Drawing.Point(161, 46);
             this.ViewOnlyPassword.Margin = new System.Windows.Forms.Padding(1);
             this.ViewOnlyPassword.Name = "ViewOnlyPassword";
             this.ViewOnlyPassword.PasswordChar = '●';
-            this.ViewOnlyPassword.ReadOnly = true;
             this.ViewOnlyPassword.Size = new System.Drawing.Size(95, 23);
             this.ViewOnlyPassword.TabIndex = 2;
             // 
@@ -145,7 +141,6 @@ namespace ShootBlues.Script {
             // 
             // label3
             // 
-            this.label3.Enabled = false;
             this.label3.Location = new System.Drawing.Point(1, 75);
             this.label3.Margin = new System.Windows.Forms.Padding(1);
             this.label3.Name = "label3";
@@ -166,7 +161,6 @@ namespace ShootBlues.Script {
             // 
             // label2
             // 
-            this.label2.Enabled = false;
             this.label2.Location = new System.Drawing.Point(1, 46);
             this.label2.Margin = new System.Windows.Forms.Padding(1);
             this.label2.Name = "label2";

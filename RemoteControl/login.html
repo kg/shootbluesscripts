@@ -1,0 +1,28 @@
+﻿<html>
+    <head>
+        <title>EVE Remote Control - Login</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js" type="text/javascript"></script>
+        <style type="text/css">
+        </style>
+    </head>
+    <body>
+        <script src="/eve/sha.js" type="text/javascript"></script>
+        <h1>EVE Remote Control - Login</h1>
+        <form name="login" id="login" action="login" method="POST">
+            <input type="hidden" name="hmac" id="hmac" />
+            <label for="password"><b>Password</b>:</label>
+            <input type="password" id="password" />
+            <input type="submit" id="submit" value="Login" />
+        </form>
+        <script type="text/javascript">
+            var sauce = "{sauce}";
+        
+            $("#login").submit(function () {
+                var hmac = SHA1(
+                    sauce + SHA1(sauce + document.getElementById("password").value)
+                );
+                document.getElementById("hmac").value = hmac;
+            });
+        </script>
+    </body>
+</html>

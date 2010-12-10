@@ -22,6 +22,8 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Collections.Specialized;
 using System.Collections;
+using Squared.Task.IO;
+using System.Security.Cryptography;
 
 namespace ShootBlues.Script {
     static class BitmapDataExtensions {
@@ -57,6 +59,12 @@ namespace ShootBlues.Script {
             Left = 0x01,
             Middle = 0x10,
             Right = 0x02
+        }
+
+        public enum AuthLevel {
+            Unauthorized,
+            ViewOnly,
+            FullAccess
         }
 
         public class ProcessState : IDisposable {
@@ -95,6 +103,8 @@ namespace ShootBlues.Script {
             }
         }
 
+        const string AuthTokenCookie = "EveRC-AuthToken";
+
         const int WM_KEYDOWN = 0x0100;
         const int WM_KEYUP = 0x0101;
         const int WM_CHAR = 0x0102;
@@ -113,6 +123,8 @@ namespace ShootBlues.Script {
             @"/eve/(?'pid'[0-9]*)(?'rest'(/)(.*))", RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.Singleline
         );
 
+        Random SauceGen = new Random();
+        Dictionary<string, string> UserSauce = new Dictionary<string, string>();
         Dictionary<string, object> CurrentPrefs = null;
         Dictionary<int, ProcessState> States = new Dictionary<int, ProcessState>();
 
@@ -212,7 +224,7 @@ namespace ShootBlues.Script {
                     switch (path) {
                         case "/":
                         case "/index":
-                            task = ServeStaticFile(context, "process_index.html", "text/html");
+                            task = ServeProcessIndex(context, process);
                         break;
                         case "/viewport/deltas":
                             task = ServeViewportDeltas(context, process);
@@ -238,6 +250,12 @@ namespace ShootBlues.Script {
                         case "/eve/":
                         case "/eve/index":
                             task = ServeProcessList(context);
+                        break;
+                        case "/eve/login":
+                            task = ServeLoginPage(context);
+                        break;
+                        case "/eve/sha.js":
+                            task = ServeStaticFile(context, "sha.js", "text/javascript");
                         break;
                     }
                 }
@@ -491,6 +509,11 @@ namespace ShootBlues.Script {
         }
 
         public IEnumerator<object> ServeViewportDeltas (HttpListenerContext context, ProcessInfo process) {
+            if (GetAuthLevel(context) == AuthLevel.Unauthorized) {
+                yield return ServeError(context, 403, "Not authorized");
+                yield break;
+            }
+
             var ps = GetState(process);
             long frameIndex = long.Parse(context.Request.QueryString["i"]);
 
@@ -513,6 +536,11 @@ namespace ShootBlues.Script {
         }
 
         public IEnumerator<object> ServeViewportIndices (HttpListenerContext context, ProcessInfo process) {
+            if (GetAuthLevel(context) == AuthLevel.Unauthorized) {
+                yield return ServeError(context, 403, "Not authorized");
+                yield break;
+            }
+
             var ps = GetState(process);
             long frameIndex = long.Parse(context.Request.QueryString["i"]);
 
@@ -553,6 +581,11 @@ namespace ShootBlues.Script {
 
             if (requestBody == null) {
                 yield return ServeError(context, 500, "Events require a request body");
+                yield break;
+            }
+
+            if (GetAuthLevel(context) != AuthLevel.FullAccess) {
+                yield return ServeError(context, 403, "Not authorized");
                 yield break;
             }
             
@@ -638,6 +671,11 @@ namespace ShootBlues.Script {
                 yield break;
             }
 
+            if (GetAuthLevel(context) != AuthLevel.FullAccess) {
+                yield return ServeError(context, 403, "Not authorized");
+                yield break;
+            }
+
             short charCode = short.Parse(requestBody["char"]);
 
             short virtCode = Win32.VkKeyScan(charCode);
@@ -712,12 +750,18 @@ namespace ShootBlues.Script {
             }
         }
 
-        public static IEnumerator<object> ServeProcessList (HttpListenerContext context) {
+        public IEnumerator<object> ServeProcessList (HttpListenerContext context) {
+            var authLevel = GetAuthLevel(context);
+            if (authLevel == AuthLevel.Unauthorized) {
+                context.Response.Redirect("/eve/login");
+                yield break;
+            }
+
             context.Response.ContentType = "text/html";
 
             using (var resp = context.GetResponseWriter(Encoding.UTF8)) {
                 yield return resp.WriteLines(
-                    "<html><head><title>EVE Remote Control</title></head>",
+                    String.Format("<html><head><title>EVE Remote Control - {0}</title></head>", authLevel),
                     "<body><h1>EVE Remote Control</h1><ul>"
                 );
 
@@ -729,6 +773,158 @@ namespace ShootBlues.Script {
                 yield return resp.WriteLine(
                     "</ul></body></html>"
                 );
+            }
+        }
+
+        private string ToHexDigest (byte[] bytes) {
+            return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+        }
+
+        private string GetSauceForUser (HttpListenerContext context, bool forceNew) {
+            var key = context.Request.RemoteEndPoint.Address.ToString();
+
+            string result;
+            if (forceNew || !UserSauce.TryGetValue(key, out result)) {
+                byte[] buffer = new byte[16];
+                SauceGen.NextBytes(buffer);
+                result = UserSauce[key] = ToHexDigest(buffer);
+            }
+
+            return result;
+        }
+
+        private bool CheckHMACsEqual (string expected, string actual) {
+            bool result = expected.Length == actual.Length;
+            int len = Math.Min(expected.Length, actual.Length);
+            for (int i = 0; i < len; i++)
+                result &= (expected[i] == actual[i]);
+
+            return result;
+        }
+
+        private string ComputeHMAC (string sauce, string message) {
+            var sha = SHA1.Create();
+
+            var inner = ToHexDigest(sha.ComputeHash(Encoding.UTF8.GetBytes(sauce + message)));
+            var outer = ToHexDigest(sha.ComputeHash(Encoding.UTF8.GetBytes(sauce + inner)));
+
+            return outer;
+        }
+
+        private string GenAuthToken (HttpListenerContext context, string hmac) {
+            return String.Format("{0}|{1}", hmac, GenAuthSignature(context, hmac));
+        }
+
+        private string GenAuthSignature (HttpListenerContext context, string hmac) {
+            var userAddress = context.Request.RemoteEndPoint.Address.ToString();
+            return ComputeHMAC(userAddress, hmac);
+        }
+
+        private AuthLevel GetAuthLevel (HttpListenerContext context) {
+            var result = AuthLevel.Unauthorized;
+            var sauce = GetSauceForUser(context, false);
+
+            var cookie = context.Request.Cookies[AuthTokenCookie];
+            if (cookie != null) {
+                var parts = cookie.Value.Split('|');
+                var hmac = parts[0];
+                var sig = parts[1];
+                var expectedSig = GenAuthSignature(context, hmac);
+
+                result = CheckAuthLevel(context, hmac);
+
+                if (!CheckHMACsEqual(expectedSig, sig))
+                    result = AuthLevel.Unauthorized;
+            }
+
+            return result;
+        }
+
+        private AuthLevel CheckAuthLevel (HttpListenerContext context, string hmac) {
+            var result = AuthLevel.Unauthorized;
+            var sauce = GetSauceForUser(context, false);
+
+            var password = GetPref<string>("ViewOnlyPassword", null);
+            if (password != null) {
+                var viewOnlyHmac = ComputeHMAC(sauce, password);
+
+                if (CheckHMACsEqual(viewOnlyHmac, hmac))
+                    result = AuthLevel.ViewOnly;
+            }
+
+            password = GetPref<string>("FullAccessPassword", null);
+            if (password != null) {
+                var fullAccessHmac = ComputeHMAC(sauce, password);
+
+                if (CheckHMACsEqual(fullAccessHmac, hmac))
+                    result = AuthLevel.FullAccess;
+            }
+
+            return result;
+        }
+
+        public IEnumerator<object> ServeLoginPage (HttpListenerContext context) {
+            context.Response.ContentType = "text/html";
+
+            var isPost = context.Request.HttpMethod == "POST";
+            var sauce = GetSauceForUser(context, !isPost);
+
+            if (isPost) {
+                NameValueCollection requestBody = null;
+                yield return Future.RunInThread(() => context.ParseRequestBody())
+                    .Bind(() => requestBody);
+
+                var hmac = requestBody["hmac"];
+
+                var authLevel = CheckAuthLevel(context, hmac);
+
+                if (authLevel != AuthLevel.Unauthorized) {
+                    var authToken = GenAuthToken(context, hmac);
+                    var cookie = new Cookie(
+                        AuthTokenCookie, authToken
+                    );
+                    cookie.HttpOnly = true;
+                    context.Response.Cookies.Add(cookie);
+
+                    var redirectTo = "/eve/" + (context.Request.QueryString["redirect_to"] ?? "index");
+
+                    context.Response.Redirect(redirectTo);
+
+                    yield break;
+                }
+            }
+
+            using (var stream = GetResourceStream("login.html"))
+            using (var reader = new AsyncTextReader(new StreamDataAdapter(stream, false), Encoding.UTF8)) {
+                string loginHtml = null;
+                yield return reader.ReadToEnd().Bind(() => loginHtml);
+                loginHtml = loginHtml.Replace("{sauce}", sauce);
+
+                using (var writer = context.GetResponseWriter(Encoding.UTF8))
+                    yield return writer.Write(loginHtml);
+            }
+        }
+
+        public IEnumerator<object> ServeProcessIndex (HttpListenerContext context, ProcessInfo process) {
+            var authLevel = GetAuthLevel(context);
+            if (authLevel == AuthLevel.Unauthorized) {
+                context.Response.Redirect("/eve/login");
+                yield break;
+            }
+
+            context.Response.ContentType = "text/html";
+
+            var sauce = GetSauceForUser(context, false);
+
+            using (var stream = GetResourceStream("process_index.html"))
+            using (var reader = new AsyncTextReader(new StreamDataAdapter(stream, false), Encoding.UTF8)) {
+                string indexHtml = null;
+                yield return reader.ReadToEnd().Bind(() => indexHtml);
+                indexHtml = indexHtml.Replace("{pid}", process.Process.Id.ToString())
+                    .Replace("{authLevel}", authLevel.ToString());
+
+                using (var writer = context.GetResponseWriter(Encoding.UTF8))
+                    yield return writer.Write(indexHtml);
             }
         }
 
