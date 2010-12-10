@@ -7,11 +7,23 @@ using System.Reflection;
 using System.Windows.Forms;
 using System.Web.Script.Serialization;
 using Squared.Task;
+using Squared.Util;
 
 namespace ShootBlues.Script {
     public class Common : ManagedScript {
+        public struct MessageData {
+            public readonly ProcessInfo Source;
+            public readonly Dictionary<string, object> Data;
+
+            public MessageData (ProcessInfo source, Dictionary<string, object> data) {
+                Source = source;
+                Data = data;
+            }
+        }
+
         protected LogWindow LogWindowInstance = null;
         protected PythonExplorer PythonExplorerInstance = null;
+        protected Dictionary<int, BlockingQueue<MessageData>> MessageQueues = new Dictionary<int, BlockingQueue<MessageData>>();
 
         public List<string> Log = new List<string>();
 
@@ -21,6 +33,7 @@ namespace ShootBlues.Script {
             : base(name) {
             AddDependency("common.py");
             AddDependency("common.service.py");
+            AddDependency("common.messaging.py");
             AddDependency("common.eve.py");
             AddDependency("common.eve.logger.py");
             AddDependency("common.eve.state.py");
@@ -96,15 +109,69 @@ namespace ShootBlues.Script {
         override public IEnumerator<object> LoadedInto (ProcessInfo process) {
             yield return CreateNamedChannel(process, "log");
             yield return CreateNamedChannel(process, "remotecall");
+            yield return CreateNamedChannel(process, "messages");
+
+            MessageQueues[process.Process.Id] = new BlockingQueue<MessageData>();
 
             process.Start(LogTask(process));
             process.Start(RemoteCallTask(process));
+            process.Start(MessageListenerTask(process));
+            process.Start(MessageDispatcherTask(process));
 
-            yield return Program.CallFunction(process, "common", "initialize");
+            yield return Program.CallFunction(process, "common", "initialize", process.Process.Id);
+        }
+
+        public override IEnumerator<object> UnloadFrom (ProcessInfo process) {
+            var pid = process.Process.Id;
+
+            if (MessageQueues.ContainsKey(pid))
+                MessageQueues.Remove(pid);
+
+            yield break;
+        }
+
+        private IEnumerator<object> MessageListenerTask (ProcessInfo process) {
+            var channel = process.GetNamedChannel("messages");
+            var serializer = new JavaScriptSerializer();
+
+            while (true) {
+                var fNext = channel.Receive();
+                yield return fNext;
+
+                MessageData mdata;
+                try {
+                    var json = fNext.Result.DecodeUTF8Z();
+                    mdata = new MessageData(
+                        process,
+                        serializer.Deserialize<Dictionary<string, object>>(json)
+                    );
+                } catch (Exception ex) {
+                    LogPrint(process, String.Format("Failed to parse message payload: {0}", ex));
+                    continue;
+                }
+
+                foreach (var queue in MessageQueues.Values)
+                    queue.Enqueue(mdata);
+            }
+        }
+
+        private IEnumerator<object> MessageDispatcherTask (ProcessInfo process) {
+            var queue = MessageQueues[process.Process.Id];
+            var sleep = new Sleep(0.01);
+
+            while (true) {
+                var fNext = queue.Dequeue();
+                yield return fNext;
+
+                var msg = fNext.Result;
+                // Result intentionally discarded
+                Program.CallFunction(process, "common.messaging", "notifyNewMessage", msg.Source.Process.Id, msg.Data);
+            }
         }
 
         private IEnumerator<object> LogTask (ProcessInfo process) {
             var channel = process.GetNamedChannel("log");
+            var sleep = new Sleep(0.01);
 
             while (true) {
                 var fNext = channel.Receive();
@@ -112,7 +179,7 @@ namespace ShootBlues.Script {
 
                 LogPrint(process, fNext.Result.DecodeAsciiZ());
 
-                yield return new Sleep(0.01);
+                yield return sleep;
             }
         }
 

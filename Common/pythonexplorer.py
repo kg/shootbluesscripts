@@ -2,9 +2,15 @@
 import json
 import types
 
+def tupleize(i):
+  if isinstance(i, types.ListType):
+    return tuple(tupleize(x) for x in i)
+  else:
+    return i
+
 def resolveKey(obj, key):
     if key.startswith("["):
-        indexer = json.loads(key)[0]
+        indexer = tupleize(json.loads(key)[0])
         return obj[indexer]
     else:
         return getattr(obj, key)

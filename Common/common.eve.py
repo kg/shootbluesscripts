@@ -1,4 +1,4 @@
-﻿from . import log, onMainThread
+﻿from shootblues.common import log, onMainThread
 
 ActionThreshold = (10000000L * 200) / 100
 MainThreadQueue = []

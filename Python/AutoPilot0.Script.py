@@ -1,3 +1,6 @@
+from shootblues import Dependency
+Dependency("Common.Script.dll")
+
 from shootblues.common import log
 import util.Moniker
 

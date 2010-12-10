@@ -1,3 +1,6 @@
+from shootblues import Dependency
+Dependency("Common.Script.dll")
+
 import uix
 import uiconst
 import form.Scanner

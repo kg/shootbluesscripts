@@ -6,6 +6,7 @@ import json
 __channels = {}
 
 isInitialized = False
+pid = None
 
 def _initChannel(name, handle):
     __channels[name] = shootblues.createChannel(handle)
@@ -37,8 +38,11 @@ def onMainThread():
     except:
         return None
 
-def initialize():
-    global isInitialized
+def initialize(myPid):
+    global isInitialized, pid
+    
+    pid = myPid
+        
     if not isInitialized:
         try:
             from common.eve.logger import replaceLogger

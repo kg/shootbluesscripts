@@ -1,4 +1,4 @@
-﻿from . import log
+﻿from shootblues.common import log
 
 runningServices = {}
 
@@ -25,7 +25,7 @@ def forceStop(serviceName):
             for evt in ne:
                 nl = sm.notify.get(evt, [])
                 if serviceInstance in nl:
-                    nl.remove(serviceInstance)                
+                    nl.remove(serviceInstance)
     finally:
         stackless.getcurrent().block_trap = old_block_trap
 
