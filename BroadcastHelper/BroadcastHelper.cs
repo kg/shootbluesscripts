@@ -50,11 +50,13 @@ namespace ShootBlues.Script {
             var targetColors = Program.GetScriptInstance<TargetColors>("TargetColors.script.dll");
 
             if (targetColors != null) {
-                yield return targetColors.DefineColor("Broadcast: Target", Color.FromArgb(255, 128, 180));
-                yield return targetColors.DefineColor("Broadcast: Need Shield", Color.FromArgb(128, 180, 255));
-                yield return targetColors.DefineColor("Broadcast: Need Armor", Color.FromArgb(255, 180, 128));
-                yield return targetColors.DefineColor("Broadcast: Need Capacitor", Color.FromArgb(180, 255, 128));
+                targetColors.DefineColor("Broadcast: Target", Color.FromArgb(255, 128, 180));
+                targetColors.DefineColor("Broadcast: Need Shield", Color.FromArgb(128, 180, 255));
+                targetColors.DefineColor("Broadcast: Need Armor", Color.FromArgb(255, 180, 128));
+                targetColors.DefineColor("Broadcast: Need Capacitor", Color.FromArgb(180, 255, 128));
             }
+
+            yield break;
         }
 
         protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {

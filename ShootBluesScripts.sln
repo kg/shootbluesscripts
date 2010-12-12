@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FontSizer", "FontSizer\Font
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteControl", "RemoteControl\RemoteControl.csproj", "{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventNotifications", "EventNotifications\EventNotifications.csproj", "{D854ABA8-763A-4DEB-B938-F93734E7606F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -97,6 +99,10 @@ Global
 		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Debug|x86.Build.0 = Debug|x86
 		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Release|x86.ActiveCfg = Release|x86
 		{72BA3C78-3A06-4C4D-8BB3-7ED86B2B9ADB}.Release|x86.Build.0 = Release|x86
+		{D854ABA8-763A-4DEB-B938-F93734E7606F}.Debug|x86.ActiveCfg = Debug|x86
+		{D854ABA8-763A-4DEB-B938-F93734E7606F}.Debug|x86.Build.0 = Debug|x86
+		{D854ABA8-763A-4DEB-B938-F93734E7606F}.Release|x86.ActiveCfg = Release|x86
+		{D854ABA8-763A-4DEB-B938-F93734E7606F}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

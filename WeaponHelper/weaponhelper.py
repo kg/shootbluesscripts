@@ -152,25 +152,34 @@ class WeaponHelperSvc:
                     return estimatedDamage / baseDamage
         
             chanceToHitGetter = Memoized(_chanceToHitGetter)
+        
+        if chanceToHitGetter:                
+            def targetSorter(lhs, rhs):        
+                # Highest priority first
+                priLhs = getPriority(targetID=lhs)
+                priRhs = getPriority(targetID=rhs)
+                result = cmp(priRhs, priLhs)
                 
-        def targetSorter(lhs, rhs):        
-            # Highest priority first
-            priLhs = getPriority(targetID=lhs)
-            priRhs = getPriority(targetID=rhs)
-            result = cmp(priRhs, priLhs)
+                if result == 0:
+                    # Highest chance to hit first, but bias the chance to hit up for things we previously attacked
+                    cthLhs = chanceToHitGetter(lhs)
+                    if lhs is self.__lastAttackOrder:
+                        cthLhs += ChanceToHitBias
+                    cthRhs = chanceToHitGetter(rhs)
+                    if rhs is self.__lastAttackOrder:
+                        cthRhs += ChanceToHitBias
+                    result = cmp(cthRhs, cthLhs)
             
-            if result == 0:
-                # Highest chance to hit first, but bias the chance to hit up for things we previously attacked
-                cthLhs = chanceToHitGetter(lhs)
-                if lhs is self.__lastAttackOrder:
-                    cthLhs += ChanceToHitBias
-                cthRhs = chanceToHitGetter(rhs)
-                if rhs is self.__lastAttackOrder:
-                    cthRhs += ChanceToHitBias
-                result = cmp(cthRhs, cthLhs)
-        
-            return result
-        
+                return result
+        else:
+            # For some reason our weapon module has neither gun turret or missile attributes
+            log("Warning: Weapon without chance-to-hit attributes.")
+            def targetSorter(lhs, rhs):
+                # Highest priority first
+                priLhs = getPriority(targetID=lhs)
+                priRhs = getPriority(targetID=rhs)
+                result = cmp(priRhs, priLhs)
+                
         return targetSorter
     
     def filterTargets(self, ids):

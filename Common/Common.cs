@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using System.Web.Script.Serialization;
 using Squared.Task;
 using Squared.Util;
+using System.Media;
 
 namespace ShootBlues.Script {
     public class Common : ManagedScript {
@@ -18,6 +19,14 @@ namespace ShootBlues.Script {
             public MessageData (ProcessInfo source, Dictionary<string, object> data) {
                 Source = source;
                 Data = data;
+            }
+
+            public string Name {
+                get {
+                    object result;
+                    Data.TryGetValue("__name__", out result);
+                    return result as string;
+                }
             }
         }
 
@@ -152,6 +161,9 @@ namespace ShootBlues.Script {
 
                 foreach (var queue in MessageQueues.Values)
                     queue.Enqueue(mdata);
+
+                EventBus.Broadcast(process, "Message", mdata);
+                EventBus.Broadcast(process, mdata.Name, mdata);
             }
         }
 
@@ -181,6 +193,10 @@ namespace ShootBlues.Script {
 
                 yield return sleep;
             }
+        }
+
+        protected void LogPrint (ProcessInfo process, string text, params object[] arguments) {
+            LogPrint(process, String.Format(text, arguments));
         }
 
         public void LogPrint (ProcessInfo process, string text) {
@@ -215,26 +231,17 @@ namespace ShootBlues.Script {
                 string scriptName = callTuple[0] as string;
                 string methodName = callTuple[1] as string;
                 object[] rawArguments = callTuple[2] as object[];
-                Type[] argumentTypes;
 
                 object[] functionArguments;
                 if (rawArguments == null) {
-                    argumentTypes = new Type[] { typeof(ProcessInfo) };
                     functionArguments = new object[] { process };
                 } else {
-                    argumentTypes = new Type[rawArguments.Length + 1];
-                    functionArguments = new object[argumentTypes.Length];
+                    functionArguments = new object[rawArguments.Length + 1];
 
                     functionArguments[0] = process;
-                    argumentTypes[0] = typeof(ProcessInfo);
 
-                    for (int i = 0; i < rawArguments.Length; i++) {
+                    for (int i = 0; i < rawArguments.Length; i++)
                         functionArguments[i + 1] = rawArguments[i];
-                        if (rawArguments[i] != null)
-                            argumentTypes[i + 1] = rawArguments[i].GetType();
-                        else
-                            argumentTypes[i + 1] = typeof(object);
-                    }
                 }
 
                 IManagedScript instance = Program.GetScriptInstance(
@@ -242,35 +249,36 @@ namespace ShootBlues.Script {
                 );
 
                 if (instance == null) {
-                    LogPrint(process, String.Format(
+                    LogPrint(process,
                         "Remote call attempted on script '{0}' that isn't loaded.", scriptName
-                    ));
+                    );
                     continue;
                 }
 
-                var method = instance.GetType().GetMethod(
-                    methodName, argumentTypes
-                );
-                if (method == null) {
-                    LogPrint(process, String.Format(
-                        "Remote call attempted on script '{0}', but no method was found with the name '{1}' that could accept the arguments {2}.", 
-                        scriptName, methodName, serializer.Serialize(rawArguments)
-                    ));
-                    continue;
-                }
-
-                try {
-                    object result = method.Invoke(instance, functionArguments);
-                    var resultTask = result as IEnumerator<object>;
-                    if (resultTask != null)
-                        process.Start(resultTask);
-                } catch (Exception ex) {
-                    LogPrint(process, String.Format(
-                        "Remote call '{0}.{1}' with args {2} failed with exception: {3}", 
-                        scriptName, methodName, serializer.Serialize(rawArguments), ex.ToString()
-                    ));
-                }
+                process.Start(RemoteCallInvoker(
+                    instance, methodName, functionArguments, rawArguments, serializer, scriptName, process
+                ));
             }
+        }
+
+        protected IEnumerator<object> RemoteCallInvoker (IManagedScript instance, string methodName, object[] functionArguments, object[] rawArguments, JavaScriptSerializer serializer, string scriptName, ProcessInfo process) {
+            IEnumerator<object> resultTask = null;
+
+            try {
+                resultTask = instance.GetType().InvokeMember(
+                    methodName, BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.Public, null, instance, functionArguments
+                ) as IEnumerator<object>;
+            } catch (Exception ex) {
+                LogPrint(process,
+                    "Remote call '{0}.{1}' with args {2} failed with exception: {3}",
+                    scriptName, methodName, serializer.Serialize(rawArguments), ex.ToString()
+                );
+            }
+
+            if (resultTask != null)
+                yield return resultTask;
+            else
+                yield break;
         }
 
         public void LoggedInCharacterChanged (ProcessInfo process, object characterName) {
@@ -283,6 +291,61 @@ namespace ShootBlues.Script {
             LogPrint(null, "Scripts loaded");
 
             yield break;
+        }
+
+        public void ShowMessageBox (ProcessInfo process, string title, string text) {
+            MessageBox.Show(text, title);
+        }
+
+        public void ShowBalloonTip (ProcessInfo process, string title, string text) {
+            ShowBalloonTip(process, 60000, title, text);
+        }
+
+        public void ShowBalloonTip (ProcessInfo process, int timeout, string title, string text) {
+            Program.TrayIcon.ShowBalloonTip(timeout, title, text, ToolTipIcon.Info);
+        }
+
+        public IEnumerator<object> PlaySound (ProcessInfo process, string pythonModuleName, string filename) {
+            string scriptPath = Path.GetDirectoryName(Application.ExecutablePath);
+            if (pythonModuleName != null) {
+                ScriptName sn;
+                if (Program.PythonModuleToScript.TryGetValue(pythonModuleName, out sn)) {
+                    var fn = Program.FindScript(sn);
+                    if (fn != null)
+                        scriptPath = fn.Directory;
+                }
+            }
+
+            var soundPath = Path.Combine(scriptPath, filename);
+            if (!File.Exists(soundPath)) {
+                LogPrint(process, "PlaySound request failed because the sound '{0}' was not found.", soundPath);
+                yield break;
+            }
+
+            SoundPlayer sp = new SoundPlayer();
+
+            var f = new SignalFuture();
+            sp.SoundLocation = soundPath;
+            sp.LoadCompleted += (s, e) => {
+                if (e.Error != null)
+                    f.Fail(e.Error);
+                else
+                    f.Complete();
+            };
+            sp.LoadAsync();
+
+            yield return f;
+
+            if (f.Failed) {
+                LogPrint(process, "PlaySound request failed because the sound '{0}' could not be loaded: {1}", soundPath, f.Error);
+                yield break;
+            }
+
+            Console.WriteLine("Playing {0}...", soundPath);
+            using (sp)
+                yield return Future.RunInThread(sp.PlaySync);
+
+            Console.WriteLine("Done playing {0}.", soundPath);
         }
     }
 }

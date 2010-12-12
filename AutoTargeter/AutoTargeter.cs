@@ -51,7 +51,9 @@ namespace ShootBlues.Script {
             var targetColors = Program.GetScriptInstance<TargetColors>("TargetColors.script.dll");
 
             if (targetColors != null)
-                yield return targetColors.DefineColor("Automatic Target", Color.FromArgb(255, 220, 180));
+                targetColors.DefineColor("Automatic Target", Color.FromArgb(255, 220, 180));
+
+            yield break;
         }
 
         protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {

@@ -75,10 +75,8 @@ namespace ShootBlues.Script {
             );
         }
 
-        public IEnumerator<object> DefineColor (string key, Color defaultValue) {
+        public void DefineColor (string key, Color defaultValue) {
             DefinedColors[key] = defaultValue;
-
-            yield break;
         }
 
         protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {
