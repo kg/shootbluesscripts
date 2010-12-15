@@ -1,19 +1,28 @@
 ﻿import sys
 import json
 import types
+import weakref
+import inspect
 
 def tupleize(i):
-  if isinstance(i, types.ListType):
-    return tuple(tupleize(x) for x in i)
-  else:
-    return i
+    if isinstance(i, types.ListType):
+        return tuple(tupleize(x) for x in i)
+    else:
+        return i
 
 def resolveKey(obj, key):
-    if key.startswith("["):
+    if key == "<Arguments>":
+        result = inspect.getargspec(obj)
+    elif key.startswith("["):
         indexer = tupleize(json.loads(key)[0])
-        return obj[indexer]
+        result = obj[indexer]
     else:
-        return getattr(obj, key)
+        result = getattr(obj, key)
+    
+    if isinstance(result, weakref.ref):
+        result = result()
+    
+    return result
 
 def getModules():
     return sorted(sys.modules.keys(), key=str.lower)
@@ -41,6 +50,9 @@ def getKeys(context, index):
     elif hasattr(obj, "__keys__"):
         for key in getattr(obj, "__keys__"):
             result.append(json.dumps([key]))
+    
+    if callable(obj):
+        result.append("<Arguments>")
     
     result.sort(key=str.lower)
     

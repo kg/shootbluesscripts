@@ -21,6 +21,9 @@ namespace ShootBlues.Script {
 
         public IEnumerator<object> LoadConfiguration () {
             using (new ControlWaitCursor(this)) {
+                DataGrid.RowCount = 0;
+                JabberEndpoints.Items.Clear();
+
                 EventEntry[] dbEvents = null;
                 yield return Program.Database.ExecuteArray<EventEntry>(
                     "SELECT * FROM eventNotifications ORDER BY key ASC"
@@ -36,6 +39,19 @@ namespace ShootBlues.Script {
 
                 var newEvents = dict.Values.ToArray();
                 Array.Sort(newEvents, (lhs, rhs) => lhs.Key.CompareTo(rhs.Key));
+
+                try {
+                    var jg = Program.GetScriptInstance<JabberGateway>("JabberGateway.Script.dll");
+                    if (jg != null) {
+                        JabberEndpoints.Items.Add(DBNull.Value);
+                        JabberEndpoints.Items.AddRange(jg.Endpoints.Keys.ToArray());
+                        JabberEndpoints.Visible = true;
+                    } else {
+                        JabberEndpoints.Visible = false;
+                    }
+                } catch {
+                    JabberEndpoints.Visible = false;
+                }
 
                 EventData = newEvents;
                 DataGrid.RowCount = newEvents.Length;
@@ -64,6 +80,9 @@ namespace ShootBlues.Script {
                 case 3:
                     e.Value = row.MessageBox;
                     break;
+                case 4:
+                    e.Value = row.JabberEndpoints;
+                    break;
             }
         }
 
@@ -82,14 +101,17 @@ namespace ShootBlues.Script {
                 case 3:
                     row.MessageBox = (bool)e.Value;
                     break;
+                case 4:
+                    row.JabberEndpoints = (string)e.Value;
+                    break;
             }
 
             Start(FlushRow(row));
         }
 
         protected IEnumerator<object> FlushRow (EventEntry row) {
-            using (var q = Program.Database.BuildQuery("REPLACE INTO eventNotifications (key, sound, balloonTip, messageBox) VALUES (?, ?, ?, ?)"))
-                yield return q.ExecuteNonQuery(row.Key, row.Sound, row.BalloonTip, row.MessageBox);
+            using (var q = Program.Database.BuildQuery("REPLACE INTO eventNotifications (key, sound, balloonTip, messageBox, jabberEndpoints) VALUES (?, ?, ?, ?, ?)"))
+                yield return q.ExecuteNonQuery(row.Key, row.Sound, row.BalloonTip, row.MessageBox, row.JabberEndpoints);
 
             Script.Preferences.Flush();
         }

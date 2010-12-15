@@ -18,7 +18,8 @@ class SessionTimerSvc:
         log("Session changed, timer suppressed.")
         session.nextSessionChange = blue.os.GetTime(1) + 1
 
-forceStart("sessiontimer", SessionTimerSvc)
+def __load__():
+    forceStart("sessiontimer", SessionTimerSvc)
 
 def __unload__():
     forceStop("sessiontimer")

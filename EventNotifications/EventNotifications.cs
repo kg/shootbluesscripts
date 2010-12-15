@@ -21,6 +21,8 @@ namespace ShootBlues.Script {
         public bool BalloonTip = false;
         [Column("messageBox")]
         public bool MessageBox = false;
+        [Column("jabberEndpoints")]
+        public string JabberEndpoints = null;
 
         public EventEntry () {
         }
@@ -40,6 +42,7 @@ namespace ShootBlues.Script {
 
             AddDependency("Common.script.dll");
             AddDependency("eventnotifications.py");
+            AddDependency("JabberGateway.script.dll", true);
 
             CustomMenu = new ToolStripMenuItem("Event Notifications");
             CustomMenu.DropDownItems.Add("Configure", null, ConfigureEventNotifications);
@@ -63,7 +66,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> Initialize () {
             yield return Program.CreateDBTable(
                 "eventNotifications",
-                "( key TEXT PRIMARY KEY NOT NULL, sound TEXT, balloonTip BOOLEAN NOT NULL, messageBox BOOLEAN NOT NULL )"
+                "( key TEXT PRIMARY KEY NOT NULL, sound TEXT, balloonTip BOOLEAN NOT NULL, messageBox BOOLEAN NOT NULL, jabberEndpoints TEXT )"
             );
         }
 
@@ -92,6 +95,8 @@ namespace ShootBlues.Script {
                         dict["messageBox"] = true;
                     if (el.Sound != null)
                         dict["sound"] = el.Sound;
+                    if (el.JabberEndpoints != null)
+                        dict["jabberEndpoints"] = el.JabberEndpoints.Split(',');
                 }
 
                 cfgDict[eventName] = dict;

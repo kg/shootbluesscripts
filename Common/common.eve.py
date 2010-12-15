@@ -257,7 +257,6 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
         return (False, "too soon to activate again (lag protection)")
     
     setattr(module, "__last_action__", timestamp)
-    log("Activating %s", moduleName) 
     
     oldautorepeat = getattr(module, "autorepeat", False)
     if oldautorepeat:

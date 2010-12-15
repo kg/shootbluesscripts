@@ -28,6 +28,7 @@
             this.Sound = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.BalloonTip = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             this.MessageBox = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.JabberEndpoints = new System.Windows.Forms.DataGridViewComboBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).BeginInit();
             this.SuspendLayout();
             // 
@@ -45,7 +46,8 @@
             this.Key,
             this.Sound,
             this.BalloonTip,
-            this.MessageBox});
+            this.MessageBox,
+            this.JabberEndpoints});
             this.DataGrid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.DataGrid.Location = new System.Drawing.Point(0, 0);
             this.DataGrid.MultiSelect = false;
@@ -83,9 +85,18 @@
             // MessageBox
             // 
             this.MessageBox.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.MessageBox.HeaderText = "Message Box";
+            this.MessageBox.HeaderText = "Dialog";
             this.MessageBox.Name = "MessageBox";
-            this.MessageBox.Width = 99;
+            this.MessageBox.Width = 53;
+            // 
+            // JabberEndpoints
+            // 
+            this.JabberEndpoints.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.JabberEndpoints.HeaderText = "Jabber";
+            this.JabberEndpoints.Name = "JabberEndpoints";
+            this.JabberEndpoints.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.JabberEndpoints.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.JabberEndpoints.Width = 76;
             // 
             // EventNotificationsConfig
             // 
@@ -107,6 +118,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn Sound;
         private System.Windows.Forms.DataGridViewCheckBoxColumn BalloonTip;
         private System.Windows.Forms.DataGridViewCheckBoxColumn MessageBox;
+        private System.Windows.Forms.DataGridViewComboBoxColumn JabberEndpoints;
 
     }
 }

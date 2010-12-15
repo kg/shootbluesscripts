@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{D854ABA8-763A-4DEB-B938-F93734E7606F}</ProjectGuid>
+    <ProjectGuid>{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ShootBlues.Script</RootNamespace>
-    <AssemblyName>EventNotifications.Script</AssemblyName>
+    <AssemblyName>JabberGateway.Script</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -30,6 +30,10 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Coversant.SoapBox, Version=4.3.560.1224, Culture=neutral, PublicKeyToken=529599436fd667ae, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\ext\soapbox\Coversant.SoapBox.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -49,25 +53,29 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="EventNotifications.cs" />
-    <Compile Include="EventNotificationsConfig.cs">
+    <Compile Include="AddEndpointDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AddEndpointDialog.Designer.cs">
+      <DependentUpon>AddEndpointDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="JabberExtensions.cs" />
+    <Compile Include="JabberGateway.cs" />
+    <Compile Include="JabberGatewayConfig.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="EventNotificationsConfig.Designer.cs">
-      <DependentUpon>EventNotificationsConfig.cs</DependentUpon>
+    <Compile Include="JabberGatewayConfig.Designer.cs">
+      <DependentUpon>JabberGatewayConfig.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="EventNotificationsConfig.resx">
-      <DependentUpon>EventNotificationsConfig.cs</DependentUpon>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="eventnotifications.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="siren.wav">
+    <Content Include="jabber.py">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
@@ -87,10 +95,18 @@
       <Name>ShootBlues</Name>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\JabberGateway\JabberGateway.csproj">
-      <Project>{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}</Project>
-      <Name>JabberGateway</Name>
-    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AddEndpointDialog.resx">
+      <DependentUpon>AddEndpointDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="JabberGatewayConfig.resx">
+      <DependentUpon>JabberGatewayConfig.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,10 +1,17 @@
 ﻿from shootblues.common import log, remoteCall, playSound, showBalloonTip, showMessageBox
 from shootblues.common.service import forceStart, forceStop
-from shootblues.common.messaging import subscribe, unsubscribe, send
+from shootblues.common.messaging import subscribe, unsubscribe
+from shootblues.common.messaging import send as messageSend
+import types
 import json
 
-notificationSettings = {}
+try:
+    from shootblues.jabber import send as jabberSend
+except:
+    def jabberSend(endpoint, text):
+        pass
 
+notificationSettings = {}
 serviceRunning = False
 
 def notifySettingsChanged(newSettingsJson):
@@ -15,20 +22,53 @@ def notifySettingsChanged(newSettingsJson):
 def DefineEvent(eventName):
     remoteCall("EventNotifications.Script.dll", "DefineEvent", eventName)
 
+def joinLines(text):
+    if isinstance(text, str) or isinstance(text, unicode):
+        return text
+    else:
+        try:
+            iterator = iter(text)
+            del iterator
+            return "\r\n".join(list(text))
+        except TypeError:
+            return repr(text)
+
+def getLines(text):
+    if isinstance(text, str) or isinstance(text, unicode):
+        return [text]
+    else:
+        try:
+            iterator = iter(text)
+            del iterator
+            return list(text)
+        except TypeError:
+            return [repr(text)]
+
 def handleEvent(source, name, data):
     global notificationSettings
     
     settings = notificationSettings.get(name, None)
     if settings:
-        if settings.get("sound", None):
-            playSound(settings["sound"])
+        sound = data.get("sound", settings.get("sound", None))
+        
+        if sound:
+            playSound(str(sound))
+            
+        text = joinLines(data.get("text", source))
+        
         if settings.get("balloonTip", False):
-            showBalloonTip(name, str(data.get("text", source)))
+            showBalloonTip(str(data.get("title", name)), text)
         if settings.get("messageBox", False):
-            showMessageBox(name, str(data.get("text", source)))
+            showMessageBox(str(data.get("title", name)), text)
+        
+        endpoints = settings.get("jabberEndpoints", [])
+        body = getLines(data.get("text", name))
+        for endpoint in endpoints:
+            for line in body:
+                jabberSend(endpoint, line)
 
 def fireEvent(name, **extraData):
-    send(name, **extraData)
+    messageSend(name, **extraData)
 
 def initialize():
     global serviceRunning

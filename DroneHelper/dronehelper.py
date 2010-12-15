@@ -132,7 +132,7 @@ class DroneHelperSvc:
         ) * fighterRangeMultiplier)
         return result
     
-    def getCommonTarget(self, threshold, filtered=True):
+    def getCommonTarget(self, filtered=True):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         
         targetCounts = {}
@@ -144,7 +144,7 @@ class DroneHelperSvc:
                 
         sortedTargets = [st[1] for st in sorted(
             [(count, targetID) for targetID, count in 
-             targetCounts.items() if count > threshold],
+             targetCounts.items() if count > 1],
             cmp=lambda lhs, rhs: -cmp(lhs, rhs)
         )]
         
@@ -232,7 +232,7 @@ class DroneHelperSvc:
         timestamp = blue.os.GetTime()
         isCommonTarget = False
         if not targetID:
-            targetID = self.getCommonTarget(len(dronesToAttack))
+            targetID = self.getCommonTarget()
             if targetID:
                 slimItem = ballpark.GetInvItem(targetID)
                 if slimItem:
@@ -256,7 +256,11 @@ class DroneHelperSvc:
                 
             for id in list(drones):            
                 droneObj = self.getDroneObject(id)
-                if (droneObj.state == const.entityDeparting):
+                if ((droneObj.state == const.entityDeparting) or
+                    (droneObj.state == const.entityDeparting2) or
+                    (droneObj.state == const.entityFleeing) or
+                    (droneObj.state == const.entityPursuit)):
+                    log("drone state=%r, not attacking", droneObj.state)
                     drones.remove(id)
                 elif ((droneObj.target == targetID) or
                     abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
@@ -302,8 +306,10 @@ class DroneHelperSvc:
             if ((droneObj.state == const.entityDeparting) or
                (droneObj.state == const.entityDeparting2) or
                (droneObj.state == const.entityPursuit) or
+               (droneObj.state == const.entityFleeing) or
                abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
                 dronesToRecall.remove(droneID)
+                log("drone state=%r, not recalling", droneObj.state)
         
         if len(dronesToRecall):
             entity = moniker.GetEntityAccess()
@@ -378,7 +384,7 @@ class DroneHelperSvc:
         if len(dronesToAttack):
             self.doAttack(idleOnly=True, targetID=None, dronesToAttack=dronesToAttack)
         elif getPref("WhenTargetLost", False):
-            commonTarget = self.getCommonTarget(3, filtered=False)
+            commonTarget = self.getCommonTarget(filtered=False)
             if commonTarget == eve.session.shipid:
                 return
             
