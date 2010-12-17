@@ -13,6 +13,8 @@ namespace ShootBlues.Script {
         EventNotifications Script;
         EventEntry[] EventData;
 
+        string[] EndpointNames;
+
         public EventNotificationsConfig (EventNotifications script)
             : base(Program.Scheduler) {
             InitializeComponent();
@@ -43,8 +45,10 @@ namespace ShootBlues.Script {
                 try {
                     var jg = Program.GetScriptInstance<JabberGateway>("JabberGateway.Script.dll");
                     if (jg != null) {
+                        EndpointNames = jg.Endpoints.Keys.ToArray();
+
                         JabberEndpoints.Items.Add(DBNull.Value);
-                        JabberEndpoints.Items.AddRange(jg.Endpoints.Keys.ToArray());
+                        JabberEndpoints.Items.AddRange(EndpointNames);
                         JabberEndpoints.Visible = true;
                     } else {
                         JabberEndpoints.Visible = false;
@@ -81,7 +85,10 @@ namespace ShootBlues.Script {
                     e.Value = row.MessageBox;
                     break;
                 case 4:
-                    e.Value = row.JabberEndpoints;
+                    if (EndpointNames.Contains(row.JabberEndpoints))
+                        e.Value = row.JabberEndpoints;
+                    else
+                        e.Value = DBNull.Value;
                     break;
             }
         }

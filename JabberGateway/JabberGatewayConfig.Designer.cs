@@ -27,6 +27,7 @@
             this.Remove = new System.Windows.Forms.Button();
             this.AddNew = new System.Windows.Forms.Button();
             this.List = new System.Windows.Forms.ListBox();
+            this.TestEndpoint = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // Remove
@@ -72,8 +73,24 @@
             this.List.SelectedIndexChanged += new System.EventHandler(this.List_SelectedIndexChanged);
             this.List.DoubleClick += new System.EventHandler(this.List_DoubleClick);
             // 
+            // TestEndpoint
+            // 
+            this.TestEndpoint.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.TestEndpoint.Enabled = false;
+            this.TestEndpoint.Image = ((System.Drawing.Image)(resources.GetObject("TestEndpoint.Image")));
+            this.TestEndpoint.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.TestEndpoint.Location = new System.Drawing.Point(232, 170);
+            this.TestEndpoint.Name = "TestEndpoint";
+            this.TestEndpoint.Size = new System.Drawing.Size(65, 27);
+            this.TestEndpoint.TabIndex = 7;
+            this.TestEndpoint.Text = "Test";
+            this.TestEndpoint.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.TestEndpoint.UseVisualStyleBackColor = true;
+            this.TestEndpoint.Click += new System.EventHandler(this.TestEndpoint_Click);
+            // 
             // JabberGatewayConfig
             // 
+            this.Controls.Add(this.TestEndpoint);
             this.Controls.Add(this.Remove);
             this.Controls.Add(this.AddNew);
             this.Controls.Add(this.List);
@@ -91,6 +108,7 @@
         private System.Windows.Forms.Button Remove;
         private System.Windows.Forms.Button AddNew;
         private System.Windows.Forms.ListBox List;
+        private System.Windows.Forms.Button TestEndpoint;
 
 
     }

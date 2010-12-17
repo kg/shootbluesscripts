@@ -34,7 +34,7 @@ namespace ShootBlues.Script {
                 List.Sorted = true;
                 List.EndUpdate();
 
-                Remove.Enabled = (List.SelectedIndices.Count > 0);
+                TestEndpoint.Enabled = Remove.Enabled = (List.SelectedIndices.Count > 0);
             }
         }
 
@@ -101,12 +101,17 @@ namespace ShootBlues.Script {
         }
 
         private void List_SelectedIndexChanged (object sender, EventArgs e) {
-            Remove.Enabled = (List.SelectedIndices.Count > 0);
+            TestEndpoint.Enabled = Remove.Enabled = (List.SelectedIndices.Count > 0);
         }
 
         private void List_DoubleClick (object sender, EventArgs e) {
             var name = List.SelectedItem as string;
             Start(EditEndpoint(name));
+        }
+
+        private void TestEndpoint_Click (object sender, EventArgs e) {
+            var name = List.SelectedItem as string;
+            Script.GetQueue(name).Enqueue("Testing");
         }
     }
 }
