@@ -518,6 +518,7 @@ namespace ShootBlues.Script {
             long frameIndex = long.Parse(context.Request.QueryString["i"]);
 
             context.Response.AppendHeader("Cache-Control", "no-store, no-cache, private");
+            context.Response.AppendHeader("Pragma", "no-cache");
             context.Response.ContentType = "image/jpeg";
 
             yield return Future.RunInThread(() => {
@@ -758,6 +759,7 @@ namespace ShootBlues.Script {
             }
 
             context.Response.ContentType = "text/html";
+            context.Response.AddHeader("X-UA-Compatible", "IE=edge");
 
             using (var resp = context.GetResponseWriter(Encoding.UTF8)) {
                 yield return resp.WriteLines(
@@ -918,6 +920,7 @@ namespace ShootBlues.Script {
             }
 
             context.Response.ContentType = "text/html";
+            context.Response.AddHeader("X-UA-Compatible", "IE=edge");
 
             var sauce = GetSauceForUser(context, false);
 

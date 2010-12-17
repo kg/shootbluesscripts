@@ -213,7 +213,7 @@ namespace ShootBlues.Script {
             this.MaxFrameRate.Size = new System.Drawing.Size(95, 23);
             this.MaxFrameRate.TabIndex = 8;
             this.MaxFrameRate.Value = new decimal(new int[] {
-            30,
+            20,
             0,
             0,
             0});

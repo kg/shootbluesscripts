@@ -1,4 +1,5 @@
-﻿<html>
+﻿<!DOCTYPE HTML>
+<html>
     <head>
         <title>EVE Remote Control - {authLevel} - {pid}</title>
         
@@ -16,6 +17,13 @@
             
             body {
                 overflow: hidden;
+            }
+            
+            #fuck_webkit {
+                overflow: hidden;
+                padding: 0px;
+                margin: 0px;
+                display: none;
             }
             
             #modes, #channels {
@@ -37,9 +45,17 @@
                 display: none;
             }
         </style>
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     </head>
     <body>
+        <!-- 
+            Workaround for WebKit memory leak:
+            All resources loaded from within a document in WebKit are cached for the life of that document.
+            Since the contents of an iframe are their own document, using an iframe to load images instead of
+            an IMG tag prevents us from leaking unbounded amounts of memory by loading our delta images.
+            This is retarded.
+        -->
+        <iframe id="fuck_webkit" src="about:blank"></iframe>
+        
         <div id="modes">
             <ul>
                 <li>
@@ -77,8 +93,14 @@
             var eventQueue = [];
             var eventInProgress = false;
             var scaleRatio = 1.0;
+            var isActive = false;
             
             function updateViewport (pixels, indices) {
+                if ((indices.length == 0) || !isActive) {
+                    updateInProgress = false;
+                    return;
+                }
+                            
                 var vp = document.getElementById("viewport");
                 var vpc = vp.getContext("2d");
                 var bb = document.getElementById("backbuffer");
@@ -103,16 +125,23 @@
                         bb.width = srcWidth;
                         bb.height = srcHeight;
                     }
-                    bbc.drawImage(pixels, 0, 0, srcWidth, srcHeight);
+                    try {
+                        bbc.drawImage(pixels, 0, 0, srcWidth, srcHeight);
+                    } catch(e) {
+                    }
                 } else if (indices.length > 1) {
                     // Deltas
                     var l = indices.length;
                     for (var i = 1; i < l; i++) {
                         var idx = indices[i];
-                        bbc.drawImage(
-                            pixels, (i - 1) * blockSize, 0, blockSize, blockSize, 
-                            idx["x"], idx["y"], blockSize, blockSize
-                        );
+                        try {
+                            bbc.drawImage(
+                                pixels, (i - 1) * blockSize, 0, blockSize, blockSize, 
+                                idx["x"], idx["y"], blockSize, blockSize
+                            );
+                        } catch(e) {
+                            break;
+                        }
                     }
                 }
                 
@@ -128,22 +157,20 @@
                 updateInProgress = false;
             }
             
-            function refreshImage (force) {
+            function refreshImage (forceKeyframe) {
                 if (updateInProgress)
                     return;
                 
-                if (!force) {
-                    var isVisible = $("#viewport").is(":visible");
-                    if (!isVisible)
-                        return;
-                }
+                if (!forceKeyframe && !isActive)
+                    return;
             
                 var error = "error";
                 var data = {
                     "deltas": null,
                     "indices": null
                 };
-                var newDeltas = document.createElement("img");
+                
+                var iframe = document.getElementById("fuck_webkit");
                 
                 var sync = function () {
                     if ((data.deltas == null) || (data.indices == null))
@@ -157,28 +184,31 @@
                             window.setTimeout(sync, 1);
                         else {
                             updateInProgress = true;
-                            window.setTimeout(refreshImage, 33);
+                            window.setTimeout(function() { refreshImage(false) }, 50);
                             updateViewport(data.deltas, data.indices);
                         }
                     } else {
-                        window.setTimeout(refreshImage, 1000);
+                        window.setTimeout(function() { refreshImage(false) }, 5000);
                     }
                     
                     data.deltas = null;
                     data.indices = null;
                 };
                 
-                counter += 1;
+                if (forceKeyframe)
+                    counter += 2;
+                else
+                    counter += 1;
                 
                 var onLoad, onError;
                 
                 var cleanup = function () {
-                    newDeltas.removeEventListener("load", onLoad, true);
-                    newDeltas.removeEventListener("error", onError, true);
+                    iframe.removeEventListener("load", onLoad, true);
+                    iframe.removeEventListener("error", onError, true);
                 };
                 
                 onLoad = function () {
-                    data.deltas = newDeltas;
+                    data.deltas = iframe.contentDocument.getElementsByTagName("img")[0];
                     cleanup();
                     sync();
                 };
@@ -189,10 +219,11 @@
                     sync();
                 };
                 
-                newDeltas.addEventListener("load", onLoad, true);
-                newDeltas.addEventListener("error", onError, true);
+                iframe.addEventListener("load", onLoad, true);
+                iframe.addEventListener("error", onError, true);
                 
-                newDeltas.setAttribute("src", "viewport/deltas?i=" + counter);
+                iframe.setAttribute("src", "viewport/deltas?i=" + counter);
+                
                 $.getJSON(
                     "viewport/indices",
                     {"i": counter},
@@ -240,8 +271,8 @@
             function getMouseArgs (evt) {
                 var vp = document.getElementById("viewport");           
                 var result = {
-                    "x": Math.floor((evt.pageX - viewport.offsetLeft) / scaleRatio),
-                    "y": Math.floor((evt.pageY - viewport.offsetTop) / scaleRatio)
+                    "x": Math.floor((evt.pageX - vp.offsetLeft) / scaleRatio),
+                    "y": Math.floor((evt.pageY - vp.offsetTop) / scaleRatio)
                 };
                 if ((evt.which >= 1) && (evt.which <= 3)) {
                     var buttonNames = ["Left", "Middle", "Right"];
@@ -293,8 +324,11 @@
                 evt.preventDefault();
             }
             
-            function onModeSelect (evt) {
-                refreshImage(true);
+            function onModeSelect (evt, ui) {
+                isActive = (ui.index == 0);
+                
+                if (isActive)
+                    refreshImage(true);
             }
             
             function initialize () {
@@ -312,6 +346,8 @@
                 $(document).bind("keydown", onKeyDown);
                 $(document).bind("keyup", onKeyUp);
                 $(document).bind("keypress", onKeyPress);
+                
+                isActive = true;
                 refreshImage(true);
             }
 
