@@ -2,6 +2,8 @@ import shootblues
 import types
 import threading
 import json
+import traceback
+import sys
 
 _channels = {}
 _pendingMessages = {}
@@ -58,6 +60,23 @@ def getFrameModule(i):
         return callingModule.__name__
     
     return None
+
+def showException(etype=None, value=None, tb=None):    
+    if (not etype) or (not value) or (not tb):
+        exc_info = sys.exc_info()
+        if not etype:
+            etype = exc_info[0]
+        if not value:
+            value = exc_info[1]
+        if not tb:
+            tb = exc_info[2]
+        
+    remoteCall(
+        "Common.Script.dll", "ShowError", 
+        "".join(traceback.format_exception(
+            etype, value, tb
+        ))
+    )
 
 def remoteCall(script, methodName, *args):
     channel = getChannel("remotecall")

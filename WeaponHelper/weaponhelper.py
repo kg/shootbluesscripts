@@ -51,9 +51,11 @@ class WeaponHelperSvc:
         self.__lastAttackOrder = None
     
     def getTargetSorter(self, module):
-        now = blue.os.GetTime()
+        now = blue.os.GetTime(1)
         godma = eve.LocalSvc("godma")
         ballpark = eve.LocalSvc("michelle").GetBallpark()
+        
+        gp = Memoized(getPriority)
         
         moduleAttrs = getModuleAttributes(module)
         if getattr(module, "charge", None):
@@ -156,8 +158,8 @@ class WeaponHelperSvc:
         if chanceToHitGetter:                
             def targetSorter(lhs, rhs):        
                 # Highest priority first
-                priLhs = getPriority(targetID=lhs)
-                priRhs = getPriority(targetID=rhs)
+                priLhs = gp(lhs)
+                priRhs = gp(rhs)
                 result = cmp(priRhs, priLhs)
                 
                 if result == 0:
@@ -176,8 +178,8 @@ class WeaponHelperSvc:
             log("Warning: Weapon without chance-to-hit attributes.")
             def targetSorter(lhs, rhs):
                 # Highest priority first
-                priLhs = getPriority(targetID=lhs)
-                priRhs = getPriority(targetID=rhs)
+                priLhs = getPriority(lhs)
+                priRhs = getPriority(rhs)
                 result = cmp(priRhs, priLhs)
                 
         return targetSorter
@@ -191,10 +193,10 @@ class WeaponHelperSvc:
             if not invItem:
                 continue
                 
-            if getFlagName(invItem) != "HostileNPC":
+            if getFlagName(id) != "HostileNPC":
                 continue
             
-            if getPriority(targetID=id) < 0:
+            if getPriority(id) < 0:
                 continue
                 
             result.append(id)

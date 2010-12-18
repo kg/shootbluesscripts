@@ -1,5 +1,5 @@
 ﻿from shootblues.common import log
-from shootblues.common.eve import getFlagName
+from shootblues.common.eve.state import getCachedItem
 import uix
 import json
 
@@ -17,33 +17,28 @@ def adjustPriority(targetID, delta=1):
     elif targetID in priorityBoosts:
         del priorityBoosts[targetID]
 
-def getPriority(targetID=None, slimItem=None):
+def getPriority(id):
     global priorities, priorityBoosts
     
-    if targetID and not slimItem:    
-        ballpark = eve.LocalSvc('michelle').GetBallpark()
-        if not ballpark:
-            return 0
-        
-        slimItem = ballpark.GetInvItem(targetID)
+    ci = getCachedItem(id)
     
-    if not slimItem:
+    if not ci.slimItem:
         return -1
     
-    targetID = slimItem.itemID
-    charID = getattr(slimItem, "charID", None)
+    charID = getattr(ci.slimItem, "charID", None)
     if charID:
         priority = priorities.get("char:%d" % (charID,), 0)
     else:
         priority = 0
     
     if priority == 0:
-        priority = priorities.get("type:%d" % (slimItem.typeID,), 0)
+        priority = priorities.get("type:%d" % (ci.slimItem.typeID,), 0)
         if priority == 0:
-            priority = priorities.get("group:%d" % (slimItem.groupID,), 0)
+            priority = priorities.get("group:%d" % (ci.slimItem.groupID,), 0)
     
     if priority == 0:
-        flag = getFlagName(slimItem)
+        flag = ci.flag
+        
         if ((flag == "StandingGood") or
             (flag == "StandingHigh") or
             (flag == "SameGang") or
@@ -52,6 +47,6 @@ def getPriority(targetID=None, slimItem=None):
             (flag == "SameCorp")):
             priority = -1
     
-    priority += priorityBoosts.get(targetID, 0)
+    priority += priorityBoosts.get(id, 0)
     
     return priority

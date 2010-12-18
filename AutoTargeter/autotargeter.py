@@ -2,6 +2,7 @@
 from shootblues.common import log
 from shootblues.common.eve import SafeTimer, runOnMainThread, getFlagName, getNamesOfIDs, isBallTargetable, isBallWarping, isPlayerJumping
 from shootblues.common.service import forceStart, forceStop
+from shootblues.common.eve.state import TargetableCategories, getCachedItem
 import uix
 import json
 import state
@@ -9,6 +10,7 @@ import base
 import destiny
 import uthread
 import trinity
+import blue
 from util import Memoized
 
 prefs = {}
@@ -43,27 +45,6 @@ FlagHostilePlayer = set(["StandingBad", "StandingHorrible", "AtWarCanFight"])
 FlagNeutralPlayer = set(["StandingNeutral"])
 FlagFriendlyPlayer = set(["StandingGood", "StandingHigh", "SameFleet", "SameAlliance", "SameCorp"])
 
-TargetableCategories = set([const.categoryEntity, const.categoryDrone, const.categoryShip])
-
-class BallInfo:
-    def __init__(self, ball, slimItem):
-        self.id = slimItem.itemID
-        self.ball = ball
-        self.slimItem = slimItem
-        self.flag = getFlagName(slimItem)
-    
-    def updateFlag(self):
-        self.flag = getFlagName(self.slimItem)
-    
-    @property
-    def isEligible(self):            
-        return (
-            (getPref("TargetHostileNPCs", False) and self.flag in FlagHostileNPC) or
-            (getPref("TargetHostilePlayers", False) and self.flag in FlagHostilePlayer) or
-            (getPref("TargetNeutralPlayers", False) and self.flag in FlagNeutralPlayer) or
-            (getPref("TargetFriendlyPlayers", False) and self.flag in FlagFriendlyPlayer)
-        )
-
 class AutoTargeterSvc:
     __notifyevents__ = [
         "DoBallsAdded",
@@ -86,25 +67,22 @@ class AutoTargeterSvc:
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         return ballpark.DistanceBetween(eve.session.shipid, targetID)
     
-    def makeTargetSorter(self, currentTargets):
-        gd = Memoized(self.getDistance)
-        gp = Memoized(getPriority)
-    
+    def makeTargetSorter(self, currentTargets, gp, gd):    
         def targetSorter(lhs, rhs):
             # Highest priority first
-            priLhs = gp(targetID=lhs)
-            priRhs = gp(targetID=rhs)
+            priLhs = gp(lhs.id)
+            priRhs = gp(rhs.id)
             result = cmp(priRhs, priLhs)
             
             if result == 0:
                 result = cmp(
-                    rhs in currentTargets,
-                    lhs in currentTargets
+                    rhs.id in currentTargets,
+                    lhs.id in currentTargets
                 )
                 
                 if result == 0:
-                    distLhs = gd(lhs)
-                    distRhs = gd(rhs)
+                    distLhs = gd(lhs.id)
+                    distRhs = gd(rhs.id)
                     result = cmp(distLhs, distRhs)
         
             return result
@@ -124,7 +102,7 @@ class AutoTargeterSvc:
         ))
         return max(maxTargets - reservedSlots, 0)
        
-    def filterTargets(self, bis):
+    def filterTargets(self, bis, gp, gd):
         targetSvc = sm.services['target']
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         if not ballpark:
@@ -146,17 +124,20 @@ class AutoTargeterSvc:
         maxTargetRange = self.getMaxTargetRange()
         
         for bi in bis:
-            if not isBallTargetable(bi.ball):
+            if not bi:
                 continue
             
-            if getPriority(slimItem=bi.slimItem) < 0:
+            if gp(bi.id) < 0:
+                continue
+            
+            if not isBallTargetable(bi.ball):
                 continue
                 
-            distance = ballpark.DistanceBetween(eve.session.shipid, bi.id)
+            distance = gd(bi.id)
             if distance > maxTargetRange:
                 continue
             
-            result.append(bi.id)
+            result.append(bi)
         
         return result
     
@@ -165,7 +146,7 @@ class AutoTargeterSvc:
             self.__updateTimer = None
             return
         
-        ballpark = eve.LocalSvc("michelle").GetBallpark()
+        ballpark = sm.services["michelle"].GetBallpark()
         if not ballpark:
             return
     
@@ -176,16 +157,21 @@ class AutoTargeterSvc:
         maxTargets = self.getMaxTargets()
         if maxTargets <= 0:
             return
+            
+        gd = Memoized(self.getDistance)
+        gp = Memoized(getPriority)
         
-        currentTargets = self.filterTargets([
-            self.__balls[id] for id in self.__lockedTargets 
-            if id in targetSvc.targets
-        ])
+        currentTargets = [self.__balls.get(id, None) for id in self.__lockedTargets 
+            if id in targetSvc.targets]
+        currentTargets = [bi.id for bi in self.filterTargets(currentTargets, gp, gd)]
         exclusionSet = set(targetSvc.targeting + targetSvc.autoTargeting + currentTargets)
-        targetSorter = self.makeTargetSorter(exclusionSet)
+        targetSorter = self.makeTargetSorter(exclusionSet, gp, gd)
         
-        targets = self.filterTargets(self.__eligibleBalls)
+        startTime = blue.os.GetTime(1)
+        targets = self.filterTargets(self.__eligibleBalls, gp, gd)        
+        
         targets.sort(targetSorter)
+        elapsed = (blue.os.GetTime(1) - startTime) / 10000000.0
                 
         currentlyTargeting = set([
             id for id in (targetSvc.targeting + targetSvc.autoTargeting) 
@@ -194,14 +180,13 @@ class AutoTargeterSvc:
         
         allLockedTargets = set(targetSvc.targeting + targetSvc.autoTargeting + targetSvc.targets)
         maxNewTargets = max(maxTargets - len(allLockedTargets), 0)
-        targets = set(targets[0:maxTargets])
+        targets = set([bi.id for bi in targets[0:maxTargets]])
         
-        currentTargets.sort(targetSorter)
         currentTargets = set(currentTargets)
                     
         targetsToUnlock = (currentTargets - targets) - currentlyTargeting
-        targetsToLock = (targets - set(targetSvc.targets)) - currentlyTargeting
-        targetsToLock = list(targetsToLock)[0:maxNewTargets]
+        targetsToLock = list((targets - set(targetSvc.targets)) - currentlyTargeting)
+        targetsToLock = targetsToLock[0:maxNewTargets]
                 
         if len(targetsToUnlock):
             log("Unlocking %s", ", ".join(getNamesOfIDs(targetsToUnlock)))
@@ -224,7 +209,7 @@ class AutoTargeterSvc:
                     self.tryLockTarget,
                     targetSvc, targetID
                 )
-    
+            
     def tryLockTarget(self, targetSvc, targetID):
         try:
             targetSvc.TryLockTarget(targetID)
@@ -246,9 +231,7 @@ class AutoTargeterSvc:
         
         lst = []
         for ballID, ball in ballpark.balls.iteritems():
-            slimItem = ballpark.GetInvItem(ballID)
-            if slimItem:
-               lst.append((ball, slimItem))
+           lst.append((ball, ballpark.GetInvItem(ballID)))
         
         self._DoBallsAdded(lst)
                 
@@ -259,6 +242,14 @@ class AutoTargeterSvc:
             lst
         )
     
+    def isEligible(self, cachedItem):
+        return (
+            (getPref("TargetHostileNPCs", False) and cachedItem.flag in FlagHostileNPC) or
+            (getPref("TargetHostilePlayers", False) and cachedItem.flag in FlagHostilePlayer) or
+            (getPref("TargetNeutralPlayers", False) and cachedItem.flag in FlagNeutralPlayer) or
+            (getPref("TargetFriendlyPlayers", False) and cachedItem.flag in FlagFriendlyPlayer)
+        )
+    
     def _DoBallsAdded(self, lst):
         for (ball, slimItem) in lst:
             if not slimItem.categoryID in TargetableCategories:
@@ -266,17 +257,17 @@ class AutoTargeterSvc:
             if slimItem.itemID == eve.session.shipid:
                 continue
             
-            bi = BallInfo(ball, slimItem)
+            bi = getCachedItem(slimItem.itemID, ball, slimItem)
             self.__balls[slimItem.itemID] = bi
             
-            if bi.isEligible:
+            if self.isEligible(bi):
                 self.__eligibleBalls.add(bi)
     
     def populateEligibleBalls(self):
         self.__eligibleBalls = set()
         
         for ballInfo in self.__balls.itervalues():
-            if ballInfo.isEligible:
+            if self.isEligible(ballInfo):
                 self.__eligibleBalls.add(ballInfo)
     
     def DoBallRemove(self, ball, slimItem, *args, **kwargs):

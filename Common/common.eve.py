@@ -1,4 +1,4 @@
-﻿from shootblues.common import log, onMainThread
+﻿from shootblues.common import log, onMainThread, showException
 
 ActionThreshold = (10000000L * 200) / 100
 MainThreadQueue = []
@@ -42,31 +42,9 @@ def getNamesOfIDs(ids):
     
     return result
                 
-def getFlagName(slimItem):
-    validCategories = [const.categoryShip, const.categoryDrone, const.categoryEntity]
-    if slimItem.categoryID not in validCategories:
-        return None
-
-    stateSvc = eve.LocalSvc("state")
-    props = stateSvc.GetProps()
-    
-    flag = stateSvc.CheckStates(slimItem, "flag")
-    if flag:
-        flagProps = props.get(flag, None)
-        if flagProps:
-            return flagProps[1]
-    
-    colorFlag = 0
-    if slimItem.typeID:
-        itemType = eve.LocalSvc("godma").GetType(slimItem.typeID)
-        for attr in itemType.displayAttributes:
-            if attr.attributeID == const.attributeEntityBracketColour:
-                if attr.value == 1:
-                    return "HostileNPC"
-                elif attr.value == 0:
-                    return "NeutralNPC"
-    
-    return None
+def getFlagName(id, slimItem=None):
+    from shootblues.common.eve.state import getCachedItem
+    return getCachedItem(id=id, slimItem=slimItem).flag
 
 def getCharacterName(charID):
     if not charID:
@@ -250,7 +228,7 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
     
     def_effect = getattr(module, "def_effect", None)
     
-    timestamp = blue.os.GetTime()
+    timestamp = blue.os.GetTime(1)
     lastAction = int(getattr(module, "__last_action__", 0))
     if (ActionThreshold is not None and 
         abs(lastAction - timestamp) <= ActionThreshold):
@@ -436,12 +414,11 @@ class SafeTimer(object):
     def tick(self):
         try:
             self.__handler()
-        except:
-            log("SafeTimer %r temporarily disabled due to error", self.getName())
+        except Exception:
+            showException()
+            
             self.__timer = None
             runOnMainThread(self.delayedSyncState)
-            
-            raise
 
 def __unload__():
     global MainThreadQueue, MainThreadQueueRunning, MainThreadQueueInvoker

@@ -25,4 +25,6 @@
 /EventNotifications/obj
 /RemoteControl/bin
 /RemoteControl/obj
+/JabberGateway/bin
+/JabberGateway/obj
 /Common/evedata.db

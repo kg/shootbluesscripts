@@ -86,7 +86,7 @@ class DroneHelperSvc:
         droneCount = len(drones)
         
         if (droneCount > 0) and (self.__updateTimer == None):
-            self.__updateTimer = SafeTimer(500, self.updateDrones)
+            self.__updateTimer = SafeTimer(1000, self.updateDrones)
         elif (droneCount <= 0) and (self.__updateTimer != None):
             self.__updateTimer = None
             self.__lastAttackOrder = None
@@ -162,8 +162,8 @@ class DroneHelperSvc:
         
         def targetSorter(lhs, rhs):
             # Highest priority first
-            priLhs = gp(targetID=lhs)
-            priRhs = gp(targetID=rhs)
+            priLhs = gp(lhs)
+            priRhs = gp(rhs)
             result = cmp(priRhs, priLhs)
             
             if result == 0:
@@ -202,10 +202,10 @@ class DroneHelperSvc:
             if not (id in targetSvc.targets):
                 continue
             
-            if getFlagName(invItem) != "HostileNPC":
+            if getFlagName(id) != "HostileNPC":
                 continue
             
-            if getPriority(targetID=id) < 0:
+            if getPriority(id) < 0:
                 continue
             
             if ballpark.DistanceBetween(eve.session.shipid, id) > controlRange:
@@ -230,7 +230,7 @@ class DroneHelperSvc:
             return
             
         ballpark = eve.LocalSvc("michelle").GetBallpark()
-        timestamp = blue.os.GetTime()
+        timestamp = blue.os.GetTime(1)
         isCommonTarget = False
         if not targetID:
             targetID = self.getCommonTarget()
@@ -300,7 +300,7 @@ class DroneHelperSvc:
             return
         
         dronesToRecall = list(dronesToRecall)
-        timestamp = blue.os.GetTime()
+        timestamp = blue.os.GetTime(1)
         
         for droneID in list(dronesToRecall):
             droneObj = self.getDroneObject(droneID)
@@ -310,7 +310,6 @@ class DroneHelperSvc:
                (droneObj.state == const.entityFleeing) or
                abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
                 dronesToRecall.remove(droneID)
-                log("drone state=%r, not recalling", droneObj.state)
         
         if len(dronesToRecall):
             entity = moniker.GetEntityAccess()
@@ -340,7 +339,7 @@ class DroneHelperSvc:
             if not ballpark.GetBall(self.__lastAttackOrder):
                 self.__lastAttackOrder = None
         
-        timestamp = blue.os.GetTime()
+        timestamp = blue.os.GetTime(1)
         droneIDs = self.getDronesInLocalSpace()
         dronesToRecall = []
         dronesToAttack = []
@@ -389,9 +388,9 @@ class DroneHelperSvc:
             if commonTarget == eve.session.shipid:
                 return
             
-            oldPriority = getPriority(targetID=commonTarget)
+            oldPriority = getPriority(commonTarget)
             newTarget = self.selectTarget()
-            newPriority = getPriority(targetID=newTarget)
+            newPriority = getPriority(newTarget)
             
             if commonTarget and (newPriority > oldPriority):
                 if ((commonTarget == self.__lastAttackOrder) or 
@@ -418,7 +417,7 @@ class DroneHelperSvc:
     
     def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, timestamp=None):       
         if not timestamp:
-            timestamp = blue.os.GetTime()
+            timestamp = blue.os.GetTime(1)
     
         dronesInLocal = self.getDronesInLocalSpace()
         if droneID not in dronesInLocal:
@@ -453,7 +452,7 @@ class DroneHelperSvc:
         self.checkUpdateTimer(droneID)
 
     def OnDroneControlLost(self, droneID):
-        timestamp = blue.os.GetTime()
+        timestamp = blue.os.GetTime(1)
         drone = self.getDroneObject(droneID)
         drone.setState(None, timestamp)
         

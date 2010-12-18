@@ -109,6 +109,10 @@ namespace ShootBlues.Script {
             LogWindowInstance = null;
         }
 
+        public void ShowError (ProcessInfo process, string errorText) {
+            Program.ShowErrorMessage(errorText, process);
+        }
+
         public static IEnumerator<object> CreateNamedChannel (ProcessInfo process, string name) {
             var channel = process.GetNamedChannel(name);
 
