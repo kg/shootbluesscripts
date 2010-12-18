@@ -48,7 +48,7 @@ def getPriority(targetID=None, slimItem=None):
             (flag == "StandingHigh") or
             (flag == "SameGang") or
             (flag == "SameFleet") or
-            (flag == "Alliance") or
+            (flag == "SameAlliance") or
             (flag == "SameCorp")):
             priority = -1
     

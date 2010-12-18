@@ -157,12 +157,13 @@ class DroneHelperSvc:
             return None
     
     def getTargetSorter(self):
-        getDistance = Memoized(self.getDistance)
+        gp = Memoized(getPriority)
+        gd = Memoized(self.getDistance)
         
         def targetSorter(lhs, rhs):
             # Highest priority first
-            priLhs = getPriority(targetID=lhs)
-            priRhs = getPriority(targetID=rhs)
+            priLhs = gp(targetID=lhs)
+            priRhs = gp(targetID=rhs)
             result = cmp(priRhs, priLhs)
             
             if result == 0:
@@ -173,8 +174,8 @@ class DroneHelperSvc:
                 )
                 
                 if result == 0:        
-                    distLhs = getDistance(lhs)
-                    distRhs = getDistance(rhs)
+                    distLhs = gd(lhs)
+                    distRhs = gd(rhs)
                     result = cmp(distLhs, distRhs)
             
             return result

@@ -35,12 +35,19 @@ def notifyPrefsChanged(newPrefsJson):
 class BroadcastHelperSvc:
     __notifyevents__ = [
         "OnFleetBroadcast",
+        "OnSessionChanged",
     ]
 
     def __init__(self):
         self.disabled = False
         self.__needReps = []
     
+    def clear(self):
+        while len(self.__needReps) > 0:
+            item = self.__needReps[0]
+            self.__needReps.remove(item)
+            adjustPriority(item, 0)
+            
     def OnFleetBroadcast(self, broadcastType, arg1, charID, locationID, targetID):
         targetName = None
         locationName = None
@@ -81,6 +88,9 @@ class BroadcastHelperSvc:
             item = self.__needReps[0]
             self.__needReps.remove(item)
             adjustPriority(item, 0)
+    
+    def OnSessionChanged(self, isRemote, session, change):
+        self.clear()
 
 def initialize():
     global serviceRunning, serviceInstance
