@@ -38,6 +38,18 @@ class ItemDataCache(object):
         
         return self._slimItem
     
+    @property
+    def radius(self):
+        r = None
+    
+        if self.slimItem:
+            r = getattr(self.slimItem, "signatureRadius", None)
+            
+        if ((r is None) or (r <= 0.0)) and (self.ball):
+            r = self.ball.radius
+        
+        return r
+        
     def removedFromBallpark(self):
         self._slimItem = None
         self._ball = None
@@ -124,7 +136,7 @@ def installStateMonitor():
             if ce:
                 ce.clearFlag()
         
-        def OnStandingsModified(self):
+        def OnStandingsModified(self, modifications):
             for obj in self.objectCache.values():
                 obj.clearFlag()
         

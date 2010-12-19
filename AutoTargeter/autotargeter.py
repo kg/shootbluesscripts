@@ -201,7 +201,7 @@ class AutoTargeterSvc:
             log("Locking %s", ", ".join(getNamesOfIDs(targetsToLock)))
             for targetID in targetsToLock:
                 if targetID not in self.__lockedTargets:
-                    self.__lockedTargets.append(targetID)
+                    self.__lockedTargets.add(targetID)
                     setItemColor(targetID, "Automatic Target")
                 
                 uthread.pool(
@@ -225,7 +225,7 @@ class AutoTargeterSvc:
         
         targetSvc = sm.services.get('target', None)
         if targetSvc:
-            self.__lockedTargets = list(targetSvc.targets)
+            self.__lockedTargets = set(targetSvc.targets)
             for id in self.__lockedTargets:
                 setItemColor(id, "Automatic Target")
         
@@ -252,6 +252,8 @@ class AutoTargeterSvc:
     
     def _DoBallsAdded(self, lst):
         for (ball, slimItem) in lst:
+            if not slimItem:
+                continue
             if not slimItem.categoryID in TargetableCategories:
                 continue
             if slimItem.itemID == eve.session.shipid:
@@ -291,8 +293,10 @@ class AutoTargeterSvc:
     
     def OnTarget(self, what, tid=None, reason=None):
         if (what == "lost"):
-            if (reason == None) and (tid in self.__potentialTargets):
-                self.__potentialTargets.remove(tid)
+            if (reason == None) and (tid in self.__balls):
+                ball = self.__balls[tid]
+                del self.__balls[tid]
+                self.__eligibleBalls.remove(ball)
             if tid in self.__lockedTargets:
                 self.__lockedTargets.remove(tid) 
                 setItemColor(tid, None)
@@ -301,7 +305,7 @@ class AutoTargeterSvc:
             for id in self.__lockedTargets:
                 setItemColor(id, None)
             
-            self.__lockedTargets = []
+            self.__lockedTargets = set()
 
 def initialize():
     global serviceRunning, serviceInstance

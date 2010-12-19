@@ -75,6 +75,156 @@ def isBallTargetable(ball):
     else:
         return True
 
+class ChanceToHitCalculator(object):
+    def __init__(self, sourceID):
+        self.setSource(sourceID)
+    
+    def setSource(self, sourceID):
+        from common.eve.state import getCachedItem
+        self.source = getCachedItem(sourceID)
+    
+    def setDrone(self, id):
+        from common.eve.state import getCachedItem
+        self.source = getCachedItem(id)
+        
+        si = self.source.slimItem
+        ball = self.source.ball
+        droneAttrs = getTypeAttributes(si.typeID, obj=ball)
+        
+        self.baseDamage = float(
+            droneAttrs.get("kineticDamage", 0) + 
+            droneAttrs.get("emDamage", 0) +
+            droneAttrs.get("explosiveDamage", 0) +
+            droneAttrs.get("thermalDamage", 0)
+        )
+        
+        self.optimal = float(droneAttrs["maxRange"])
+        self.falloff = float(droneAttrs["falloff"])
+        self.tracking = float(droneAttrs["trackingSpeed"])
+        self.sigResolution = float(droneAttrs["optimalSigRadius"])
+        
+        self.calculate = self.calculateTurret
+    
+    def setModule(self, module):
+        godma = eve.LocalSvc("godma")
+        
+        moduleAttrs = getModuleAttributes(module)
+        if getattr(module, "charge", None):
+            chargeObj = godma.GetItem(module.charge.itemID)
+            chargeAttrs = getTypeAttributes(module.charge.typeID, obj=chargeObj)
+        else:        
+            chargeAttrs = {}
+        
+        self.baseDamage = float(
+            chargeAttrs.get("kineticDamage", 0) + 
+            chargeAttrs.get("emDamage", 0) +
+            chargeAttrs.get("explosiveDamage", 0) +
+            chargeAttrs.get("thermalDamage", 0)
+        )
+                
+        if moduleAttrs.has_key("trackingSpeed"):
+            # Gun turret
+            
+            self.optimal = float(moduleAttrs["maxRange"])
+            self.falloff = float(moduleAttrs["falloff"])
+            self.tracking = float(moduleAttrs["trackingSpeed"])
+            self.sigResolution = float(moduleAttrs["optimalSigRadius"])
+        
+            self.calculate = self.calculateTurret
+            
+        elif chargeAttrs.has_key("maxVelocity"):
+            # Missile launcher
+            
+            self.maxVelocity = float(chargeAttrs["maxVelocity"])
+            self.flightTime = float(chargeAttrs["explosionDelay"]) / 1000.0                        
+            self.explosionRadius = max(float(chargeAttrs["aoeCloudSize"]), 0.00001)
+            self.explosionVelocity = float(chargeAttrs["aoeVelocity"])
+            self.damageReductionFactor = float(chargeAttrs["aoeDamageReductionFactor"])
+            self.maxRange = flightTime * maxVelocity
+        
+            self.calculate = self.calculateLauncher
+    
+    def calculateNone(self, targetID, **kwargs):
+        return 0.0
+    
+    def calculateTurret(self, targetID, velocityModifier=1.0, radiusModifier=1.0):
+        import blue, foo
+        from common.eve.state import getCachedItem
+        target = getCachedItem(targetID)
+        
+        ballpark = sm.services["michelle"].GetBallpark()        
+        now = blue.os.GetTime()
+        
+        shipVelocity = self.source.ball.GetVectorDotAt(now)
+        shipPos = foo.Vector3(
+            self.source.ball.x, self.source.ball.y, self.source.ball.z
+        )
+        
+        distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
+        distanceFactor = max(0.0, distance - self.optimal) / self.falloff
+        
+        targetBall = target.ball
+        targetItem = target.slimItem
+        targetVelocity = targetBall.GetVectorDotAt(now) * velocityModifier
+        targetPos = foo.Vector3(targetBall.x, targetBall.y, targetBall.z)            
+        targetRadius = target.radius * radiusModifier
+        
+        combinedVelocity = foo.Vector3(
+            targetVelocity.x - shipVelocity.x,
+            targetVelocity.y - shipVelocity.y,
+            targetVelocity.z - shipVelocity.z
+        )
+        
+        radialVector = targetPos - shipPos
+        if ((radialVector.x, radialVector.y, radialVector.z) != (0.0, 0.0, 0.0)):
+            radialVector = radialVector.Normalize()
+        
+        radialVelocity = combinedVelocity * radialVector
+        transversalVelocity = (combinedVelocity - (radialVelocity * radialVector)).Length()
+        
+        trackingFactor = transversalVelocity / distance * self.tracking
+        
+        resolutionFactor = self.sigResolution / targetRadius
+                        
+        result = 0.5 ** (((trackingFactor * resolutionFactor) ** 2) + (distanceFactor ** 2))
+        
+        return result    
+    
+    def calculateLauncher(self, targetID, velocityModifier=1.0, radiusModifier=1.0):
+        import blue, foo
+        from common.eve.state import getCachedItem
+        target = getCachedItem(targetID)
+        targetBall = target.ball
+        targetItem = target.slimItem
+        
+        ballpark = sm.services["michelle"].GetBallpark()        
+        now = blue.os.GetTime()
+           
+        distance = max(ballpark.DistanceBetween(self.source.id, targetID), 0.00001)
+                
+        targetVelocity = max(
+            targetBall.GetVectorDotAt(now).Length() * velocityModifier,
+            0.00001
+        )
+        targetRadius = target.radius * radiusModifier
+        
+        estimatedDamage = self.baseDamage * min(
+            min(
+                targetRadius / self.explosionRadius, 1
+            ), (
+                (self.explosionVelocity / self.explosionRadius * targetRadius / targetVelocity) ** 
+                (math.log(self.damageReductionFactor) / math.log(5.5))
+            )
+        )
+        
+        if distance > self.maxRange:                
+            return 0
+        else:                    
+            return estimatedDamage / self.baseDamage
+    
+    def calculateSmartBomb(self, targetID, **kwargs):
+        return 0.0
+
 def findModule(groupNames=None, groupIDs=None, typeNames=None, typeIDs=None):
     modules = findModules(
         count=1, 

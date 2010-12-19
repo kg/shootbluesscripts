@@ -1,6 +1,7 @@
 import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, ChanceToHitCalculator, getTypeAttributes
+from shootblues.common.eve.state import getCachedItem
 from shootblues.common.service import forceStart, forceStop
 import service
 import uix
@@ -35,10 +36,16 @@ def notifyPrefsChanged(newPrefsJson):
 class DroneInfo(object):
     def __init__(self, droneID):
         self.id = droneID
+        ci = getCachedItem(droneID)
+        self.ball = ci.ball
+        self.slimItem = ci.slimItem
         self.target = None
         self.actionTimestamp = self.timestamp = 0
         self.shield = self.armor = self.structure = 1.0
         self.state = None
+        
+        attributes = getTypeAttributes(ci.slimItem.typeID, obj=ci.ball)
+        self.isSentry = float(attributes.get("entityCruiseSpeed", 0.0)) <= 0.0
     
     def setState(self, newState, timestamp):
         if timestamp > self.timestamp:
@@ -76,6 +83,7 @@ class DroneHelperSvc:
         self.__lastAttackOrder = None
         self.__recalledDrones = {}
         self.__numFighters = 0
+        self.__numSentries = 0
         self.disabled = False
         self.checkUpdateTimer()
     
@@ -160,6 +168,39 @@ class DroneHelperSvc:
         gp = Memoized(getPriority)
         gd = Memoized(self.getDistance)
         
+        numDrones = len(self.__drones)
+        useChanceToHit = (self.__numSentries >= (numDrones / 2)) and (self.__numSentries > 0)
+        
+        if useChanceToHit:
+            def getCalcForDrone(id):
+                cthc = ChanceToHitCalculator(id)
+                cthc.setDrone(id)
+                return Memoized(cthc.calculate)
+        
+            calcs = [
+                getCalcForDrone(id) for id in self.__drones.iterkeys()
+                if self.__drones[id].isSentry
+            ]
+            
+            def toHitSorter(lhs, rhs):
+                cthLhs = 0
+                cthRhs = 0
+                
+                for calc in calcs:
+                    cthLhs += calc(lhs)
+                    cthRhs += calc(rhs)
+                
+                cthLhs /= len(calcs)
+                cthRhs /= len(calcs)
+                
+                return cmp(cthRhs, cthLhs)
+            
+        else:
+            def toHitSorter(lhs, rhs):
+                distLhs = gd(lhs)
+                distRhs = gd(rhs)
+                return cmp(distLhs, distRhs)
+        
         def targetSorter(lhs, rhs):
             # Highest priority first
             priLhs = gp(lhs)
@@ -173,10 +214,8 @@ class DroneHelperSvc:
                     lhs is self.__lastAttackOrder
                 )
                 
-                if result == 0:        
-                    distLhs = gd(lhs)
-                    distRhs = gd(rhs)
-                    result = cmp(distLhs, distRhs)
+                if result == 0:
+                    result = toHitSorter(lhs, rhs)
             
             return result
         
@@ -353,6 +392,11 @@ class DroneHelperSvc:
                )):
                 self.__numFighters += 1
         
+        self.__numSentries = 0
+        for droneObj in self.__drones.itervalues():
+            if droneObj.isSentry:
+                self.__numSentries += 1
+        
         for (pendingID, psc) in list(self.__pendingStateChanges.items()):
             if self.__pendingStateChanges.has_key(pendingID):
                 del self.__pendingStateChanges[pendingID]
@@ -387,7 +431,7 @@ class DroneHelperSvc:
             commonTarget = self.getCommonTarget(filtered=False)
             if commonTarget == eve.session.shipid:
                 return
-            
+                        
             oldPriority = getPriority(commonTarget)
             newTarget = self.selectTarget()
             newPriority = getPriority(newTarget)

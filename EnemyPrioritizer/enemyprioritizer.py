@@ -20,6 +20,9 @@ def adjustPriority(targetID, delta=1):
 def getPriority(id):
     global priorities, priorityBoosts
     
+    if not id:
+        return -1
+    
     ci = getCachedItem(id)
     
     if not ci.slimItem:

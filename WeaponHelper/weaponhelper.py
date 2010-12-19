@@ -1,6 +1,6 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, getTypeAttributes, activateModule, canActivateModule
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, getTypeAttributes, activateModule, canActivateModule, ChanceToHitCalculator
 from shootblues.common.service import forceStart, forceStop
 import service
 import json
@@ -51,136 +51,32 @@ class WeaponHelperSvc:
         self.__lastAttackOrder = None
     
     def getTargetSorter(self, module):
-        now = blue.os.GetTime(1)
         godma = eve.LocalSvc("godma")
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         
         gp = Memoized(getPriority)
         
-        moduleAttrs = getModuleAttributes(module)
-        if getattr(module, "charge", None):
-            chargeObj = godma.GetItem(module.charge.itemID)
-            chargeAttrs = getTypeAttributes(module.charge.typeID, obj=chargeObj)
-        else:
-            chargeAttrs = {}
-                
-        shipBall = ballpark.GetBall(eve.session.shipid)
-        shipVelocity = shipBall.GetVectorDotAt(now)
-        shipPos = foo.Vector3(shipBall.x, shipBall.y, shipBall.z)
+        cthc = ChanceToHitCalculator(eve.session.shipid)
+        cthc.setModule(module)
+        chanceToHitGetter = Memoized(cthc.calculate)
         
-        if moduleAttrs.has_key("trackingSpeed"):
-            # Gun turret
+        def targetSorter(lhs, rhs):        
+            # Highest priority first
+            priLhs = gp(lhs)
+            priRhs = gp(rhs)
+            result = cmp(priRhs, priLhs)
             
-            optimal = float(moduleAttrs["maxRange"])
-            falloff = float(moduleAttrs["falloff"])
-            tracking = float(moduleAttrs["trackingSpeed"])
-            sigResolution = float(moduleAttrs["optimalSigRadius"])
+            if result == 0:
+                # Highest chance to hit first, but bias the chance to hit up for things we previously attacked
+                cthLhs = chanceToHitGetter(lhs)
+                if lhs is self.__lastAttackOrder:
+                    cthLhs += ChanceToHitBias
+                cthRhs = chanceToHitGetter(rhs)
+                if rhs is self.__lastAttackOrder:
+                    cthRhs += ChanceToHitBias
+                result = cmp(cthRhs, cthLhs)
         
-            def _chanceToHitGetter(targetID):
-                distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
-                distanceFactor = max(0.0, distance - optimal) / falloff
-                
-                targetBall = ballpark.GetBall(targetID)
-                targetItem = ballpark.GetInvItem(targetID)
-                targetVelocity = targetBall.GetVectorDotAt(now)
-                targetPos = foo.Vector3(targetBall.x, targetBall.y, targetBall.z)            
-                targetRadius = getattr(
-                    targetItem, "signatureRadius", None
-                )
-                if (not targetRadius) or (targetRadius <= 0.0):
-                    targetRadius = targetBall.radius
-                
-                combinedVelocity = foo.Vector3(
-                    targetVelocity.x - shipVelocity.x,
-                    targetVelocity.y - shipVelocity.y,
-                    targetVelocity.z - shipVelocity.z
-                )
-                
-                radialVector = targetPos - shipPos
-                if ((radialVector.x, radialVector.y, radialVector.z) != (0.0, 0.0, 0.0)):
-                    radialVector = radialVector.Normalize()
-                
-                radialVelocity = combinedVelocity * radialVector
-                transversalVelocity = (combinedVelocity - (radialVelocity * radialVector)).Length()
-                
-                trackingFactor = transversalVelocity / distance * tracking
-                
-                resolutionFactor = sigResolution / targetRadius
-                                
-                result = 0.5 ** (((trackingFactor * resolutionFactor) ** 2) + (distanceFactor ** 2))
-                
-                return result
-        
-            chanceToHitGetter = Memoized(_chanceToHitGetter)
-            
-        elif chargeAttrs.has_key("maxVelocity"):
-            # Missile launcher
-            
-            maxVelocity = float(chargeAttrs["maxVelocity"])
-            flightTime = float(chargeAttrs["explosionDelay"]) / 1000.0                        
-            explosionRadius = max(float(chargeAttrs["aoeCloudSize"]), 0.00001)
-            explosionVelocity = float(chargeAttrs["aoeVelocity"])
-            damageReductionFactor = float(chargeAttrs["aoeDamageReductionFactor"])
-            maxRange = flightTime * maxVelocity
-            baseDamage = float(
-                chargeAttrs["kineticDamage"] + chargeAttrs["emDamage"] +
-                chargeAttrs["explosiveDamage"] + chargeAttrs["thermalDamage"]
-            )
-        
-            def _chanceToHitGetter(targetID):
-                distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
-                
-                targetBall = ballpark.GetBall(targetID)
-                targetItem = ballpark.GetInvItem(targetID)
-                targetVelocity = max(targetBall.GetVectorDotAt(now).Length(), 0.00001)
-                targetRadius = getattr(
-                    targetItem, "signatureRadius", None
-                )
-                if (not targetRadius) or (targetRadius <= 0.0):
-                    targetRadius = targetBall.radius
-                
-                estimatedDamage = baseDamage * min(
-                    min(
-                        targetRadius / explosionRadius, 1
-                    ), (
-                        (explosionVelocity / explosionRadius * targetRadius / targetVelocity) ** 
-                        (math.log(damageReductionFactor) / math.log(5.5))
-                    )
-                )
-                
-                if distance > maxRange:                
-                    return 0
-                else:                    
-                    return estimatedDamage / baseDamage
-        
-            chanceToHitGetter = Memoized(_chanceToHitGetter)
-        
-        if chanceToHitGetter:                
-            def targetSorter(lhs, rhs):        
-                # Highest priority first
-                priLhs = gp(lhs)
-                priRhs = gp(rhs)
-                result = cmp(priRhs, priLhs)
-                
-                if result == 0:
-                    # Highest chance to hit first, but bias the chance to hit up for things we previously attacked
-                    cthLhs = chanceToHitGetter(lhs)
-                    if lhs is self.__lastAttackOrder:
-                        cthLhs += ChanceToHitBias
-                    cthRhs = chanceToHitGetter(rhs)
-                    if rhs is self.__lastAttackOrder:
-                        cthRhs += ChanceToHitBias
-                    result = cmp(cthRhs, cthLhs)
-            
-                return result
-        else:
-            # For some reason our weapon module has neither gun turret or missile attributes
-            log("Warning: Weapon without chance-to-hit attributes.")
-            def targetSorter(lhs, rhs):
-                # Highest priority first
-                priLhs = getPriority(lhs)
-                priRhs = getPriority(rhs)
-                result = cmp(priRhs, priLhs)
+            return result
                 
         return targetSorter
     
