@@ -27,11 +27,11 @@
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PythonExplorer));
             this.DataGrid = new System.Windows.Forms.DataGridView();
-            this.Key = new System.Windows.Forms.DataGridViewButtonColumn();
-            this.Value = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.panel1 = new System.Windows.Forms.Panel();
             this.ProcessList = new System.Windows.Forms.ComboBox();
             this.Breadcrumbs = new System.Windows.Forms.ToolStrip();
+            this.Key = new System.Windows.Forms.DataGridViewButtonColumn();
+            this.Value = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).BeginInit();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
@@ -69,43 +69,6 @@
             this.DataGrid.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGrid_CellDoubleClick);
             this.DataGrid.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.DataGrid_CellValueNeeded);
             this.DataGrid.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGrid_CellContentClick);
-            // 
-            // Key
-            // 
-            this.Key.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.Key.DefaultCellStyle = dataGridViewCellStyle1;
-            this.Key.FillWeight = 50F;
-            this.Key.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.Key.HeaderText = "Key";
-            this.Key.MinimumWidth = 100;
-            this.Key.Name = "Key";
-            this.Key.ReadOnly = true;
-            this.Key.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Key.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.Key.ToolTipText = "Click to browse into this attribute";
-            this.Key.Width = 200;
-            // 
-            // Value
-            // 
-            this.Value.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle2.Font = new System.Drawing.Font("Consolas", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            dataGridViewCellStyle2.NullValue = null;
-            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.Value.DefaultCellStyle = dataGridViewCellStyle2;
-            this.Value.FillWeight = 50F;
-            this.Value.HeaderText = "Value";
-            this.Value.Name = "Value";
-            this.Value.ReadOnly = true;
-            this.Value.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Value.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
             // panel1
             // 
@@ -148,6 +111,41 @@
             this.Breadcrumbs.ShowItemToolTips = false;
             this.Breadcrumbs.Size = new System.Drawing.Size(387, 24);
             this.Breadcrumbs.TabIndex = 1;
+            // 
+            // Key
+            // 
+            this.Key.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("MS Reference Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.Key.DefaultCellStyle = dataGridViewCellStyle1;
+            this.Key.FillWeight = 50F;
+            this.Key.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.Key.HeaderText = "Key";
+            this.Key.MinimumWidth = 100;
+            this.Key.Name = "Key";
+            this.Key.ReadOnly = true;
+            this.Key.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.Key.ToolTipText = "Click to browse into this attribute";
+            // 
+            // Value
+            // 
+            this.Value.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Consolas", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.NullValue = null;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.Value.DefaultCellStyle = dataGridViewCellStyle2;
+            this.Value.FillWeight = 50F;
+            this.Value.HeaderText = "Value";
+            this.Value.Name = "Value";
+            this.Value.ReadOnly = true;
+            this.Value.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Value.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.NotSortable;
             // 
             // PythonExplorer
             // 

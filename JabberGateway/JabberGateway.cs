@@ -16,6 +16,7 @@ using Coversant.SoapBox.Base;
 using SoapboxCore = Coversant.SoapBox.Core;
 using SoapboxBase = Coversant.SoapBox.Base;
 using MUC = Coversant.SoapBox.Core.MultiUserChat;
+using System.Xml;
 
 namespace ShootBlues.Script {
     [Mapper(Explicit=true)]
@@ -96,6 +97,20 @@ namespace ShootBlues.Script {
             return f;
         }
 
+        protected static void HandlePing (Session session, string xml, long socketID) {
+            var doc = new XmlDocument();
+            doc.LoadXml(xml);
+
+            var toJID = new JabberID(doc.Attributes["to"].InnerText);
+            var fromJID = new JabberID(doc.Attributes["from"].InnerText);
+            string packetID = doc.Attributes["id"].InnerText;
+
+            Packet packet = new SoapboxCore.IQ.IQResultResponse(
+                toJID, fromJID, packetID, socketID
+            );
+            session.Send(packet);
+        }
+
         protected static IEnumerator<object> DoConnect (JabberGateway gateway, EndpointSettings settings, Action<float> setStatus) {
             Session session = null;
             var options = new ConnectionOptions(settings.Server);
@@ -105,6 +120,22 @@ namespace ShootBlues.Script {
 
             setStatus(0.5f);
 
+            // Fucking soapbox doesn't handle pings or let you handle them with strongly typed packets, wee
+            session.OnXMLReceived += (xml, socket) => {
+                if (xml.Contains("<ping xmlns=\"urn:xmpp:ping\"")) {
+                    HandlePing(session, xml, socket);
+
+                    var si = Program.GetScriptInstance<Common>("Common.Script.dll");
+                    if (si != null)
+                        si.LogPrint(null, "Attempting to respond to jabber ping.");
+                    else
+                        Console.WriteLine("Attempting to respond to jabber ping.");
+                }
+            };            
+
+            session.StreamCloseEvent += (e) => {
+                Console.WriteLine("Stream closed: {0}", e);
+            };
             session.OnAsynchronousException += (e) => {
                 Program.Scheduler.OnTaskError(e);
             };

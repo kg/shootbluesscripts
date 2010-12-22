@@ -27,6 +27,10 @@ def getNamesOfIDs(ids):
             if godmaItem:
                 invtype = cfg.invtypes.Get(godmaItem.typeID)                
                 return invtype.name
+        
+        typeInfo = cfg.invtypes.Get(id)
+        if typeInfo:
+            return typeInfo.name
 
         return repr(id)
     
@@ -498,7 +502,13 @@ def _mainThreadQueueFunc():
         if item:
             fn, args, kwargs = item
             
-            uthread.pool("MTQ", fn, *args, **kwargs)
+            def invoker():
+                try:
+                    fn(*args, **kwargs)
+                except Exception:
+                    showException()
+            
+            uthread.pool("MTQ", invoker)
             blue.pyos.synchro.Sleep(MainThreadQueueItemDelay)
         else:        
             blue.pyos.synchro.Sleep(MainThreadQueueInterval)
