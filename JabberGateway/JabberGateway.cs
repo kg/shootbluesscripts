@@ -97,18 +97,52 @@ namespace ShootBlues.Script {
             return f;
         }
 
-        protected static void HandlePing (Session session, string xml, long socketID) {
-            var doc = new XmlDocument();
-            doc.LoadXml(xml);
+        protected static IEnumerator<object> HandlePing (Session session, string xml, long socketID) {
+            try {
+                var si = Program.GetScriptInstance<Common>("Common.Script.dll");
+                if (si != null)
+                    si.LogPrint(null, "Attempting to respond to jabber ping.");
+                else
+                    Console.WriteLine("Attempting to respond to jabber ping.");
+            } catch {
+            }
 
-            var toJID = new JabberID(doc.Attributes["to"].InnerText);
-            var fromJID = new JabberID(doc.Attributes["from"].InnerText);
-            string packetID = doc.Attributes["id"].InnerText;
+            var fDoc = Future.RunInThread(() => {
+                var doc = new XmlDocument();
+                doc.LoadXml(xml);
+                return doc;
+            });
+
+            yield return fDoc;
+
+            var root = fDoc.Result.FirstChild;
+            var toJID = new JabberID(root.Attributes["to"].InnerText);
+            var fromJID = new JabberID(root.Attributes["from"].InnerText);
+            string packetID = root.Attributes["id"].InnerText;
 
             Packet packet = new SoapboxCore.IQ.IQResultResponse(
-                toJID, fromJID, packetID, socketID
+                fromJID, toJID, packetID, socketID
             );
-            session.Send(packet);
+            yield return session.AsyncSend(packet);
+        }
+
+        protected static void HandleIncomingMessage (JabberGateway gateway, string endpointName, JabberID from, string body) {
+            try {
+                var si = Program.GetScriptInstance<Common>("Common.Script.dll");
+                if (si != null) {
+                    var mdata = new ShootBlues.Script.Common.MessageData(
+                        null, new Dictionary<string, object> {
+                            {"__name__", "JabberMessage"},
+                            {"endpoint", endpointName},
+                            {"from", from.FullJabberID},
+                            {"text", body}
+                        }
+                    );
+                    si.OnNewMessage(gateway, mdata);
+                }
+            } catch (Exception ex) {
+                Program.Scheduler.OnTaskError(ex);
+            }
         }
 
         protected static IEnumerator<object> DoConnect (JabberGateway gateway, EndpointSettings settings, Action<float> setStatus) {
@@ -121,21 +155,41 @@ namespace ShootBlues.Script {
             setStatus(0.5f);
 
             // Fucking soapbox doesn't handle pings or let you handle them with strongly typed packets, wee
-            session.OnXMLReceived += (xml, socket) => {
-                if (xml.Contains("<ping xmlns=\"urn:xmpp:ping\"")) {
-                    HandlePing(session, xml, socket);
-
-                    var si = Program.GetScriptInstance<Common>("Common.Script.dll");
-                    if (si != null)
-                        si.LogPrint(null, "Attempting to respond to jabber ping.");
-                    else
-                        Console.WriteLine("Attempting to respond to jabber ping.");
-                }
-            };            
-
-            session.StreamCloseEvent += (e) => {
-                Console.WriteLine("Stream closed: {0}", e);
+            session.OnXMLReceived += (xml, socketID) => {
+                if (xml.Contains("<ping xmlns=\"urn:xmpp:ping\""))
+                    Program.Scheduler.Start(HandlePing(session, xml, socketID), TaskExecutionPolicy.RunAsBackgroundTask);
             };
+
+            var messagePrefix = settings.ChatAlias.ToLowerInvariant() + ":";
+
+            session.AddHandler(typeof(SoapboxCore.Message.ChatMessagePacket), (p) => {
+                var cm = (SoapboxCore.Message.ChatMessagePacket)p;
+
+                string bodyText = null;
+                try {
+                    bodyText = cm.Body;
+                } catch {
+                }
+
+                if (bodyText != null)
+                    HandleIncomingMessage(gateway, settings.Name, cm.From, bodyText);
+            });
+
+            session.AddHandler(typeof(MUC.Message.GroupChatMessage), (p) => {
+                var gcm = (MUC.Message.GroupChatMessage)p;
+
+                string bodyText = null;
+                try {
+                    bodyText = gcm.Body;
+                } catch {
+                }
+
+                if ((bodyText != null) && (bodyText.ToLowerInvariant().Trim().StartsWith(messagePrefix))) {
+                    bodyText = bodyText.Substring(bodyText.IndexOf(':') + 1);
+                    HandleIncomingMessage(gateway, settings.Name, gcm.From, bodyText);
+                }
+            });
+
             session.OnAsynchronousException += (e) => {
                 Program.Scheduler.OnTaskError(e);
             };

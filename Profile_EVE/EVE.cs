@@ -41,7 +41,7 @@ namespace ShootBlues.Profile {
                 yield break;
             }
 
-            yield return new Sleep(0.5);
+            yield return new Sleep(10);
 
             ProcessWindows[process.Id] = hWnd;
             yield return BaseOnNewProcess(process);

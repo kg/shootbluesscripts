@@ -28,6 +28,7 @@
             this.AddNew = new System.Windows.Forms.Button();
             this.List = new System.Windows.Forms.ListBox();
             this.TestEndpoint = new System.Windows.Forms.Button();
+            this.Edit = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // Remove
@@ -36,7 +37,7 @@
             this.Remove.Enabled = false;
             this.Remove.Image = ((System.Drawing.Image)(resources.GetObject("Remove.Image")));
             this.Remove.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.Remove.Location = new System.Drawing.Point(99, 170);
+            this.Remove.Location = new System.Drawing.Point(170, 170);
             this.Remove.Name = "Remove";
             this.Remove.Size = new System.Drawing.Size(90, 27);
             this.Remove.TabIndex = 6;
@@ -68,7 +69,7 @@
             this.List.ItemHeight = 16;
             this.List.Location = new System.Drawing.Point(3, 3);
             this.List.Name = "List";
-            this.List.Size = new System.Drawing.Size(294, 161);
+            this.List.Size = new System.Drawing.Size(384, 161);
             this.List.TabIndex = 4;
             this.List.SelectedIndexChanged += new System.EventHandler(this.List_SelectedIndexChanged);
             this.List.DoubleClick += new System.EventHandler(this.List_DoubleClick);
@@ -79,7 +80,7 @@
             this.TestEndpoint.Enabled = false;
             this.TestEndpoint.Image = ((System.Drawing.Image)(resources.GetObject("TestEndpoint.Image")));
             this.TestEndpoint.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.TestEndpoint.Location = new System.Drawing.Point(232, 170);
+            this.TestEndpoint.Location = new System.Drawing.Point(322, 170);
             this.TestEndpoint.Name = "TestEndpoint";
             this.TestEndpoint.Size = new System.Drawing.Size(65, 27);
             this.TestEndpoint.TabIndex = 7;
@@ -88,8 +89,24 @@
             this.TestEndpoint.UseVisualStyleBackColor = true;
             this.TestEndpoint.Click += new System.EventHandler(this.TestEndpoint_Click);
             // 
+            // Edit
+            // 
+            this.Edit.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.Edit.Enabled = false;
+            this.Edit.Image = ((System.Drawing.Image)(resources.GetObject("Edit.Image")));
+            this.Edit.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.Edit.Location = new System.Drawing.Point(99, 170);
+            this.Edit.Name = "Edit";
+            this.Edit.Size = new System.Drawing.Size(65, 27);
+            this.Edit.TabIndex = 8;
+            this.Edit.Text = "&Edit";
+            this.Edit.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.Edit.UseVisualStyleBackColor = true;
+            this.Edit.Click += new System.EventHandler(this.Edit_Click);
+            // 
             // JabberGatewayConfig
             // 
+            this.Controls.Add(this.Edit);
             this.Controls.Add(this.TestEndpoint);
             this.Controls.Add(this.Remove);
             this.Controls.Add(this.AddNew);
@@ -98,7 +115,7 @@
             this.Margin = new System.Windows.Forms.Padding(0);
             this.MinimumSize = new System.Drawing.Size(300, 200);
             this.Name = "JabberGatewayConfig";
-            this.Size = new System.Drawing.Size(300, 200);
+            this.Size = new System.Drawing.Size(390, 200);
             this.ResumeLayout(false);
 
         }
@@ -109,6 +126,7 @@
         private System.Windows.Forms.Button AddNew;
         private System.Windows.Forms.ListBox List;
         private System.Windows.Forms.Button TestEndpoint;
+        private System.Windows.Forms.Button Edit;
 
 
     }

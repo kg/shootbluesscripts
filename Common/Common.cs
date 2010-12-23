@@ -163,12 +163,16 @@ namespace ShootBlues.Script {
                     continue;
                 }
 
-                foreach (var queue in MessageQueues.Values)
-                    queue.Enqueue(mdata);
-
-                EventBus.Broadcast(process, "Message", mdata);
-                EventBus.Broadcast(process, mdata.Name, mdata);
+                OnNewMessage(process, mdata);
             }
+        }
+
+        public void OnNewMessage (object source, MessageData message) {
+            foreach (var queue in MessageQueues.Values)
+                queue.Enqueue(message);
+
+            EventBus.Broadcast(source, "Message", message);
+            EventBus.Broadcast(source, message.Name, message);
         }
 
         private IEnumerator<object> MessageDispatcherTask (ProcessInfo process) {
@@ -181,7 +185,11 @@ namespace ShootBlues.Script {
 
                 var msg = fNext.Result;
                 // Result intentionally discarded
-                Program.CallFunction(process, "common.messaging", "notifyNewMessage", msg.Source.Process.Id, msg.Data);
+                object sourceId = null;
+                if ((msg.Source != null) && (msg.Source.Process != null))
+                    sourceId = msg.Source.Process.Id;
+
+                Program.CallFunction(process, "common.messaging", "notifyNewMessage", sourceId, msg.Data);
             }
         }
 

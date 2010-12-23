@@ -1,10 +1,13 @@
 ﻿serviceInstance = None
 
-TargetableCategories = set([
-    const.categoryShip, const.categoryDrone, 
-    const.categoryEntity, const.categoryStructure,
-    const.categoryStation
-])
+try:
+    TargetableCategories = set([
+        const.categoryShip, const.categoryDrone, 
+        const.categoryEntity, const.categoryStructure,
+        const.categoryStation
+    ])
+except:
+    TargetableCategories = set()
 
 class ItemDataCache(object):
     __slots__ = ("id", "_ball", "_slimItem", "_flag", "_flagCached")

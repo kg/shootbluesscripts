@@ -95,6 +95,11 @@
       <Name>ShootBlues</Name>
       <Private>False</Private>
     </ProjectReference>
+    <ProjectReference Include="..\Common\Common.csproj">
+      <Project>{390A5CD1-F8DE-491E-BECC-AD16FD237E50}</Project>
+      <Name>Common</Name>
+      <Private>False</Private>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="AddEndpointDialog.resx">

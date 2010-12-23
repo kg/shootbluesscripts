@@ -1,4 +1,4 @@
-﻿from shootblues.common import log, remoteCall, playSound, showBalloonTip, showMessageBox
+﻿from shootblues.common import log, remoteCall, playSound, showBalloonTip, showMessageBox, pid
 from shootblues.common.service import forceStart, forceStop
 from shootblues.common.messaging import subscribe, unsubscribe
 from shootblues.common.messaging import send as messageSend
@@ -46,6 +46,10 @@ def getLines(text):
 
 def handleEvent(source, name, data):
     global notificationSettings
+    
+    import shootblues.common
+    if source != shootblues.common.pid:
+        return
     
     settings = notificationSettings.get(name, None)
     if settings:
