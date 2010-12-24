@@ -41,8 +41,6 @@ namespace ShootBlues.Profile {
                 yield break;
             }
 
-            yield return new Sleep(10);
-
             ProcessWindows[process.Id] = hWnd;
             yield return BaseOnNewProcess(process);
         }
@@ -58,7 +56,7 @@ try:
 except:
   return False").Bind(() => isReady);
 
-                yield return new Sleep(0.5);
+                yield return new Sleep(1);
             } while (!isReady);
 
             Console.WriteLine("EVE started.");

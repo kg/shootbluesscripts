@@ -1,4 +1,5 @@
 ﻿from shootblues.common import log, onMainThread, showException
+import math
 
 ActionThreshold = (10000000L * 200) / 100
 MainThreadQueue = []
@@ -144,7 +145,7 @@ class ChanceToHitCalculator(object):
             self.explosionRadius = max(float(chargeAttrs["aoeCloudSize"]), 0.00001)
             self.explosionVelocity = float(chargeAttrs["aoeVelocity"])
             self.damageReductionFactor = float(chargeAttrs["aoeDamageReductionFactor"])
-            self.maxRange = flightTime * maxVelocity
+            self.maxRange = self.flightTime * self.maxVelocity
         
             self.calculate = self.calculateLauncher
     

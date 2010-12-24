@@ -80,7 +80,7 @@ namespace ShootBlues.Script {
             public long LastFrameTimestamp = 0;
 
             public ProcessState (ProcessInfo pi) {
-                FuncDisabler = new KernelFunctionDisabler(pi);
+                FuncDisabler = new KernelFunctionDisabler(pi.Process);
                 var profile = (EVE)Program.Profile;
                 hWnd = profile.ProcessWindows[pi.Process.Id];
 
