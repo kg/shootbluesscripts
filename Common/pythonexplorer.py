@@ -28,7 +28,10 @@ def getModules():
     return sorted(sys.modules.keys(), key=str.lower)
 
 def resolveContext(context, index):
+    import sys
     obj = __import__(context[0])
+    obj = sys.modules.get(context[0], obj)
+    
     currentKey = []
     for key in context[1:index+1]:
         nextObj = resolveKey(obj, key)       
