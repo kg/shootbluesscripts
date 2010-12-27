@@ -1,4 +1,4 @@
-﻿from shootblues.common import log
+﻿from shootblues.common import log, showException
 
 runningServices = {}
 
@@ -8,6 +8,31 @@ def get(serviceName):
     result = runningServices.get(serviceName, None)
     if not result:
         result = sm.services.get(serviceName, None)
+    
+    return result
+
+def wrapMethod(methodName, innerMethod):
+    def wrapper(*args, **kwargs):
+        result = None
+        
+        try:
+            result = innerMethod(*args, **kwargs)
+        except Exception, e:
+            showException()
+        
+        return result
+    
+    wrapper.func_name = methodName
+    return wrapper
+
+def makeServiceThunk(serviceInstance):
+    result = serviceInstance
+    
+    ne = getattr(serviceInstance, "__notifyevents__", [])
+    for evt in ne:
+        innerMethod = getattr(result, evt, None)
+        if innerMethod:
+            setattr(result, evt, wrapMethod(evt, innerMethod))
     
     return result
 
@@ -43,6 +68,7 @@ def forceStart(serviceName, serviceType):
         
         result = serviceType()
         setattr(result, "state", service.SERVICE_RUNNING)
+        result = makeServiceThunk(result)
         runningServices[serviceName] = result
         
         ne = getattr(result, "__notifyevents__", [])
