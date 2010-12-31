@@ -7,6 +7,8 @@ import sys
 
 _channels = {}
 _pendingMessages = {}
+_pendingRemoteCalls = {}
+_nextRemoteCallId = 1L
 
 isInitialized = False
 pid = None
@@ -78,9 +80,66 @@ def showException(etype=None, value=None, tb=None):
         ))
     )
 
+class RemoteCallResult(object):
+    def __init__(self, stack):
+        self.__stack = stack
+        self.__result = []
+        self.__callbacks = []
+
+    def set(self, result, errorText):   
+        if len(self.__result) == 0:
+            self.__result.append((result, errorText))
+            
+            while len(self.__callbacks):
+                callback = self.__callbacks.pop()
+                callback(self, result, errorText)                
+        else:
+            raise Exception("Already have a result")
+    
+    def addCallback(self, callback):
+        if len(self.__result) == 0:
+            self.__callbacks.append(callback)
+        else:
+            r = self.__result[0]
+            callback(r[0], r[1])
+    
+    @property
+    def hasResult(self):
+        return len(self.__result) == 1
+    
+    @property
+    def result(self):
+        if len(self.__result) == 0:
+            raise Exception("No result yet")
+            
+        r = self.__result[0]
+        if r[1] is not None:
+            raise Exception(r[1])
+        else:
+            return r[0]
+
+def _remoteCallComplete(resultId, result, errorText):
+    global _pendingRemoteCalls
+    
+    prc = _pendingRemoteCalls.get(resultId, None)
+    if prc is not None:
+        del _pendingRemoteCalls[resultId]    
+        prc.set(result, errorText)
+
 def remoteCall(script, methodName, *args):
+    global _nextRemoteCallId, _pendingRemoteCalls
+    
+    id = _nextRemoteCallId
+    _nextRemoteCallId += 1
+    
+    stack = traceback.format_stack()
+    rcr = RemoteCallResult(stack)
+    _pendingRemoteCalls[id] = rcr
+    
     channel = getChannel("remotecall")
-    channel.send(json.dumps([script, methodName, args]))
+    channel.send(json.dumps([script, methodName, args, id]))
+    
+    return rcr
 
 def playSound(filename):        
     moduleName = getCallingModule()
@@ -97,8 +156,8 @@ def showBalloonTip(title, text, timeout=None):
     
     remoteCall("Common.Script.dll", "ShowBalloonTip", *args)
 
-def showMessageBox(title, text):
-    remoteCall("Common.Script.dll", "ShowMessageBox", title, text)
+def showMessageBox(title, text, buttons="OK"):
+    return remoteCall("Common.Script.dll", "ShowMessageBox", title, text, buttons)
 
 def onMainThread():
     try:

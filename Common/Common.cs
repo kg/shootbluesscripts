@@ -47,6 +47,7 @@ namespace ShootBlues.Script {
             AddDependency("common.eve.logger.py");
             AddDependency("common.eve.state.py");
             AddDependency("common.eve.charmonitor.py");
+            AddDependency("common.sql.py");
             AddDependency("pythonexplorer.py");
 
             CustomMenu = new ToolStripMenuItem("Common");
@@ -126,10 +127,10 @@ namespace ShootBlues.Script {
 
             MessageQueues[process.Process.Id] = new BlockingQueue<MessageData>();
 
-            process.Start(LogTask(process));
-            process.Start(RemoteCallTask(process));
-            process.Start(MessageListenerTask(process));
-            process.Start(MessageDispatcherTask(process));
+            Start(process, LogTask(process));
+            Start(process, RemoteCallTask(process));
+            Start(process, MessageListenerTask(process));
+            Start(process, MessageDispatcherTask(process));
 
             yield return Program.CallFunction(process, "common", "initialize", process.Process.Id);
         }
@@ -139,6 +140,8 @@ namespace ShootBlues.Script {
 
             if (MessageQueues.ContainsKey(pid))
                 MessageQueues.Remove(pid);
+
+            DisposeFuturesForProcess(process);
 
             yield break;
         }
@@ -243,6 +246,10 @@ namespace ShootBlues.Script {
                 string scriptName = callTuple[0] as string;
                 string methodName = callTuple[1] as string;
                 object[] rawArguments = callTuple[2] as object[];
+                long? resultId = null;
+
+                if (callTuple.Length >= 4)
+                    resultId = Convert.ToInt64(callTuple[3]);
 
                 object[] functionArguments;
                 if (rawArguments == null) {
@@ -267,30 +274,44 @@ namespace ShootBlues.Script {
                     continue;
                 }
 
-                process.Start(RemoteCallInvoker(
+                var fResult = Start(process, RemoteCallInvoker(
                     instance, methodName, functionArguments, rawArguments, serializer, scriptName, process
                 ));
+
+                if (resultId.HasValue) {
+                    fResult.RegisterOnComplete((_) => {
+                        object result;
+                        Exception error;
+                        _.GetResult(out result, out error);
+                        Start(process, SendRemoteCallResult(process, resultId.Value, result, error));
+                    });
+                }
             }
+        }
+
+        protected IEnumerator<object> SendRemoteCallResult (ProcessInfo process, long resultId, object result, Exception error) {
+            string errorText = null;
+            if (error != null)
+                errorText = error.ToString();
+            yield return Program.CallFunction(process, "common", "_remoteCallComplete", resultId, result, errorText);
         }
 
         protected IEnumerator<object> RemoteCallInvoker (IManagedScript instance, string methodName, object[] functionArguments, object[] rawArguments, JavaScriptSerializer serializer, string scriptName, ProcessInfo process) {
             IEnumerator<object> resultTask = null;
+            object result = null;
 
-            try {
-                resultTask = instance.GetType().InvokeMember(
-                    methodName, BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.Public, null, instance, functionArguments
-                ) as IEnumerator<object>;
-            } catch (Exception ex) {
-                LogPrint(process,
-                    "Remote call '{0}.{1}' with args {2} failed with exception: {3}",
-                    scriptName, methodName, serializer.Serialize(rawArguments), ex.ToString()
-                );
+            result = instance.GetType().InvokeMember(
+                methodName, BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.Public, null, instance, functionArguments
+            );
+            resultTask = result as IEnumerator<object>;
+
+            if (resultTask != null) {
+                var f = Start(process, resultTask);
+                yield return f;
+                yield return new Result(f.Result);
+            } else {
+                yield return new Result(result);
             }
-
-            if (resultTask != null)
-                yield return resultTask;
-            else
-                yield break;
         }
 
         public void LoggedInCharacterChanged (ProcessInfo process, object characterName) {
@@ -305,8 +326,12 @@ namespace ShootBlues.Script {
             yield break;
         }
 
-        public void ShowMessageBox (ProcessInfo process, string title, string text) {
-            MessageBox.Show(text, title);
+        public string ShowMessageBox (ProcessInfo process, string title, string text) {
+            return MessageBox.Show(text, title).ToString();
+        }
+
+        public string ShowMessageBox (ProcessInfo process, string title, string text, string buttons) {
+            return MessageBox.Show(text, title, (MessageBoxButtons)Enum.Parse(typeof(MessageBoxButtons), buttons)).ToString();
         }
 
         public void ShowBalloonTip (ProcessInfo process, string title, string text) {
@@ -358,6 +383,43 @@ namespace ShootBlues.Script {
                 yield return Future.RunInThread(sp.PlaySync);
 
             Console.WriteLine("Done playing {0}.", soundPath);
+        }
+
+        public IEnumerator<object> CreateDBTable (ProcessInfo process, string tableName, string tableDef) {
+            yield return Program.CreateDBTable(tableName, tableDef);
+        }
+
+        public IEnumerator<object> ExecuteSQL (ProcessInfo process, string sql, params object[] arguments) {
+            var rows = new List<Dictionary<string, object>>();
+
+            using (var q = Program.Database.BuildQuery(sql)) {
+                var fReader = q.ExecuteReader();
+                yield return fReader;
+
+                using (fReader.Result) {
+                    var reader = fReader.Result.Reader;
+                    int numColumns = reader.FieldCount;
+                    var columnNames = new string[numColumns];
+                    for (int i = 0; i < numColumns; i++)
+                        columnNames[i] = reader.GetName(i);
+
+                    while (true) {
+                        var fNext = Future.RunInThread<bool>(reader.Read);
+                        yield return fNext;
+
+                        if (fNext.Result == false)
+                            break;
+
+                        var row = new Dictionary<string, object>();
+                        for (int i = 0; i < numColumns; i++)
+                            row[columnNames[i]] = reader.GetValue(i);
+
+                        rows.Add(row);
+                    }
+                }
+            }
+
+            yield return new Result(rows.ToArray());
         }
     }
 }

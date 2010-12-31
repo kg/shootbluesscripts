@@ -57,15 +57,22 @@ class BroadcastHelperSvc:
             if slimItem:
                 targetName = uix.GetSlimItemName(slimItem)
             else:
-                location = cfg.evelocations.Get(targetID)
-                if location:
-                    targetName = location.name
+                try:
+                    location = cfg.evelocations.Get(targetID)
+                    if location:
+                        targetName = location.name
+                except:
+                    pass
             
-        location = cfg.evelocations.Get(locationID)
-        if location:
-            locationName = location.name
+        try:
+            location = cfg.evelocations.Get(locationID)
+            if location:
+                locationName = location.name
+        except:
+            pass
                         
-        log("Broadcast of type %s by %s with target %s in %s", broadcastType, getCharacterName(charID), targetName, locationName)
+        #log("Broadcast of type %s by %s with target %s in %s", broadcastType, getCharacterName(charID), targetName, locationName)
+        
         if broadcastType == "Target":
             flashItemColor(targetID, "Broadcast: Target")
             
