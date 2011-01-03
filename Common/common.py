@@ -148,6 +148,20 @@ def playSound(filename):
     
     remoteCall("Common.Script.dll", "PlaySound", moduleName, filename)
 
+def getPreference(name, moduleName=None):
+    if moduleName is None:
+        moduleName = getCallingModule()
+        moduleName = moduleName.replace("shootblues.", "")
+    
+    return remoteCall(moduleName, "GetPreference", name)
+
+def setPreference(name, value, moduleName=None):
+    if moduleName is None:
+        moduleName = getCallingModule()
+        moduleName = moduleName.replace("shootblues.", "")
+    
+    return remoteCall(moduleName, "SetPreference", name, value)
+
 def showBalloonTip(title, text, timeout=None):
     if timeout:
         args = [timeout, title, text]

@@ -263,9 +263,11 @@ namespace ShootBlues.Script {
                         functionArguments[i + 1] = rawArguments[i];
                 }
 
-                IManagedScript instance = Program.GetScriptInstance(
-                    new ScriptName(scriptName)
-                );
+                ScriptName sn;
+                if (!Program.PythonModuleToScript.TryGetValue(scriptName, out sn))
+                    sn = new ScriptName(scriptName);
+
+                IManagedScript instance = Program.GetScriptInstance(sn);
 
                 if (instance == null) {
                     LogPrint(process,
@@ -393,7 +395,7 @@ namespace ShootBlues.Script {
             var rows = new List<Dictionary<string, object>>();
 
             using (var q = Program.Database.BuildQuery(sql)) {
-                var fReader = q.ExecuteReader();
+                var fReader = q.ExecuteReader(arguments);
                 yield return fReader;
 
                 using (fReader.Result) {

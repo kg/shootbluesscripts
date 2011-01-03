@@ -5,4 +5,3 @@ def createTable(name, tableDef):
 
 def query(sql, *args):
     return remoteCall("Common.Script.dll", "ExecuteSQL", sql, *args)
-
