@@ -291,6 +291,8 @@ namespace ShootBlues.Script {
                 if (error != null) {
                     if (resultId.HasValue)
                         yield return SendRemoteCallResult(process, resultId.Value, null, error);
+                    else
+                        Program.Scheduler.OnTaskError(error);
                 } else {
                     resultTask = result as IEnumerator<object>;
 

@@ -126,20 +126,26 @@ def _remoteCallComplete(resultId, result, errorText):
         del _pendingRemoteCalls[resultId]    
         prc.set(result, errorText)
 
-def remoteCall(script, methodName, *args):
+def remoteCall(script, methodName, *args, **kwargs):
     global _nextRemoteCallId, _pendingRemoteCalls
+
+    callData = [script, methodName, args]
+    result = None
+
+    if kwargs.get("async", False):
+        id = _nextRemoteCallId
+        _nextRemoteCallId += 1
     
-    id = _nextRemoteCallId
-    _nextRemoteCallId += 1
-    
-    stack = traceback.format_stack()
-    rcr = RemoteCallResult(stack)
-    _pendingRemoteCalls[id] = rcr
+        stack = traceback.format_stack()
+        result = RemoteCallResult(stack)
+        _pendingRemoteCalls[id] = result
+        
+        callData.append(id)        
     
     channel = getChannel("remotecall")
-    channel.send(json.dumps([script, methodName, args, id]))
+    channel.send(json.dumps(callData))
     
-    return rcr
+    return result
 
 def playSound(filename):        
     moduleName = getCallingModule()
@@ -153,14 +159,14 @@ def getPreference(name, moduleName=None):
         moduleName = getCallingModule()
         moduleName = moduleName.replace("shootblues.", "")
     
-    return remoteCall(moduleName, "GetPreference", name)
+    return remoteCall(moduleName, "GetPreference", name, async=True)
 
 def setPreference(name, value, moduleName=None):
     if moduleName is None:
         moduleName = getCallingModule()
         moduleName = moduleName.replace("shootblues.", "")
     
-    return remoteCall(moduleName, "SetPreference", name, value)
+    return remoteCall(moduleName, "SetPreference", name, value, async=True)
 
 def showBalloonTip(title, text, timeout=None):
     if timeout:
@@ -171,7 +177,7 @@ def showBalloonTip(title, text, timeout=None):
     remoteCall("Common.Script.dll", "ShowBalloonTip", *args)
 
 def showMessageBox(title, text, buttons="OK"):
-    return remoteCall("Common.Script.dll", "ShowMessageBox", title, text, buttons)
+    return remoteCall("Common.Script.dll", "ShowMessageBox", title, text, buttons, async=True)
 
 def onMainThread():
     try:
