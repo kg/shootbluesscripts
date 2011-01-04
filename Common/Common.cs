@@ -276,17 +276,42 @@ namespace ShootBlues.Script {
                     continue;
                 }
 
-                var fResult = Start(process, RemoteCallInvoker(
-                    instance, methodName, functionArguments, rawArguments, serializer, scriptName, process
-                ));
+                IEnumerator<object> resultTask = null;
+                object result = null;
+                Exception error = null;
 
-                if (resultId.HasValue) {
-                    fResult.RegisterOnComplete((_) => {
-                        object result;
-                        Exception error;
-                        _.GetResult(out result, out error);
-                        Start(process, SendRemoteCallResult(process, resultId.Value, result, error));
-                    });
+                try {
+                    result = instance.GetType().InvokeMember(
+                        methodName, BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.Public, null, instance, functionArguments
+                    );
+                } catch (Exception ex) {
+                    error = ex;
+                }
+
+                if (error != null) {
+                    if (resultId.HasValue)
+                        yield return SendRemoteCallResult(process, resultId.Value, null, error);
+                } else {
+                    resultTask = result as IEnumerator<object>;
+
+                    if (resultTask != null) {
+                        var fResult = Program.Scheduler.Start(
+                            resultTask, TaskExecutionPolicy.RunWhileFutureLives
+                        );
+                        process.OwnedFutures.Add(fResult);
+
+                        if (resultId.HasValue) {
+                            fResult.RegisterOnComplete((_) => {
+                                object r;
+                                Exception e;
+                                _.GetResult(out r, out e);
+                                Program.Scheduler.Start(SendRemoteCallResult(process, resultId.Value, r, e));
+                            });
+                        }
+                    } else {
+                        if (resultId.HasValue)
+                            yield return SendRemoteCallResult(process, resultId.Value, result, null);
+                    }
                 }
             }
         }
@@ -296,24 +321,6 @@ namespace ShootBlues.Script {
             if (error != null)
                 errorText = error.ToString();
             yield return Program.CallFunction(process, "common", "_remoteCallComplete", resultId, result, errorText);
-        }
-
-        protected IEnumerator<object> RemoteCallInvoker (IManagedScript instance, string methodName, object[] functionArguments, object[] rawArguments, JavaScriptSerializer serializer, string scriptName, ProcessInfo process) {
-            IEnumerator<object> resultTask = null;
-            object result = null;
-
-            result = instance.GetType().InvokeMember(
-                methodName, BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.Public, null, instance, functionArguments
-            );
-            resultTask = result as IEnumerator<object>;
-
-            if (resultTask != null) {
-                var f = Start(process, resultTask);
-                yield return f;
-                yield return new Result(f.Result);
-            } else {
-                yield return new Result(result);
-            }
         }
 
         public void LoggedInCharacterChanged (ProcessInfo process, object characterName) {
