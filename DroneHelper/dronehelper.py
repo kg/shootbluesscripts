@@ -1,6 +1,6 @@
 import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, ChanceToHitCalculator, getTypeAttributes
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, ChanceToHitCalculator, getTypeAttributes, runOnMainThread
 from shootblues.common.eve.state import getCachedItem
 from shootblues.common.service import forceStart, forceStop
 import service
@@ -38,8 +38,7 @@ class DroneInfo(object):
         self.id = droneID
         ci = getCachedItem(droneID)
         
-        self.ball = ci.ball
-        self.slimItem = ci.slimItem
+        self.ci = ci
         self.target = None
         self.actionTimestamp = self.timestamp = 0
         self.shield = self.armor = self.structure = 1.0
@@ -50,6 +49,14 @@ class DroneInfo(object):
             self.isSentry = float(attributes.get("entityCruiseSpeed", 0.0)) <= 0.0
         else:
             self.isSentry = False
+    
+    @property
+    def ball(self):
+        return self.ci.ball
+    
+    @property
+    def slimItem(self):
+        return self.ci.slimItem
     
     def setState(self, newState, timestamp):
         if timestamp > self.timestamp:
@@ -85,23 +92,12 @@ class DroneHelperSvc:
         self.__pendingStateChanges = {}
         self.__updateTimer = None
         self.__lastAttackOrder = None
-        self.__recalledDrones = {}
+        self.__recalling = set()
+        self.__recalled = []
         self.__numFighters = 0
         self.__numSentries = 0
+        self.__updateTimer = SafeTimer(1000, self.updateDrones)
         self.disabled = False
-        self.checkUpdateTimer()
-    
-    def checkUpdateTimer(self, droneID = None):
-        drones = self.getDronesInLocalSpace()
-        if (droneID != None) and (droneID not in drones):
-            drones.append(droneID)
-        droneCount = len(drones)
-        
-        if (droneCount > 0) and (self.__updateTimer == None):
-            self.__updateTimer = SafeTimer(1000, self.updateDrones)
-        elif (droneCount <= 0) and (self.__updateTimer != None):
-            self.__updateTimer = None
-            self.__lastAttackOrder = None
         
     def getDistance(self, targetID):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -359,10 +355,10 @@ class DroneHelperSvc:
                 log("Drone(s) returning: %s", ", ".join(getNamesOfIDs(dronesToRecall)))
                 entity.CmdReturnBay(dronesToRecall)
                 for droneID in dronesToRecall:                    
-                    droneObj = self.getDroneObject(id)
+                    droneObj = self.getDroneObject(droneID)
                     droneObj.setState(const.entityDeparting, timestamp)
                     droneObj.actionTimestamp = timestamp
-                    self.__recalledDrones[droneID] = droneObj
+                    self.__recalling.add(droneObj)
     
     def updateDrones(self):
         if self.disabled:
@@ -419,9 +415,23 @@ class DroneHelperSvc:
                   getPref("WhenIdle", False)):
                 dronesToAttack.append(droneID)
         
-        for droneID in self.__recalledDrones:
-            droneObj = self.__recalledDrones[droneID]
-        
+        if getPref("RedeployAfter", True) and len(self.__recalled):
+            redeployAfter = int(float(getPref("RedeployAfterSeconds", 30.0)) * 10000000)
+            dronesToRelaunch = []
+            
+            ts, obj = self.__recalled[0]
+            while ts + redeployAfter <= timestamp:
+                dronesToRelaunch.append(obj)
+                self.__recalled.pop(0)
+                if len(self.__recalled):
+                    ts, obj = self.__recalled[0]
+                else:
+                    break
+            
+            if len(dronesToRelaunch):
+                log("Relaunching %d drone(s)", len(dronesToRelaunch))
+                sm.services["menu"].LaunchDrones([obj.slimItem for obj in dronesToRelaunch])                    
+                
         if len(dronesToRecall):
             for id in dronesToRecall:
                 if id in dronesToAttack:
@@ -442,7 +452,7 @@ class DroneHelperSvc:
             if commonTarget and (newPriority > oldPriority):
                 if ((commonTarget == self.__lastAttackOrder) or 
                     (commonTarget not in targetSvc.targets)):                    
-                    self.doAttack(idleOnly=False, targetID=newTarget, oldTarget=commonTarget)
+                    self.doAttack(idleOnly=False, targetID=newTarget, oldTarget=commonTarget)        
     
     def checkDroneHealth(self, drone):
         result = False
@@ -469,7 +479,6 @@ class DroneHelperSvc:
         dronesInLocal = self.getDronesInLocalSpace()
         if droneID not in dronesInLocal:
             self.__pendingStateChanges[droneID] = (timestamp, oldActivityState, newActivityState)
-            self.checkUpdateTimer(droneID)
             return
                 
         drone = self.getDroneObject(droneID)
@@ -495,18 +504,22 @@ class DroneHelperSvc:
             self.doRecall(droneID)
         elif shouldAutoAttack:
             self.doAttack(idleOnly=False, dronesToAttack=[droneID])
-            
-        self.checkUpdateTimer(droneID)
 
     def OnDroneControlLost(self, droneID):
         timestamp = blue.os.GetTime(1)
         drone = self.getDroneObject(droneID)
         drone.setState(None, timestamp)
         
+        if drone in self.__recalling:
+            self.__recalling.remove(drone)
+            self.__recalled.append((timestamp, drone))
+            self.__recalled.sort()
+        
         if self.__drones.has_key(droneID):
             del self.__drones[droneID]
         
-        self.checkUpdateTimer()
+        if len(self.__drones) == 0:
+            self.__lastAttackOrder = None        
 
 def initialize():
     global serviceRunning, serviceInstance

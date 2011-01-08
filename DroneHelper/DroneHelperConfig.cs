@@ -20,8 +20,8 @@ namespace ShootBlues.Script {
                 BoundMember.New(() => WhenTargetLost.Checked),
                 BoundMember.New(() => RecallIfShieldsBelow.Checked),
                 BoundMember.New(() => RecallShieldThreshold.Value),
-                BoundMember.New(() => RedeployWhenShieldsAbove.Checked),
-                BoundMember.New(() => RedeployShieldThreshold.Value),
+                BoundMember.New(() => RedeployAfter.Checked),
+                BoundMember.New(() => RedeployAfterSeconds.Value),
             };
         }
 
@@ -34,7 +34,7 @@ namespace ShootBlues.Script {
         }
 
         private void RedeployWhenShieldsAbove_CheckedChanged (object sender, EventArgs e) {
-            RedeployShieldThreshold.Enabled = RedeployWhenShieldsAbove.Checked;
+            RedeployAfterSeconds.Enabled = RedeployAfter.Checked;
         }
     }
 

@@ -28,15 +28,15 @@
             this.WhenIdle = new System.Windows.Forms.CheckBox();
             this.WhenTargetLost = new System.Windows.Forms.CheckBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.RedeployShieldThreshold = new System.Windows.Forms.NumericUpDown();
-            this.RedeployWhenShieldsAbove = new System.Windows.Forms.CheckBox();
+            this.RedeployAfterSeconds = new System.Windows.Forms.NumericUpDown();
+            this.RedeployAfter = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
             this.RecallShieldThreshold = new System.Windows.Forms.NumericUpDown();
             this.RecallIfShieldsBelow = new System.Windows.Forms.CheckBox();
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             this.groupBox4.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.RedeployShieldThreshold)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.RedeployAfterSeconds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.RecallShieldThreshold)).BeginInit();
             this.SuspendLayout();
             // 
@@ -101,8 +101,8 @@
             // 
             this.groupBox4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.groupBox4.Controls.Add(this.RedeployShieldThreshold);
-            this.groupBox4.Controls.Add(this.RedeployWhenShieldsAbove);
+            this.groupBox4.Controls.Add(this.RedeployAfterSeconds);
+            this.groupBox4.Controls.Add(this.RedeployAfter);
             this.groupBox4.Controls.Add(this.label2);
             this.groupBox4.Controls.Add(this.RecallShieldThreshold);
             this.groupBox4.Controls.Add(this.RecallIfShieldsBelow);
@@ -116,46 +116,51 @@
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Auto Recall";
             // 
-            // RedeployShieldThreshold
+            // RedeployAfterSeconds
             // 
-            this.RedeployShieldThreshold.Enabled = false;
-            this.RedeployShieldThreshold.Location = new System.Drawing.Point(149, 53);
-            this.RedeployShieldThreshold.Margin = new System.Windows.Forms.Padding(4);
-            this.RedeployShieldThreshold.Minimum = new decimal(new int[] {
+            this.RedeployAfterSeconds.Enabled = false;
+            this.RedeployAfterSeconds.Location = new System.Drawing.Point(141, 53);
+            this.RedeployAfterSeconds.Margin = new System.Windows.Forms.Padding(4);
+            this.RedeployAfterSeconds.Maximum = new decimal(new int[] {
+            500,
+            0,
+            0,
+            0});
+            this.RedeployAfterSeconds.Minimum = new decimal(new int[] {
             1,
             0,
             0,
             0});
-            this.RedeployShieldThreshold.Name = "RedeployShieldThreshold";
-            this.RedeployShieldThreshold.Size = new System.Drawing.Size(45, 23);
-            this.RedeployShieldThreshold.TabIndex = 4;
-            this.RedeployShieldThreshold.Value = new decimal(new int[] {
-            85,
+            this.RedeployAfterSeconds.Name = "RedeployAfterSeconds";
+            this.RedeployAfterSeconds.Size = new System.Drawing.Size(45, 23);
+            this.RedeployAfterSeconds.TabIndex = 4;
+            this.RedeployAfterSeconds.Value = new decimal(new int[] {
+            30,
             0,
             0,
             0});
             // 
-            // RedeployWhenShieldsAbove
+            // RedeployAfter
             // 
-            this.RedeployWhenShieldsAbove.AutoSize = true;
-            this.RedeployWhenShieldsAbove.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.RedeployWhenShieldsAbove.Location = new System.Drawing.Point(8, 54);
-            this.RedeployWhenShieldsAbove.Margin = new System.Windows.Forms.Padding(4);
-            this.RedeployWhenShieldsAbove.Name = "RedeployWhenShieldsAbove";
-            this.RedeployWhenShieldsAbove.Size = new System.Drawing.Size(140, 20);
-            this.RedeployWhenShieldsAbove.TabIndex = 3;
-            this.RedeployWhenShieldsAbove.Text = "Re-Deploy Above";
-            this.RedeployWhenShieldsAbove.UseVisualStyleBackColor = true;
-            this.RedeployWhenShieldsAbove.CheckedChanged += new System.EventHandler(this.RedeployWhenShieldsAbove_CheckedChanged);
+            this.RedeployAfter.AutoSize = true;
+            this.RedeployAfter.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.RedeployAfter.Location = new System.Drawing.Point(8, 54);
+            this.RedeployAfter.Margin = new System.Windows.Forms.Padding(4);
+            this.RedeployAfter.Name = "RedeployAfter";
+            this.RedeployAfter.Size = new System.Drawing.Size(132, 20);
+            this.RedeployAfter.TabIndex = 3;
+            this.RedeployAfter.Text = "Re-Deploy After";
+            this.RedeployAfter.UseVisualStyleBackColor = true;
+            this.RedeployAfter.CheckedChanged += new System.EventHandler(this.RedeployWhenShieldsAbove_CheckedChanged);
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(192, 55);
+            this.label2.Location = new System.Drawing.Point(187, 55);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(21, 16);
+            this.label2.Size = new System.Drawing.Size(74, 16);
             this.label2.TabIndex = 5;
-            this.label2.Text = "%";
+            this.label2.Text = "second(s)";
             // 
             // RecallShieldThreshold
             // 
@@ -211,7 +216,7 @@
             this.groupBox1.PerformLayout();
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.RedeployShieldThreshold)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.RedeployAfterSeconds)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.RecallShieldThreshold)).EndInit();
             this.ResumeLayout(false);
 
@@ -227,8 +232,8 @@
         private System.Windows.Forms.CheckBox WhenIdle;
         private System.Windows.Forms.CheckBox WhenTargetLost;
         private System.Windows.Forms.Button ConfigurePriorities;
-        private System.Windows.Forms.NumericUpDown RedeployShieldThreshold;
-        private System.Windows.Forms.CheckBox RedeployWhenShieldsAbove;
+        private System.Windows.Forms.NumericUpDown RedeployAfterSeconds;
+        private System.Windows.Forms.CheckBox RedeployAfter;
         private System.Windows.Forms.Label label2;
     }
 }
