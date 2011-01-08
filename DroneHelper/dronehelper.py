@@ -421,7 +421,12 @@ class DroneHelperSvc:
             
             ts, obj = self.__recalled[0]
             while ts + redeployAfter <= timestamp:
-                dronesToRelaunch.append(obj)
+                slimItem = ballpark.GetInvItem(obj.id)
+                if not slimItem:
+                    slimItem = sm.services["godma"].GetItem(obj.id)
+                if slimItem:
+                    dronesToRelaunch.append(slimItem)
+                
                 self.__recalled.pop(0)
                 if len(self.__recalled):
                     ts, obj = self.__recalled[0]
@@ -430,7 +435,7 @@ class DroneHelperSvc:
             
             if len(dronesToRelaunch):
                 log("Relaunching %d drone(s)", len(dronesToRelaunch))
-                sm.services["menu"].LaunchDrones([obj.slimItem for obj in dronesToRelaunch])                    
+                sm.services["menu"].LaunchDrones(dronesToRelaunch)                    
                 
         if len(dronesToRecall):
             for id in dronesToRecall:
