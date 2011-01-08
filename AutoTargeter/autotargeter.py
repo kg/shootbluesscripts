@@ -95,12 +95,11 @@ class AutoTargeterSvc:
     
     def getMaxTargets(self):
         godma = eve.LocalSvc("godma")
-        reservedSlots = int(getPref("ReservedTargetSlots", 1))
         maxTargets = int(min(
             godma.GetItem(eve.session.charid).maxLockedTargets, 
             godma.GetItem(eve.session.shipid).maxLockedTargets
         ))
-        return max(maxTargets - reservedSlots, 0)
+        return max(maxTargets, 0)
        
     def filterTargets(self, bis, gp, gd):
         targetSvc = sm.services['target']
@@ -157,6 +156,9 @@ class AutoTargeterSvc:
         maxTargets = self.getMaxTargets()
         if maxTargets <= 0:
             return
+        
+        reservedSlots = int(getPref("ReservedTargetSlots", 1))
+        maxAutoTargets = max(0, maxTargets - reservedSlots)
             
         gd = Memoized(self.getDistance)
         gp = Memoized(getPriority)
@@ -167,11 +169,8 @@ class AutoTargeterSvc:
         exclusionSet = set(targetSvc.targeting + targetSvc.autoTargeting + currentTargets)
         targetSorter = self.makeTargetSorter(exclusionSet, gp, gd)
         
-        startTime = blue.os.GetTime(1)
         targets = self.filterTargets(self.__eligibleBalls, gp, gd)        
-        
         targets.sort(targetSorter)
-        elapsed = (blue.os.GetTime(1) - startTime) / 10000000.0
                 
         currentlyTargeting = set([
             id for id in (targetSvc.targeting + targetSvc.autoTargeting) 
@@ -180,7 +179,7 @@ class AutoTargeterSvc:
         
         allLockedTargets = set(targetSvc.targeting + targetSvc.autoTargeting + targetSvc.targets)
         maxNewTargets = max(maxTargets - len(allLockedTargets), 0)
-        targets = set([bi.id for bi in targets[0:maxTargets]])
+        targets = set([bi.id for bi in targets[0:maxAutoTargets]])
         
         currentTargets = set(currentTargets)
                     

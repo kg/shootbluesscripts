@@ -322,7 +322,12 @@ namespace ShootBlues.Script {
             string errorText = null;
             if (error != null)
                 errorText = error.ToString();
-            yield return Program.CallFunction(process, "common", "_remoteCallComplete", resultId, result, errorText);
+
+            var f = Program.CallFunction(process, "common", "_remoteCallComplete", resultId, result, errorText);
+            yield return f;
+
+            if (f.Failed)
+                Program.Scheduler.OnTaskError(f.Error);
         }
 
         public void LoggedInCharacterChanged (ProcessInfo process, object characterName) {

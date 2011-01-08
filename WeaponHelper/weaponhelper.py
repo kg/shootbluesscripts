@@ -50,15 +50,16 @@ class WeaponHelperSvc:
         self.__hookedMethods = []
         self.__lastAttackOrder = None
     
-    def getTargetSorter(self, module):
+    def getChanceToHitCalculator(self, module):
+        cthc = ChanceToHitCalculator(eve.session.shipid)
+        cthc.setModule(module)
+        return Memoized(cthc.calculate)
+    
+    def getTargetSorter(self, module, chanceToHitGetter):
         godma = eve.LocalSvc("godma")
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         
         gp = Memoized(getPriority)
-        
-        cthc = ChanceToHitCalculator(eve.session.shipid)
-        cthc.setModule(module)
-        chanceToHitGetter = Memoized(cthc.calculate)
         
         def targetSorter(lhs, rhs):        
             # Highest priority first
@@ -80,9 +81,11 @@ class WeaponHelperSvc:
                 
         return targetSorter
     
-    def filterTargets(self, ids):
+    def filterTargets(self, ids, chanceToHitGetter):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         result = []
+        
+        cannotHit = set()
         
         for id in ids:
             invItem = ballpark.GetInvItem(id)
@@ -94,15 +97,23 @@ class WeaponHelperSvc:
             
             if getPriority(id) < 0:
                 continue
+            
+            if chanceToHitGetter(id) <= 0:
+                cannotHit.add(id)
+                continue
                 
             result.append(id)
+        
+        if (len(cannotHit) > 0) and (len(result) == 0):
+            log("Cannot hit target(s) %s", ", ".join(getNamesOfIDs(cannotHit)))
         
         return result
     
     def selectTarget(self, module):
-        targets = self.filterTargets(sm.services["target"].targets)
+        cthc = self.getChanceToHitCalculator(module)
+        targets = self.filterTargets(sm.services["target"].targets, cthc)
         if len(targets):
-            targetSorter = self.getTargetSorter(module)
+            targetSorter = self.getTargetSorter(module, cthc)
             targets.sort(targetSorter)
             
             return targets[0]

@@ -431,6 +431,8 @@ class MainThreadInvoker(object):
         "OnSessionChanged",
         "OnClientReady",
         "OnJukeboxChange"
+        "DoDestinyUpdate",
+        "DoDestinyUpdates"
     ]
     
     def __init__(self, handler):
@@ -485,6 +487,12 @@ class MainThreadInvoker(object):
         self.doInvoke()
     
     def OnJukeboxChange(self, *args, **kwargs):
+        self.doInvoke()
+        
+    def DoDestinyUpdate(self, *args, **kwargs):
+        self.doInvoke()
+    
+    def DoDestinyUpdates(self, *args, **kwargs):
         self.doInvoke()
 
 def _mainThreadQueueFunc():

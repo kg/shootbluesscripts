@@ -37,6 +37,7 @@ class DroneInfo(object):
     def __init__(self, droneID):
         self.id = droneID
         ci = getCachedItem(droneID)
+        
         self.ball = ci.ball
         self.slimItem = ci.slimItem
         self.target = None
@@ -44,8 +45,11 @@ class DroneInfo(object):
         self.shield = self.armor = self.structure = 1.0
         self.state = None
         
-        attributes = getTypeAttributes(ci.slimItem.typeID, obj=ci.ball)
-        self.isSentry = float(attributes.get("entityCruiseSpeed", 0.0)) <= 0.0
+        if ci.slimItem:        
+            attributes = getTypeAttributes(ci.slimItem.typeID, obj=ci.ball)
+            self.isSentry = float(attributes.get("entityCruiseSpeed", 0.0)) <= 0.0
+        else:
+            self.isSentry = False
     
     def setState(self, newState, timestamp):
         if timestamp > self.timestamp:
@@ -300,7 +304,6 @@ class DroneHelperSvc:
                     (droneObj.state == const.entityDeparting2) or
                     (droneObj.state == const.entityFleeing) or
                     (droneObj.state == const.entityPursuit)):
-                    log("drone state=%r, not attacking", droneObj.state)
                     drones.remove(id)
                 elif ((droneObj.target == targetID) or
                     abs(droneObj.actionTimestamp - timestamp) <= ActionThreshold):
