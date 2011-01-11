@@ -80,6 +80,27 @@ def showException(etype=None, value=None, tb=None):
         ))
     )
 
+def chainCallbacks(*lambdas):
+    l = list(lambdas)
+    
+    def step(f, r, e):
+        if e is not None:
+            raise Exception(e)
+    
+        if len(l) < 1:
+            return
+            
+        current = l.pop(0)
+        try:
+            next = current()
+        except:
+            showException()
+        
+        if next:
+            next.addCallback(step)
+    
+    step(None, None, None)
+
 class RemoteCallResult(object):
     def __init__(self, stack):
         self.__stack = stack
@@ -140,7 +161,7 @@ def remoteCall(script, methodName, *args, **kwargs):
         result = RemoteCallResult(stack)
         _pendingRemoteCalls[id] = result
         
-        callData.append(id)        
+        callData.append(id)
     
     channel = getChannel("remotecall")
     channel.send(json.dumps(callData))

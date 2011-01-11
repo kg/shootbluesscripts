@@ -38,7 +38,7 @@ RepairTypes = {
 class ActiveTankerSvc:
     def __init__(self):
         self.disabled = False
-        self.__updateTimer = SafeTimer(500, self.updateHealth)
+        self.__updateTimer = SafeTimer(250, self.updateHealth)
     
     def updateHealth(self):
         if self.disabled:

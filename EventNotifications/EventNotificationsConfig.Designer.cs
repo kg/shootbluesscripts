@@ -23,12 +23,13 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent () {
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             this.DataGrid = new System.Windows.Forms.DataGridView();
-            this.Key = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Key = new System.Windows.Forms.DataGridViewButtonColumn();
             this.Sound = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.BalloonTip = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             this.MessageBox = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-            this.JabberEndpoints = new System.Windows.Forms.DataGridViewComboBoxColumn();
+            this.Endpoints = new System.Windows.Forms.DataGridViewComboBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.DataGrid)).BeginInit();
             this.SuspendLayout();
             // 
@@ -47,7 +48,7 @@
             this.Sound,
             this.BalloonTip,
             this.MessageBox,
-            this.JabberEndpoints});
+            this.Endpoints});
             this.DataGrid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.DataGrid.Location = new System.Drawing.Point(0, 0);
             this.DataGrid.MultiSelect = false;
@@ -59,14 +60,23 @@
             this.DataGrid.VirtualMode = true;
             this.DataGrid.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.DataGrid_CellValueNeeded);
             this.DataGrid.CellValuePushed += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.DataGrid_CellValuePushed);
+            this.DataGrid.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.DataGrid_CellContentClick);
             // 
             // Key
             // 
             this.Key.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.ControlText;
+            this.Key.DefaultCellStyle = dataGridViewCellStyle1;
             this.Key.HeaderText = "Name";
             this.Key.Name = "Key";
             this.Key.ReadOnly = true;
             this.Key.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Key.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.Key.ToolTipText = "Click to test notification";
             // 
             // Sound
             // 
@@ -90,14 +100,14 @@
             this.MessageBox.Name = "MessageBox";
             this.MessageBox.Width = 53;
             // 
-            // JabberEndpoints
+            // Endpoints
             // 
-            this.JabberEndpoints.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
-            this.JabberEndpoints.HeaderText = "Jabber";
-            this.JabberEndpoints.Name = "JabberEndpoints";
-            this.JabberEndpoints.Resizable = System.Windows.Forms.DataGridViewTriState.True;
-            this.JabberEndpoints.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.JabberEndpoints.Width = 76;
+            this.Endpoints.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.Endpoints.HeaderText = "Gateway";
+            this.Endpoints.Name = "Endpoints";
+            this.Endpoints.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.Endpoints.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            this.Endpoints.Width = 91;
             // 
             // EventNotificationsConfig
             // 
@@ -115,11 +125,11 @@
         #endregion
 
         private System.Windows.Forms.DataGridView DataGrid;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Key;
+        private System.Windows.Forms.DataGridViewButtonColumn Key;
         private System.Windows.Forms.DataGridViewTextBoxColumn Sound;
         private System.Windows.Forms.DataGridViewCheckBoxColumn BalloonTip;
         private System.Windows.Forms.DataGridViewCheckBoxColumn MessageBox;
-        private System.Windows.Forms.DataGridViewComboBoxColumn JabberEndpoints;
+        private System.Windows.Forms.DataGridViewComboBoxColumn Endpoints;
 
     }
 }

@@ -244,7 +244,7 @@ namespace ShootBlues.Script {
         }
     }
 
-    public class JabberGateway : ManagedScript {
+    public class JabberGateway : ManagedScript, IMessageGateway {
         public const double SendInterval = 1.0;
 
         ToolStripMenuItem CustomMenu;
@@ -255,6 +255,7 @@ namespace ShootBlues.Script {
             : base(name) {
 
             AddDependency("Common.script.dll");
+            AddDependency("EventNotifications.script.dll");
             AddDependency("jabber.py");
 
             CustomMenu = new ToolStripMenuItem("Jabber Gateway");
@@ -287,8 +288,13 @@ namespace ShootBlues.Script {
         }
 
         public override IEnumerator<object> Initialize () {
+            yield return Program.AttachDB(Path.Combine(
+                Program.GetDataFolder(),
+                "jabber.db"
+            ), "jabber");                
+
             yield return Program.CreateDBTable(
-                "jabberEndpoints",
+                "jabber.endpoints",
                 @"(name TEXT PRIMARY KEY NOT NULL, server TEXT NOT NULL, username TEXT NOT NULL, password TEXT NOT NULL, resource TEXT NOT NULL, chatChannel TEXT, chatAlias TEXT, toUsername TEXT)"
             );
 
@@ -306,9 +312,10 @@ namespace ShootBlues.Script {
         // For some reason reiniting is flaky :(
         public IEnumerator<object> InitGateways () {
             DestroyEndpoints();
+            Endpoints.Clear();
 
             EndpointSettings[] endpoints = null;
-            using (var q = Database.BuildQuery("SELECT * FROM jabberEndpoints"))
+            using (var q = Database.BuildQuery("SELECT * FROM jabber.endpoints"))
                 yield return q.ExecuteArray<EndpointSettings>().Bind(() => endpoints);
 
             foreach (var settings in endpoints)
@@ -370,6 +377,19 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
             statusWindow.HideConfigurationPanel("Jabber Gateway");
             yield break;
+        }
+
+        string[] IMessageGateway.GetEndpoints () {
+            return Endpoints.Keys.ToArray();
+        }
+
+        bool IMessageGateway.Send (string endpoint, string message) {
+            if (Endpoints.ContainsKey(endpoint)) {
+                GetQueue(endpoint).Enqueue(message);
+                return true;
+            }
+
+            return false;
         }
     }
 }

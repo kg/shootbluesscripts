@@ -1,6 +1,6 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, getTypeAttributes, activateModule, canActivateModule, ChanceToHitCalculator
+from shootblues.common.eve import SafeTimer, getFlagName, getNamesOfIDs, findModules, getModuleAttributes, getTypeAttributes, activateModule, canActivateModule, ChanceToHitCalculator, deactivateModule, canDeactivateModule, isModuleActive
 from shootblues.common.service import forceStart, forceStop
 import service
 import json
@@ -48,6 +48,7 @@ class WeaponHelperSvc:
         self.__updateTimer = SafeTimer(250, self.updateWeapons)
         self.__ammoChanges = {}
         self.__hookedMethods = []
+        self.__activeModules = {}
         self.__lastAttackOrder = None
     
     def getChanceToHitCalculator(self, module):
@@ -167,23 +168,46 @@ class WeaponHelperSvc:
         for moduleID, module in weaponModules.items():
             if hasattr(module, "ChangeAmmo"):
                 self.ensureModuleHooked(module)
+                        
+            canActivate = canActivateModule(module)[0]
+            canDeactivate = canDeactivateModule(module)[0]
             
-            if canActivateModule(module)[0]:
-                uthread.pool("DoUpdateModule", self.doUpdateModule, moduleID, module)
+            currentTarget = self.__activeModules.get(moduleID, None)
+            if currentTarget:
+                isActive = isModuleActive(module)
+                if isActive == False:
+                    del self.__activeModules[moduleID]
+                    currentTarget = None                    
+            
+            if (
+                ((currentTarget is not None) and canDeactivate) or
+                canActivate
+            ):
+                uthread.pool("DoUpdateModule", self.doUpdateModule, moduleID, module, currentTarget)
     
-    def doUpdateModule(self, moduleID, module):
+    def doUpdateModule(self, moduleID, module, currentTarget):
         ammoChange = self.__ammoChanges.get(module, None)
-        if ammoChange:
+        
+        if (ammoChange) and (currentTarget is None):
             del self.__ammoChanges[module]
             fn = ammoChange[0]
             args = tuple(ammoChange[1:])
             log("Changing ammo")
             fn(*args)
-        else:        
+        else:
             targetID = self.selectTarget(module)
-            if targetID:
+            
+            if (ammoChange or
+                (currentTarget is not None) and (targetID != currentTarget)
+                ):
+                deactivated, reason = deactivateModule(module)
+                if deactivated:
+                    del self.__activeModules[moduleID]
+            elif targetID:
                 self.__lastAttackOrder = targetID
-                activated, reason = activateModule(module, pulse=True, targetID=targetID)
+                activated, reason = activateModule(module, targetID=targetID)
+                if activated:
+                    self.__activeModules[moduleID] = targetID
 
 def initialize():
     global serviceRunning, serviceInstance

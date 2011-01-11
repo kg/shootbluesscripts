@@ -5,12 +5,6 @@ from shootblues.common.messaging import send as messageSend
 import types
 import json
 
-try:
-    from shootblues.jabber import send as jabberSend
-except:
-    def jabberSend(endpoint, text):
-        pass
-
 notificationSettings = {}
 serviceRunning = False
 
@@ -65,11 +59,15 @@ def handleEvent(source, name, data):
         if settings.get("messageBox", False):
             showMessageBox(str(data.get("title", name)), text)
         
-        endpoints = settings.get("jabberEndpoints", [])
-        body = getLines(data.get("text", name))
-        for endpoint in endpoints:
+        endpoint = settings.get("endpoint", None)
+        if endpoint:
+            endpoint = str(endpoint)
+            body = getLines(data.get("text", name))
             for line in body:
-                jabberSend(endpoint, line)
+                sendToEndpoint(endpoint, str(line))
+
+def sendToEndpoint(endpoint, body):
+    remoteCall("EventNotifications.Script.dll", "SendToEndpoint", endpoint, body)
 
 def fireEvent(name, **extraData):
     messageSend(name, **extraData)

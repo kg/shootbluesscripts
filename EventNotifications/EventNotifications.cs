@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using ShootBlues;
 using Squared.Task;
 using System.Windows.Forms;
@@ -21,8 +22,8 @@ namespace ShootBlues.Script {
         public bool BalloonTip = false;
         [Column("messageBox")]
         public bool MessageBox = false;
-        [Column("jabberEndpoints")]
-        public string JabberEndpoints = null;
+        [Column("endpoint")]
+        public string Endpoint = null;
 
         public EventEntry () {
         }
@@ -42,7 +43,6 @@ namespace ShootBlues.Script {
 
             AddDependency("Common.script.dll");
             AddDependency("eventnotifications.py");
-            AddDependency("JabberGateway.script.dll", true);
 
             CustomMenu = new ToolStripMenuItem("Event Notifications");
             CustomMenu.DropDownItems.Add("Configure", null, ConfigureEventNotifications);
@@ -66,7 +66,7 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> Initialize () {
             yield return Program.CreateDBTable(
                 "eventNotifications",
-                "( key TEXT PRIMARY KEY NOT NULL, sound TEXT, balloonTip BOOLEAN NOT NULL, messageBox BOOLEAN NOT NULL, jabberEndpoints TEXT )"
+                "( key TEXT PRIMARY KEY NOT NULL, sound TEXT, balloonTip BOOLEAN NOT NULL, messageBox BOOLEAN NOT NULL, endpoint TEXT )"
             );
         }
 
@@ -79,27 +79,28 @@ namespace ShootBlues.Script {
         }
 
         protected override IEnumerator<object> OnPreferencesChanged (EventInfo evt, string[] prefNames) {
+            var endpointNames = new HashSet<string>(GetEndpointNames());
+
             var cfgDict = new Dictionary<string, Dictionary<string, object>>();
 
             EventEntry[] ee = null;
-            using (var q = Program.Database.BuildQuery("SELECT * FROM eventNotifications WHERE key = ?"))
-            foreach (var eventName in DefinedEvents) {
-                var dict = new Dictionary<string, object>();
-
-                yield return q.ExecuteArray<EventEntry>(eventName).Bind(() => ee);
+            using (var q = Program.Database.BuildQuery("SELECT * FROM eventNotifications")) {
+                yield return q.ExecuteArray<EventEntry>().Bind(() => ee);
 
                 foreach (var el in ee) {
+                    var dict = new Dictionary<string, object>();
+
                     if (el.BalloonTip)
                         dict["balloonTip"] = true;
                     if (el.MessageBox)
                         dict["messageBox"] = true;
                     if (el.Sound != null)
                         dict["sound"] = el.Sound;
-                    if (el.JabberEndpoints != null)
-                        dict["jabberEndpoints"] = el.JabberEndpoints.Split(',');
-                }
+                    if ((el.Endpoint != null) && (endpointNames.Contains(el.Endpoint)))
+                        dict["endpoint"] = el.Endpoint;
 
-                cfgDict[eventName] = dict;
+                    cfgDict[el.Key] = dict;
+                }
             }
 
             var serializer = new JavaScriptSerializer();
@@ -123,6 +124,25 @@ namespace ShootBlues.Script {
         public override IEnumerator<object> OnStatusWindowHidden (IStatusWindow statusWindow) {
             statusWindow.HideConfigurationPanel("Event Notifications");
             yield break;
+        }
+
+        public string[] GetEndpointNames () {
+            var names = new HashSet<string>();
+
+            foreach (var instance in Program.GetScriptInstances<IMessageGateway>()) {
+                foreach (var name in instance.GetEndpoints())
+                    names.Add(name);
+            }
+
+            return names.ToArray();
+        }
+
+        public void SendToEndpoint (ProcessInfo process, string endpoint, string message) {
+            foreach (var instance in Program.GetScriptInstances<IMessageGateway>())
+                if (instance.Send(endpoint, message))
+                    return;
+
+            throw new Exception("No script could send your message to an endpoint of that name.");
         }
     }
 }

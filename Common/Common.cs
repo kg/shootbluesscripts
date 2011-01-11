@@ -401,6 +401,15 @@ namespace ShootBlues.Script {
             Console.WriteLine("Done playing {0}.", soundPath);
         }
 
+        public IEnumerator<object> AttachDB (ProcessInfo process, string filename, string attachAs) {
+            filename = System.IO.Path.GetFullPath(Path.Combine(
+                Program.GetDataFolder(),
+                filename
+            )).ToLowerInvariant();
+
+            yield return Program.AttachDB(filename, attachAs);
+        }
+
         public IEnumerator<object> CreateDBTable (ProcessInfo process, string tableName, string tableDef) {
             yield return Program.CreateDBTable(tableName, tableDef);
         }

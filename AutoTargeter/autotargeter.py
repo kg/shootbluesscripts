@@ -295,7 +295,8 @@ class AutoTargeterSvc:
             if (reason == None) and (tid in self.__balls):
                 ball = self.__balls[tid]
                 del self.__balls[tid]
-                self.__eligibleBalls.remove(ball)
+                if ball in self.__eligibleBalls:
+                    self.__eligibleBalls.remove(ball)
             if tid in self.__lockedTargets:
                 self.__lockedTargets.remove(tid) 
                 setItemColor(tid, None)

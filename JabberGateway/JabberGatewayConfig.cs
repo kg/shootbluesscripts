@@ -27,7 +27,7 @@ namespace ShootBlues.Script {
 
                 string[] names = null;
                 yield return Program.Database.ExecutePrimitiveArray<string>(
-                    "SELECT name FROM jabberEndpoints ORDER BY name ASC"
+                    "SELECT name FROM jabber.endpoints ORDER BY name ASC"
                 ).Bind(() => names);
 
                 List.Items.AddRange(names);
@@ -59,7 +59,7 @@ namespace ShootBlues.Script {
                     questionMarks[i] = "?";
 
                 using (var q = Program.Database.BuildQuery(String.Format(
-                    "REPLACE INTO jabberEndpoints ({0}) VALUES ({1})", String.Join(", ", columnNames), String.Join(", ", questionMarks)
+                    "REPLACE INTO jabber.endpoints ({0}) VALUES ({1})", String.Join(", ", columnNames), String.Join(", ", questionMarks)
                 )))
                     yield return q.ExecuteNonQuery(Mapper<EndpointSettings>.GetColumnValues(settings));
 
@@ -71,7 +71,7 @@ namespace ShootBlues.Script {
 
         private IEnumerator<object> RemoveEndpoint (string endpointName) {
             using (new ControlDisabler(this)) {
-                yield return Program.Database.ExecuteSQL("DELETE FROM jabberEndpoints WHERE name = ?", endpointName);
+                yield return Program.Database.ExecuteSQL("DELETE FROM jabber.endpoints WHERE name = ?", endpointName);
 
                 yield return LoadConfiguration();
 
@@ -82,7 +82,7 @@ namespace ShootBlues.Script {
         private IEnumerator<object> EditEndpoint (string endpointName) {
             EndpointSettings[] endpoints = null;
 
-            using (var q = Program.Database.BuildQuery("SELECT * FROM jabberEndpoints WHERE name = ?"))
+            using (var q = Program.Database.BuildQuery("SELECT * FROM jabber.endpoints WHERE name = ?"))
                 yield return q.ExecuteArray<EndpointSettings>(endpointName).Bind(() => endpoints);
 
             if ((endpoints == null) || (endpoints.Length == 0))

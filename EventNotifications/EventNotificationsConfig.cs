@@ -24,7 +24,7 @@ namespace ShootBlues.Script {
         public IEnumerator<object> LoadConfiguration () {
             using (new ControlWaitCursor(this)) {
                 DataGrid.RowCount = 0;
-                JabberEndpoints.Items.Clear();
+                Endpoints.Items.Clear();
 
                 EventEntry[] dbEvents = null;
                 yield return Program.Database.ExecuteArray<EventEntry>(
@@ -42,19 +42,13 @@ namespace ShootBlues.Script {
                 var newEvents = dict.Values.ToArray();
                 Array.Sort(newEvents, (lhs, rhs) => lhs.Key.CompareTo(rhs.Key));
 
-                try {
-                    var jg = Program.GetScriptInstance<JabberGateway>("JabberGateway.Script.dll");
-                    if (jg != null) {
-                        EndpointNames = jg.Endpoints.Keys.ToArray();
-
-                        JabberEndpoints.Items.Add(DBNull.Value);
-                        JabberEndpoints.Items.AddRange(EndpointNames);
-                        JabberEndpoints.Visible = true;
-                    } else {
-                        JabberEndpoints.Visible = false;
-                    }
-                } catch {
-                    JabberEndpoints.Visible = false;
+                EndpointNames = Script.GetEndpointNames();
+                if (EndpointNames.Length > 0) {
+                    Endpoints.Items.Add(DBNull.Value);
+                    Endpoints.Items.AddRange(EndpointNames);
+                    Endpoints.Visible = true;
+                } else {
+                    Endpoints.Visible = false;
                 }
 
                 EventData = newEvents;
@@ -85,8 +79,8 @@ namespace ShootBlues.Script {
                     e.Value = row.MessageBox;
                     break;
                 case 4:
-                    if (EndpointNames.Contains(row.JabberEndpoints))
-                        e.Value = row.JabberEndpoints;
+                    if (EndpointNames.Contains(row.Endpoint))
+                        e.Value = row.Endpoint;
                     else
                         e.Value = DBNull.Value;
                     break;
@@ -109,7 +103,7 @@ namespace ShootBlues.Script {
                     row.MessageBox = (bool)e.Value;
                     break;
                 case 4:
-                    row.JabberEndpoints = (string)e.Value;
+                    row.Endpoint = (string)e.Value;
                     break;
             }
 
@@ -117,10 +111,31 @@ namespace ShootBlues.Script {
         }
 
         protected IEnumerator<object> FlushRow (EventEntry row) {
-            using (var q = Program.Database.BuildQuery("REPLACE INTO eventNotifications (key, sound, balloonTip, messageBox, jabberEndpoints) VALUES (?, ?, ?, ?, ?)"))
-                yield return q.ExecuteNonQuery(row.Key, row.Sound, row.BalloonTip, row.MessageBox, row.JabberEndpoints);
+            using (var q = Program.Database.BuildQuery("REPLACE INTO eventNotifications (key, sound, balloonTip, messageBox, endpoint) VALUES (?, ?, ?, ?, ?)"))
+                yield return q.ExecuteNonQuery(row.Key, row.Sound, row.BalloonTip, row.MessageBox, row.Endpoint);
 
             Script.Preferences.Flush();
+        }
+
+        private void DataGrid_CellContentClick (object sender, DataGridViewCellEventArgs e) {
+            if (e.ColumnIndex != 0)
+                return;
+            
+            if ((e.RowIndex < 0) || (e.RowIndex >= EventData.Length))
+                return;
+
+            if (Program.RunningProcesses.Count == 0) {
+                System.Windows.Forms.MessageBox.Show(this, "Cannot test; no processes running.", "Error");
+                return;
+            }
+
+            var process = Program.RunningProcesses.First();
+
+            var dict = new Dictionary<string, object>();
+            dict["title"] = "Testing";
+            dict["text"] = "Test Notification";
+
+            Program.CallFunction(process, "eventnotifications", "handleEvent", process.Process.Id, EventData[e.RowIndex].Key, dict);
         }
     }
 }

@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Interfaces.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="EventNotifications.cs" />
     <Compile Include="EventNotificationsConfig.cs">
@@ -89,10 +90,6 @@
       <Project>{25141725-8333-425F-B5B6-7E096A19608E}</Project>
       <Name>ShootBlues</Name>
       <Private>False</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\JabberGateway\JabberGateway.csproj">
-      <Project>{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}</Project>
-      <Name>JabberGateway</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

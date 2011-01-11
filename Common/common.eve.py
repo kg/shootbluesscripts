@@ -306,7 +306,7 @@ def getTypeAttributes(typeID, obj=None):
     
     return result
 
-def canActivateModule(module, targetID=None):
+def canActivateOrDeactivateModule(module, targetID=None):
     import uix
     from common.eve.state import isItemInsideForceField
     
@@ -342,9 +342,6 @@ def canActivateModule(module, targetID=None):
     if not def_effect:
         return (False, "passive module")
     
-    if def_effect.isActive:
-        return (False, "already active")
-    
     if bool(getattr(module, "goingOnline", False)):
         return (False, "module going online")
     
@@ -366,6 +363,26 @@ def canActivateModule(module, targetID=None):
     
     if module.state == uix.UI_DISABLED:
         return (False, "button disabled")
+    
+    return None
+
+def canActivateModule(module, targetID=None):   
+    result = canActivateOrDeactivateModule(module, targetID)
+    if result is not None:
+        return result
+
+    if module.def_effect.isActive:
+        return (False, "already active")
+    
+    return (True, "")
+
+def canDeactivateModule(module):
+    result = canActivateOrDeactivateModule(module)
+    if result is not None:
+        return result
+
+    if not module.def_effect.isActive:
+        return (False, "not active")
     
     return (True, "")
 
@@ -415,6 +432,50 @@ def activateModule(module, pulse=False, targetID=None, actionThreshold=ActionThr
     finally:
         if oldautorepeat:
             module.SetRepeat(oldautorepeat)
+
+def deactivateModule(module, actionThreshold=ActionThreshold):
+    import blue
+    import base
+    import uix
+        
+    moduleInfo = module.sr.moduleInfo
+    moduleName = cfg.invtypes.Get(moduleInfo.typeID).name
+    
+    canDeactivate = canDeactivateModule(module)
+    if not canDeactivate[0]:
+        return canDeactivate
+    
+    def_effect = getattr(module, "def_effect", None)
+    
+    timestamp = blue.os.GetTime(1)
+    lastAction = int(getattr(module, "__last_action__", 0))
+    if (ActionThreshold is not None and 
+        abs(lastAction - timestamp) <= ActionThreshold):
+        return (False, "too soon to deactivate (lag protection)")
+    
+    setattr(module, "__last_action__", timestamp)
+            
+    try:
+        module.DeactivateEffect(effect=def_effect)
+        return (True, None)
+    except Exception, e:
+        log("Deactivating module %s failed: %r", moduleName, e)
+        return (False, "error")
+
+def isModuleActive(module, actionThreshold=ActionThreshold):
+    import blue
+
+    result = canActivateOrDeactivateModule(module)
+    if (result is not None) and (result[0] == False):
+        return None
+        
+    timestamp = blue.os.GetTime(1)
+    lastAction = int(getattr(module, "__last_action__", 0))
+    if (ActionThreshold is not None and 
+        abs(lastAction - timestamp) <= ActionThreshold):
+        return None
+    
+    return module.def_effect.isActive
 
 class MainThreadInvoker(object):
     __notifyevents__ = [

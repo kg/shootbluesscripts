@@ -39,6 +39,7 @@ class DroneInfo(object):
         ci = getCachedItem(droneID)
         
         self.ci = ci
+        self.slimItem = ci.slimItem
         self.target = None
         self.actionTimestamp = self.timestamp = 0
         self.shield = self.armor = self.structure = 1.0
@@ -53,10 +54,6 @@ class DroneInfo(object):
     @property
     def ball(self):
         return self.ci.ball
-    
-    @property
-    def slimItem(self):
-        return self.ci.slimItem
     
     def setState(self, newState, timestamp):
         if timestamp > self.timestamp:
@@ -421,13 +418,14 @@ class DroneHelperSvc:
             
             ts, obj = self.__recalled[0]
             while ts + redeployAfter <= timestamp:
-                slimItem = ballpark.GetInvItem(obj.id)
+                slimItem = obj.slimItem
                 if not slimItem:
-                    slimItem = sm.services["godma"].GetItem(obj.id)
-                if slimItem:
-                    dronesToRelaunch.append(slimItem)
-                
+                    log("Could not get item for id %r", obj.id)
+                    break
+                    
+                dronesToRelaunch.append(slimItem)                
                 self.__recalled.pop(0)
+                
                 if len(self.__recalled):
                     ts, obj = self.__recalled[0]
                 else:
