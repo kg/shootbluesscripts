@@ -152,7 +152,8 @@ namespace ShootBlues.Script {
 
             while (true) {
                 var fNext = channel.Receive();
-                yield return fNext;
+                using (fNext)
+                    yield return fNext;
 
                 MessageData mdata;
                 try {
@@ -184,7 +185,9 @@ namespace ShootBlues.Script {
 
             while (true) {
                 var fNext = queue.Dequeue();
-                yield return fNext;
+
+                using (fNext)
+                    yield return fNext;
 
                 var msg = fNext.Result;
                 // Result intentionally discarded
@@ -202,7 +205,8 @@ namespace ShootBlues.Script {
 
             while (true) {
                 var fNext = channel.Receive();
-                yield return fNext;
+                using (fNext)
+                    yield return fNext;
 
                 LogPrint(process, fNext.Result.DecodeAsciiZ());
 
@@ -222,7 +226,7 @@ namespace ShootBlues.Script {
                 logText = String.Format("{0:HH:mm:ss}: {1}", DateTime.Now, text);
 
             Log.Add(logText);
-            Console.WriteLine(logText);
+            Console.WriteLine(logText.Replace('\0', ' '));
             if (LogWindowInstance != null)
                 LogWindowInstance.AddLine(logText);
         }
@@ -240,7 +244,8 @@ namespace ShootBlues.Script {
 
             while (true) {
                 var fNext = channel.Receive();
-                yield return fNext;
+                using (fNext)
+                    yield return fNext;
 
                 object[] callTuple = serializer.Deserialize<object[]>(fNext.Result.DecodeAsciiZ());
                 string scriptName = callTuple[0] as string;

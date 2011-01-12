@@ -85,7 +85,9 @@ namespace ShootBlues.Script {
 
             while (true) {
                 var nextItem = Queue.Dequeue();
-                yield return nextItem;
+
+                using (nextItem)
+                    yield return nextItem;
 
                 yield return sleep;
 

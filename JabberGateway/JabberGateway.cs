@@ -226,7 +226,9 @@ namespace ShootBlues.Script {
 
             while (true) {
                 var f = Queue.Dequeue();
-                yield return f;
+
+                using (f)
+                    yield return f;
 
                 if (pendingSend != null)
                     yield return pendingSend;
