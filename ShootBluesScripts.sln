@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventNotifications", "Event
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JabberGateway", "JabberGateway\JabberGateway.csproj", "{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoonfleetGateway", "GoonfleetGateway\GoonfleetGateway.csproj", "{D99FE0C3-4E60-40B2-85A7-CB479CDF7FF7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -109,6 +111,10 @@ Global
 		{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}.Debug|x86.Build.0 = Debug|x86
 		{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}.Release|x86.ActiveCfg = Release|x86
 		{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}.Release|x86.Build.0 = Release|x86
+		{D99FE0C3-4E60-40B2-85A7-CB479CDF7FF7}.Debug|x86.ActiveCfg = Debug|x86
+		{D99FE0C3-4E60-40B2-85A7-CB479CDF7FF7}.Debug|x86.Build.0 = Debug|x86
+		{D99FE0C3-4E60-40B2-85A7-CB479CDF7FF7}.Release|x86.ActiveCfg = Release|x86
+		{D99FE0C3-4E60-40B2-85A7-CB479CDF7FF7}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

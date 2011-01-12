@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{A0CB0C2D-8768-4E72-80E5-3857F3000AB8}</ProjectGuid>
+    <ProjectGuid>{D99FE0C3-4E60-40B2-85A7-CB479CDF7FF7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ShootBlues.Script</RootNamespace>
-    <AssemblyName>JabberGateway.Script</AssemblyName>
+    <AssemblyName>GoonfleetGateway.Script</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -30,51 +30,33 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Coversant.SoapBox, Version=4.3.560.1224, Culture=neutral, PublicKeyToken=529599436fd667ae, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\ext\soapbox\Coversant.SoapBox.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Web.Extensions">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Data.DataSetExtensions">
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AddEndpointDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="AddEndpointDialog.Designer.cs">
-      <DependentUpon>AddEndpointDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="JabberExtensions.cs" />
-    <Compile Include="JabberGateway.cs" />
-    <Compile Include="JabberGatewayConfig.cs">
+    <Compile Include="GoonfleetGateway.cs" />
+    <Compile Include="GoonfleetGatewayConfig.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="JabberGatewayConfig.Designer.cs">
-      <DependentUpon>JabberGatewayConfig.cs</DependentUpon>
+    <Compile Include="GoonfleetGatewayConfig.designer.cs">
+      <DependentUpon>GoonfleetGatewayConfig.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="jabber.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Fracture\Squared\TaskLib\Squared.Task.csproj">
@@ -85,7 +67,6 @@
     <ProjectReference Include="..\..\Fracture\Squared\Util\Squared.Util.csproj">
       <Project>{D7F549CF-E0A6-491C-A78C-ECAB590BB2A7}</Project>
       <Name>Squared.Util</Name>
-      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\ShootBlues\ShootBlues.csproj">
       <Project>{25141725-8333-425F-B5B6-7E096A19608E}</Project>
@@ -104,15 +85,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="AddEndpointDialog.resx">
-      <DependentUpon>AddEndpointDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="JabberGatewayConfig.resx">
-      <DependentUpon>JabberGatewayConfig.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    <EmbeddedResource Include="GoonfleetGatewayConfig.resx">
+      <DependentUpon>GoonfleetGatewayConfig.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
