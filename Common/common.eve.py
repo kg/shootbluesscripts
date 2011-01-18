@@ -60,7 +60,7 @@ def getCharacterName(charID):
         return char.name
 
 def isPlayerJumping():
-    return ("jumping" in eve.session.sessionChangeReason) and (eve.session.changing)
+    return eve.session.changing
 
 def isBallWarping(ball):
     import destiny
@@ -298,7 +298,7 @@ def getTypeAttributes(typeID, obj=None):
         return result
             
     for attrib in attribs:
-        attribName = cfg.dgmattribs.get(attrib.attributeID, None).attributeName
+        attribName = cfg.dgmattribs.Get(attrib.attributeID).attributeName
         value = attrib.value
         if obj:
             value = getattr(obj, attribName, value)

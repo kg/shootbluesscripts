@@ -67,6 +67,9 @@ class ItemDataCache(object):
             slimItem = self.slimItem
             self._flag = None
             
+            if not slimItem:
+                return None
+            
             if slimItem.categoryID in TargetableCategories:
                 stateSvc = sm.services["state"]
                 props = stateSvc.GetProps()
@@ -117,6 +120,14 @@ def installStateMonitor():
             self.objectCache = {}
             
             runOnMainThread(self.populateBalls)
+        
+        def dispose(self):
+            for ci in self.objectCache.values():
+                ci.removedFromBallpark()
+                ci.clearFlag()
+        
+            self.forceFields = []
+            self.objectCache = {}
         
         def flushCacheFor(self, id):
             if self.objectCache.has_key(id):
@@ -223,6 +234,7 @@ def isItemInsideForceField(itemID):
 def __unload__():
     global serviceInstance
     if serviceInstance:
+        serviceInstance.dispose()
         from shootblues.common.service import forceStop
         forceStop("statemonitor")
         serviceInstance = None

@@ -57,6 +57,7 @@ class AutoTargeterSvc:
     def __init__(self):
         self.disabled = False
         self.__updateTimer = SafeTimer(1000, self.updateTargets)
+        self.__repopulateEligible = SafeTimer(60000, self.populateEligibleBalls)
         self.__balls = {}
         self.__eligibleBalls = set()
         self.__lockedTargets = set()
@@ -265,11 +266,13 @@ class AutoTargeterSvc:
                 self.__eligibleBalls.add(bi)
     
     def populateEligibleBalls(self):
-        self.__eligibleBalls = set()
+        newset = set()
         
         for ballInfo in self.__balls.itervalues():
             if self.isEligible(ballInfo):
-                self.__eligibleBalls.add(ballInfo)
+                newset.add(ballInfo)
+        
+        self.__eligibleBalls = newset
     
     def DoBallRemove(self, ball, slimItem, *args, **kwargs):
         if not slimItem:
