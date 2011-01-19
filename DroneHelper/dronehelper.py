@@ -87,7 +87,6 @@ class DroneHelperSvc:
     def __init__(self):
         self.__drones = {}
         self.__pendingStateChanges = {}
-        self.__updateTimer = None
         self.__lastAttackOrder = None
         self.__recalling = set()
         self.__recalled = []
@@ -473,7 +472,7 @@ class DroneHelperSvc:
             drone = DroneInfo(droneID)
             self.__drones[droneID] = drone
         
-        return drone    
+        return drone
     
     def OnDroneStateChange2(self, droneID, oldActivityState, newActivityState, timestamp=None):       
         if not timestamp:

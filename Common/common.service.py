@@ -48,7 +48,7 @@ def forceStop(serviceName):
             del runningServices[serviceName]
             ne = getattr(serviceInstance, "__notifyevents__", [])
             for evt in ne:
-                nl = sm.notify.get(evt, [])
+                nl = sm.notify.setdefault(evt, list())
                 if serviceInstance in nl:
                     nl.remove(serviceInstance)
     finally:
@@ -77,7 +77,7 @@ def forceStart(serviceName, serviceType):
                 if (not hasattr(result, evt)):
                     log("Missing event handler for %r on %r", evt, result)
                 else:
-                    nl = sm.notify.get(evt, [])
+                    nl = sm.notify.setdefault(evt, list())
                     nl.append(result)
         
         return result
