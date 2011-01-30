@@ -87,19 +87,21 @@ class WeaponHelperSvc:
         result = []
         
         cannotHit = set()
+        minChanceToHit = float(getPref("MinimumChanceToHit", 1)) / 100.0
         
         for id in ids:
             invItem = ballpark.GetInvItem(id)
             if not invItem:
                 continue
                 
-            if getFlagName(id) != "HostileNPC":
+            flag = getFlagName(id)
+            if (flag != "HostileNPC") and (flag is not None):
                 continue
             
             if getPriority(id) < 0:
                 continue
             
-            if chanceToHitGetter(id) <= 0:
+            if chanceToHitGetter(id) < minChanceToHit:
                 cannotHit.add(id)
                 continue
                 

@@ -88,6 +88,7 @@ class DroneHelperSvc:
         self.__drones = {}
         self.__pendingStateChanges = {}
         self.__lastAttackOrder = None
+        self.__lastLaunchTimestamp = 0
         self.__recalling = set()
         self.__recalled = []
         self.__numFighters = 0
@@ -106,21 +107,45 @@ class DroneHelperSvc:
             divisor = 1.0
             
         avg = 0
-        for id in drones:
+        for id in drones.iterkeys():
             avg += ballpark.DistanceBetween(id, targetID)
                     
         return avg / divisor
         
     def getDronesInLocalSpace(self):
+        result = {}
+    
         ballpark = eve.LocalSvc("michelle").GetBallpark()
         if ballpark is None:
-            return []
+            return result
         
         drones = eve.LocalSvc("michelle").GetDrones()
-        return [droneID for droneID in drones if (
-            (droneID in ballpark.slimItems) and
-            ((drones[droneID].ownerID == eve.session.charid) or (drones[droneID].controllerID == eve.session.shipid))
-        )]
+        for droneID in drones.iterkeys():
+            drone = drones[droneID]
+            
+            if not ballpark.slimItems.has_key(droneID):
+                continue
+            if drone.ownerID != eve.session.charid:
+                continue
+            if drone.controllerID != eve.session.shipid:
+                continue
+            
+            result[droneID] = drone
+        
+        return result
+    
+    def getDronesInLocalSpaceByGroup(self):
+        dronesInSpace = self.getDronesInLocalSpace()
+        groups = self.getDroneGroups()
+        
+        result = {}
+        
+        for k in groups.iterkeys():
+            s = set([id for id in groups[k] if dronesInSpace.has_key(id)])
+            if len(s):
+                result[k] = s
+        
+        return result
     
     def getDroneControlRange(self):
         godma = eve.LocalSvc("godma")
@@ -135,6 +160,54 @@ class DroneHelperSvc:
             char.droneControlDistance
         ) * fighterRangeMultiplier)
         return result
+    
+    def getDronesInBay(self):
+        baylist = eve.GetInventoryFromId(eve.session.shipid).ListDroneBay()
+        
+        result = {}
+        for i in baylist:
+            result[i.itemID] = i
+        
+        return result
+    
+    def getDroneGroups(self):
+        result = {}
+        
+        droneview = uicore.desktop.FindChild("droneview")
+        if not droneview:
+            return result
+        
+        groups = getattr(droneview, "groups", None)
+        if not groups:
+            return result
+               
+        dronesInBay = self.getDronesInBay()
+        dronesInSpace = self.getDronesInLocalSpace()
+        
+        for k, v in groups.iteritems():
+            ids = v.get("droneIDs", None)
+            if ids:
+                result[k] = tuple([
+                    i for i in ids if (
+                        dronesInBay.has_key(i) or dronesInSpace.has_key(i)
+                    )
+                ])
+            else:
+                result[k] = tuple()
+        
+        return result
+    
+    def launchNamedGroup(self, name):
+        groups = self.getDroneGroups()
+        ids = groups.get(name, None)
+        if ids and len(ids):
+            self.doLaunch(*ids)
+    
+    def recallNamedGroup(self, name):
+        groups = self.getDronesInLocalSpaceByGroup()
+        ids = groups.get(name, None)
+        if ids and len(ids):
+            self.doRecall(*ids)
     
     def getCommonTarget(self, filtered=True):
         ballpark = eve.LocalSvc("michelle").GetBallpark()
@@ -237,7 +310,8 @@ class DroneHelperSvc:
             if not (id in targetSvc.targets):
                 continue
             
-            if getFlagName(id) != "HostileNPC":
+            flag = getFlagName(id)
+            if (flag != "HostileNPC") and (flag is not None):
                 continue
             
             if getPriority(id) < 0:
@@ -285,12 +359,12 @@ class DroneHelperSvc:
             else:
                 targetName = "Unknown"
             
-            drones = self.getDronesInLocalSpace()
+            drones = list(self.getDronesInLocalSpace().keys())
             for id in dronesToAttack:
                 if id not in drones:
                     drones.append(id)
                 
-            for id in list(drones):            
+            for id in list(drones):
                 droneObj = self.getDroneObject(id)
                 if ((droneObj.state == const.entityDeparting) or
                     (droneObj.state == const.entityDeparting2) or
@@ -354,7 +428,24 @@ class DroneHelperSvc:
                     droneObj = self.getDroneObject(droneID)
                     droneObj.setState(const.entityDeparting, timestamp)
                     droneObj.actionTimestamp = timestamp
-                    self.__recalling.add(droneObj)
+                    self.__recalling.add(droneObj.id)
+    
+    def doLaunch(self, *dronesToLaunch):
+        if self.disabled:
+            return
+        
+        dronesToLaunch = list(dronesToLaunch)
+        timestamp = blue.os.GetTime(1)
+        
+        #if (timestamp - self.__lastLaunchTimestamp) < ActionThreshold:
+        #    return
+    
+        dronesInBay = self.getDronesInBay()        
+        droneObjs = [dronesInBay[id] for id in dronesToLaunch if dronesInBay.has_key(id)]
+        
+        log("Launching %d drone(s)", len(droneObjs))
+        self.__lastLaunchTimestamp = timestamp
+        sm.services["menu"].LaunchDrones(droneObjs)
     
     def updateDrones(self):
         if self.disabled:
@@ -374,7 +465,7 @@ class DroneHelperSvc:
                 self.__lastAttackOrder = None
         
         timestamp = blue.os.GetTime(1)
-        droneIDs = self.getDronesInLocalSpace()
+        droneIDs = set(self.getDronesInLocalSpace().keys())
         dronesToRecall = []
         dronesToAttack = []
         
@@ -415,24 +506,18 @@ class DroneHelperSvc:
             redeployAfter = int(float(getPref("RedeployAfterSeconds", 30.0)) * 10000000)
             dronesToRelaunch = []
             
-            ts, obj = self.__recalled[0]
-            while ts + redeployAfter <= timestamp:
-                slimItem = obj.slimItem
-                if not slimItem:
-                    log("Could not get item for id %r", obj.id)
-                    break
-                    
-                dronesToRelaunch.append(slimItem)                
+            ts, id = self.__recalled[0]
+            while ts + redeployAfter <= timestamp:                    
+                dronesToRelaunch.append(id)
                 self.__recalled.pop(0)
                 
                 if len(self.__recalled):
-                    ts, obj = self.__recalled[0]
+                    ts, id = self.__recalled[0]
                 else:
                     break
             
             if len(dronesToRelaunch):
-                log("Relaunching %d drone(s)", len(dronesToRelaunch))
-                sm.services["menu"].LaunchDrones(dronesToRelaunch)                    
+                self.doLaunch(*dronesToRelaunch)
                 
         if len(dronesToRecall):
             for id in dronesToRecall:
@@ -478,7 +563,7 @@ class DroneHelperSvc:
         if not timestamp:
             timestamp = blue.os.GetTime(1)
     
-        dronesInLocal = self.getDronesInLocalSpace()
+        dronesInLocal = set(self.getDronesInLocalSpace().keys())
         if droneID not in dronesInLocal:
             self.__pendingStateChanges[droneID] = (timestamp, oldActivityState, newActivityState)
             return
@@ -512,9 +597,9 @@ class DroneHelperSvc:
         drone = self.getDroneObject(droneID)
         drone.setState(None, timestamp)
         
-        if drone in self.__recalling:
-            self.__recalling.remove(drone)
-            self.__recalled.append((timestamp, drone))
+        if drone.id in self.__recalling:
+            self.__recalling.remove(drone.id)
+            self.__recalled.append((timestamp, drone.id))
             self.__recalled.sort()
         
         if self.__drones.has_key(droneID):

@@ -16,6 +16,8 @@ namespace ShootBlues.Script {
             InitializeComponent();
 
             Prefs = new IBoundMember[] {
+                BoundMember.New(() => PreferMyTargets.Checked),
+                BoundMember.New(() => MinimumChanceToHit.Value)
             };
         }
     }

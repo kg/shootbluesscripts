@@ -247,7 +247,8 @@ class AutoTargeterSvc:
             (getPref("TargetHostileNPCs", False) and cachedItem.flag in FlagHostileNPC) or
             (getPref("TargetHostilePlayers", False) and cachedItem.flag in FlagHostilePlayer) or
             (getPref("TargetNeutralPlayers", False) and cachedItem.flag in FlagNeutralPlayer) or
-            (getPref("TargetFriendlyPlayers", False) and cachedItem.flag in FlagFriendlyPlayer)
+            (getPref("TargetFriendlyPlayers", False) and cachedItem.flag in FlagFriendlyPlayer) or
+            ((cachedItem.flag is None) and (getPriority(cachedItem.id) > 0))
         )
     
     def _DoBallsAdded(self, lst):
