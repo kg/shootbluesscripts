@@ -25,7 +25,8 @@ WeaponGroupNames = [
     "Missile Launcher Cruise", "Missile Launcher Defender", 
     "Missile Launcher Heavy", "Missile Launcher Heavy Assault", 
     "Missile Launcher Rocket", "Missile Launcher Siege", 
-    "Missile Launcher Standard", "Projectile Weapon"
+    "Missile Launcher Standard", "Projectile Weapon", 
+    "Target Painter"
 ]
 
 def getPref(key, default):

@@ -149,6 +149,16 @@ class ChanceToHitCalculator(object):
         
             self.calculate = self.calculateLauncher
     
+        elif moduleAttrs.has_key("falloff"):
+            # ECM
+            
+            self.optimal = float(moduleAttrs["maxRange"])
+            self.falloff = float(moduleAttrs["falloff"])
+        
+            self.calculate = self.calculateECM
+
+
+
     def calculateNone(self, targetID, **kwargs):
         return 0.0
     
@@ -192,6 +202,21 @@ class ChanceToHitCalculator(object):
         resolutionFactor = self.sigResolution / targetRadius
                         
         result = 0.5 ** (((trackingFactor * resolutionFactor) ** 2) + (distanceFactor ** 2))
+        
+        return result    
+    
+    def calculateECM(self, targetID, velocityModifier=1.0, radiusModifier=1.0):
+        import blue, foo
+        from common.eve.state import getCachedItem
+        target = getCachedItem(targetID)
+        
+        ballpark = sm.services["michelle"].GetBallpark()        
+        now = blue.os.GetTime()
+        
+        distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
+        distanceFactor = max(0.0, distance - self.optimal) / self.falloff
+        
+        result = 0.5 ** (distanceFactor ** 2)
         
         return result    
     
