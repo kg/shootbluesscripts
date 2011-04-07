@@ -211,7 +211,6 @@ class ChanceToHitCalculator(object):
         target = getCachedItem(targetID)
         
         ballpark = sm.services["michelle"].GetBallpark()        
-        now = blue.os.GetTime()
         
         distance = max(ballpark.DistanceBetween(eve.session.shipid, targetID), 0.00001)
         distanceFactor = max(0.0, distance - self.optimal) / self.falloff
