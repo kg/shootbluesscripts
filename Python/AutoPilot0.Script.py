@@ -13,7 +13,7 @@ def _MonikeredCall(self, call, sess):
     if methodName == "WarpToStuffAutopilot":
         methodName = "WarpToStuff"
         args = ('item', args[0])
-        kwargs = {'throttleCalls': True, 'minRange': 0}
+        kwargs = {'minRange': 0}
         log("Intercepting autopilot warp attempt")
         return oldMonikeredCall(self, (methodName, args, kwargs), sess)
     else:

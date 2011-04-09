@@ -24,10 +24,10 @@
         /// </summary>
         private void InitializeComponent () {
             this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.PreferMyTargets = new System.Windows.Forms.CheckBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.MinimumChanceToHit = new System.Windows.Forms.NumericUpDown();
             this.label1 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
-            this.PreferMyTargets = new System.Windows.Forms.CheckBox();
             this.groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.MinimumChanceToHit)).BeginInit();
             this.SuspendLayout();
@@ -49,9 +49,28 @@
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Target Selection";
             // 
+            // PreferMyTargets
+            // 
+            this.PreferMyTargets.AutoSize = true;
+            this.PreferMyTargets.Enabled = false;
+            this.PreferMyTargets.Location = new System.Drawing.Point(10, 54);
+            this.PreferMyTargets.Name = "PreferMyTargets";
+            this.PreferMyTargets.Size = new System.Drawing.Size(263, 20);
+            this.PreferMyTargets.TabIndex = 4;
+            this.PreferMyTargets.Text = "Prefer targets I\'m already attacking";
+            this.PreferMyTargets.UseVisualStyleBackColor = true;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(7, 26);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(163, 16);
+            this.label2.TabIndex = 3;
+            this.label2.Text = "Minimum chance to hit:";
+            // 
             // MinimumChanceToHit
             // 
-            this.MinimumChanceToHit.Enabled = false;
             this.MinimumChanceToHit.Location = new System.Drawing.Point(171, 24);
             this.MinimumChanceToHit.Margin = new System.Windows.Forms.Padding(4);
             this.MinimumChanceToHit.Name = "MinimumChanceToHit";
@@ -71,27 +90,6 @@
             this.label1.Size = new System.Drawing.Size(21, 16);
             this.label1.TabIndex = 2;
             this.label1.Text = "%";
-            // 
-            // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(7, 26);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(163, 16);
-            this.label2.TabIndex = 3;
-            this.label2.Text = "Minimum chance to hit:";
-            // 
-            // PreferMyTargets
-            // 
-            this.PreferMyTargets.AutoSize = true;
-            this.PreferMyTargets.Checked = true;
-            this.PreferMyTargets.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.PreferMyTargets.Location = new System.Drawing.Point(10, 54);
-            this.PreferMyTargets.Name = "PreferMyTargets";
-            this.PreferMyTargets.Size = new System.Drawing.Size(263, 20);
-            this.PreferMyTargets.TabIndex = 4;
-            this.PreferMyTargets.Text = "Prefer targets I\'m already attacking";
-            this.PreferMyTargets.UseVisualStyleBackColor = true;
             // 
             // WeaponHelperConfig
             // 
