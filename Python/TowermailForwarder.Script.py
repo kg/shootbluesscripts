@@ -33,7 +33,12 @@ def strip_tags(html):
     s.feed(html)
     return s.get_data()
 
-def getName(o):
+def getName(collection, index):
+    try:
+      o = collection.Get(index)
+    except:
+      return "None"
+    
     if o:
         return o.name
     else:
@@ -53,11 +58,11 @@ class TowermailSvc:
         data["subject"] = strip_tags(str(n.subject))
         data["body"] = strip_tags(str(n.body))
         data["timestamp"] = util.FmtDate(n.created)
-        data["moonName"] = getName(cfg.evelocations.Get(n.data["moonID"]))
-        data["typeName"] = getName(cfg.invtypes.Get(n.data["typeID"]))
-        data["aggressorName"] = getName(cfg.eveowners.Get(n.data["aggressorID"]))
-        data["aggressorCorpName"] = getName(cfg.eveowners.Get(n.data["aggressorCorpID"]))
-        data["aggressorAllianceName"] = getName(cfg.eveowners.Get(n.data["aggressorAllianceID"]))
+        data["moonName"] = getName(cfg.evelocations, n.data["moonID"])
+        data["typeName"] = getName(cfg.invtypes, n.data["typeID"])
+        data["aggressorName"] = getName(cfg.eveowners, n.data["aggressorID"])
+        data["aggressorCorpName"] = getName(cfg.eveowners, n.data["aggressorCorpID"])
+        data["aggressorAllianceName"] = getName(cfg.eveowners, n.data["aggressorAllianceID"])
         data["shieldPercentage"] = int(float(n.data["shieldValue"]) * 100)
         return [l.format(**data) for l in TowermailFormat]
     
