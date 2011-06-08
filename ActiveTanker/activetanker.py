@@ -1,6 +1,6 @@
 ﻿import shootblues
 from shootblues.common import log
-from shootblues.common.eve import SafeTimer, findModule, getModuleAttributes, activateModule
+from shootblues.common.eve import SafeTimer, findModule, getModuleAttributes, activateModule, isLoggedIn
 from shootblues.common.service import forceStart, forceStop
 import service
 import json
@@ -43,6 +43,9 @@ class ActiveTankerSvc:
     def updateHealth(self):
         if self.disabled:
             self.__updateTimer = None
+            return
+
+        if not isLoggedIn():
             return
         
         ship = eve.LocalSvc("godma").GetItem(eve.session.shipid)

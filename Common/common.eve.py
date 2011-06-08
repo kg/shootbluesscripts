@@ -29,9 +29,12 @@ def getNamesOfIDs(ids):
                 invtype = cfg.invtypes.Get(godmaItem.typeID)                
                 return invtype.name
         
-        typeInfo = cfg.invtypes.Get(id)
-        if typeInfo:
-            return typeInfo.name
+        try:
+            typeInfo = cfg.invtypes.Get(id)
+            if typeInfo:
+                return typeInfo.name
+        except KeyError:
+            pass
 
         return repr(id)
     
@@ -50,6 +53,10 @@ def getNamesOfIDs(ids):
 def getFlagName(id, slimItem=None):
     from shootblues.common.eve.state import getCachedItem
     return getCachedItem(id=id, slimItem=slimItem).flag
+
+def isLoggedIn():
+    from shootblues.common.eve.charmonitor import serviceInstance
+    return (serviceInstance != None) and (serviceInstance.loggedInCharacter != None)
 
 def getCharacterName(charID):
     if not charID:
