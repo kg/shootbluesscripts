@@ -339,6 +339,8 @@ def getTypeAttributes(typeID, obj=None):
 
 def canActivateOrDeactivateModule(module, targetID=None):
     import uix
+    import triui
+
     from common.eve.state import isItemInsideForceField
     
     moduleInfo = module.sr.moduleInfo
@@ -392,7 +394,9 @@ def canActivateOrDeactivateModule(module, targetID=None):
     if getattr(module, "blockClick", 0) != 0:
         return (False, "module clicks blocked")
     
-    if module.state == uix.UI_DISABLED:
+    #UI_DISABLED is a constant that equals 1
+    #CCP appears to like to move these state constants
+    if module.state == triui.UI_DISABLED:
         return (False, "button disabled")
     
     return None
