@@ -153,6 +153,9 @@ class AutoTargeterSvc:
         targetSvc = sm.services.get('target', None)
         if not targetSvc:
             return
+        
+        targetSvc_targeting = [long(k) for k in targetSvc.targeting.keys()]
+        targetSvc_autoTargeting = [long(k) for k in targetSvc.autoTargeting]
             
         maxTargets = self.getMaxTargets()
         if maxTargets <= 0:
@@ -167,18 +170,18 @@ class AutoTargeterSvc:
         currentTargets = [self.__balls.get(id, None) for id in self.__lockedTargets 
             if id in targetSvc.targets]
         currentTargets = [bi.id for bi in self.filterTargets(currentTargets, gp, gd)]
-        exclusionSet = set(targetSvc.targeting + targetSvc.autoTargeting + currentTargets)
+        exclusionSet = set(targetSvc_targeting + targetSvc_autoTargeting + currentTargets)
         targetSorter = self.makeTargetSorter(exclusionSet, gp, gd)
         
         targets = self.filterTargets(self.__eligibleBalls, gp, gd)        
         targets.sort(targetSorter)
                 
         currentlyTargeting = set([
-            id for id in (targetSvc.targeting + targetSvc.autoTargeting) 
+            id for id in (targetSvc_targeting + targetSvc_autoTargeting) 
             if id in self.__lockedTargets
         ])
         
-        allLockedTargets = set(targetSvc.targeting + targetSvc.autoTargeting + targetSvc.targets)
+        allLockedTargets = set(targetSvc_targeting + targetSvc_autoTargeting + targetSvc.targets)
         maxNewTargets = max(maxTargets - len(allLockedTargets), 0)
         targets = set([bi.id for bi in targets[0:maxAutoTargets]])
         
